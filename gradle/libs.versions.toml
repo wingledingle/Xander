@@ -19,16 +19,13 @@ coroutines = "1.10.2"
 serialization = "1.9.0"
 okhttp = "4.12.0"
 smbj = "0.14.0"
-jcifs = "2.1.10"
 commonsNet = "3.11.1"
 sshj = "0.39.0"
 compress = "1.28.0"
 zip4j = "2.11.5"
 xz = "1.10"
-junrar = "7.5.5"
 libsu = "6.0.0"
 shizuku = "13.1.5"
-nanohttpd = "2.3.1"
 appauth = "0.11.1"
 playAuth = "21.4.0"
 cast = "22.1.0"
@@ -99,18 +96,15 @@ serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-jso
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "okhttp" }
 smbj = { module = "com.hierynomus:smbj", version.ref = "smbj" }
-jcifs = { module = "eu.agno3.jcifs:jcifs-ng", version.ref = "jcifs" }
 commons-net = { module = "commons-net:commons-net", version.ref = "commonsNet" }
 sshj = { module = "com.hierynomus:sshj", version.ref = "sshj" }
 commons-compress = { module = "org.apache.commons:commons-compress", version.ref = "compress" }
 zip4j = { module = "net.lingala.zip4j:zip4j", version.ref = "zip4j" }
 xz = { module = "org.tukaani:xz", version.ref = "xz" }
-junrar = { module = "com.github.junrar:junrar", version.ref = "junrar" }
 libsu-core = { module = "com.github.topjohnwu.libsu:core", version.ref = "libsu" }
 libsu-io = { module = "com.github.topjohnwu.libsu:io", version.ref = "libsu" }
 shizuku-api = { module = "dev.rikka.shizuku:api", version.ref = "shizuku" }
 shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizuku" }
-nanohttpd = { module = "org.nanohttpd:nanohttpd", version.ref = "nanohttpd" }
 appauth = { module = "net.openid:appauth", version.ref = "appauth" }
 play-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playAuth" }
 cast-framework = { module = "com.google.android.gms:play-services-cast-framework", version.ref = "cast" }
