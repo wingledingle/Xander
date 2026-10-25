@@ -94,6 +94,16 @@ import com.xander.files.domain.fs.FsPath
 import com.xander.files.ui.common.ConfirmDialog
 import com.xander.files.ui.common.EmptyState
 import com.xander.files.ui.common.TextInputDialog
+import com.xander.files.ui.ops.ActionSheet
+import com.xander.files.ui.ops.DeleteDialog
+import com.xander.files.ui.ops.PropertiesDialog
+import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 private sealed interface Dialog {
     data object NewFolder : Dialog
@@ -101,6 +111,8 @@ private sealed interface Dialog {
     data class Rename(val entry: FileEntry) : Dialog
     data class Delete(val entries: List<FileEntry>) : Dialog
     data object EditPath : Dialog
+    data class Properties(val entries: List<FileEntry>) : Dialog
+    data class Actions(val entries: List<FileEntry>) : Dialog
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -108,15 +120,18 @@ private sealed interface Dialog {
 fun BrowserScreen(
     onExit: () -> Unit,
     onSearch: (FsPath) -> Unit,
+    onOpenClipboard: (FsPath) -> Unit = {},
     vm: BrowserViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
+    val clips by vm.clipItems.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var dialog by remember { mutableStateOf<Dialog?>(null) }
     var menu by remember { mutableStateOf(false) }
     var sortMenu by remember { mutableStateOf(false) }
     var fabMenu by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         vm.events.collect { e ->
@@ -129,6 +144,7 @@ fun BrowserScreen(
     }
 
     BackHandler { if (!vm.back()) onExit() }
+    LaunchedEffect(Unit) { for (req in vm.deleteRequests) dialog = Dialog.Delete(req) }
 
     // SAF tree grant for restricted folders (Android 11/12) and SD cards on old releases.
     var pendingKind by remember { mutableStateOf(SafRootKind.FOLDER) }
@@ -147,21 +163,12 @@ fun BrowserScreen(
                     title = { Text("${state.selection.size}") },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                     actions = {
-                        IconButton(onClick = vm::selectAll) { Icon(Icons.Filled.SelectAll, stringResource(R.string.select_all)) }
                         val sel = vm.selectedEntries()
-                        if (sel.size == 1) IconButton(onClick = { dialog = Dialog.Rename(sel.first()) }) {
-                            Icon(Icons.Filled.DriveFileRenameOutline, stringResource(R.string.rename))
-                        }
+                        IconButton(onClick = { vm.copy(sel, cut = false) }) { Icon(Icons.Filled.ContentCopy, stringResource(R.string.copy)) }
+                        IconButton(onClick = { vm.copy(sel, cut = true) }) { Icon(Icons.Filled.ContentCut, stringResource(R.string.cut)) }
                         IconButton(onClick = { dialog = Dialog.Delete(sel) }) { Icon(Icons.Filled.Delete, stringResource(R.string.delete)) }
-                        Box {
-                            IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, null) }
-                            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                                DropdownMenuItem(text = { Text(stringResource(R.string.invert_selection)) }, onClick = { menu = false; vm.invertSelection() })
-                                DropdownMenuItem(text = { Text(stringResource(R.string.copy_path)) }, leadingIcon = { Icon(Icons.Filled.ContentCopy, null) }, onClick = {
-                                    menu = false; copyToClipboard(context, sel.joinToString("\n") { it.path.path })
-                                })
-                            }
-                        }
+                        IconButton(onClick = { vm.share(sel) }, enabled = sel.any { !it.isDirectory }) { Icon(Icons.Filled.Share, stringResource(R.string.share)) }
+                        IconButton(onClick = { dialog = Dialog.Actions(sel) }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.more)) }
                     }
                 )
             } else {
@@ -201,11 +208,21 @@ fun BrowserScreen(
                                     onClick = { menu = false; dialog = Dialog.EditPath })
                                 DropdownMenuItem(text = { Text(stringResource(R.string.select_all)) }, leadingIcon = { Icon(Icons.Filled.SelectAll, null) },
                                     onClick = { menu = false; vm.selectAll() })
+                                DropdownMenuItem(text = { Text(stringResource(R.string.add_to_favorites)) }, leadingIcon = { Icon(Icons.Filled.Star, null) },
+                                    onClick = { menu = false; vm.bookmarkCurrent() })
+                                DropdownMenuItem(text = { Text(stringResource(R.string.clipboard)) }, leadingIcon = { Icon(Icons.Filled.ContentPaste, null) },
+                                    onClick = { menu = false; onOpenClipboard(state.path) })
+                                DropdownMenuItem(text = { Text(stringResource(R.string.properties)) }, leadingIcon = { Icon(Icons.Filled.Info, null) },
+                                    onClick = { menu = false; scope.launch { vm.currentFolderEntry()?.let { dialog = Dialog.Properties(listOf(it)) } } })
                             }
                         }
                     }
                 )
             }
+        },
+        bottomBar = {
+            val top = clips.firstOrNull()
+            if (top != null && !state.selecting && state.error == null) PasteBar(top, clips.size, onPaste = vm::pasteLatest, onMore = { onOpenClipboard(state.path) })
         },
         floatingActionButton = {
             if (!state.selecting && state.error == null) Box {
@@ -272,12 +289,15 @@ fun BrowserScreen(
         Dialog.NewFolder -> TextInputDialog(stringResource(R.string.new_folder), "", selectBaseName = false, onDismiss = { dialog = null }) { vm.newFolder(it); dialog = null }
         Dialog.NewFile -> TextInputDialog(stringResource(R.string.new_file), "", selectBaseName = false, onDismiss = { dialog = null }) { vm.newFile(it); dialog = null }
         is Dialog.Rename -> TextInputDialog(stringResource(R.string.rename), d.entry.name, onDismiss = { dialog = null }) { vm.rename(d.entry, it); dialog = null }
-        is Dialog.Delete -> ConfirmDialog(
-            title = stringResource(R.string.delete),
-            message = context.resources.getQuantityString(R.plurals.delete_confirm, d.entries.size, d.entries.size),
-            confirm = stringResource(R.string.delete),
-            onDismiss = { dialog = null },
-            onConfirm = { dialog = null; vm.delete(d.entries) }
+        is Dialog.Delete -> if (settings.confirmDelete) DeleteDialog(d.entries, settings.recycleBinEnabled, onDismiss = { dialog = null }) { permanent ->
+            dialog = null; vm.delete(d.entries, permanent)
+        } else { LaunchedEffect(d) { dialog = null; vm.delete(d.entries, false) } }
+        is Dialog.Properties -> PropertiesDialog(d.entries, onDismiss = { dialog = null })
+        is Dialog.Actions -> ActionSheet(
+            title = if (d.entries.size == 1) d.entries.first().name else "${d.entries.size} items",
+            actions = entryActions(d.entries, vm, onRename = { dialog = Dialog.Rename(it) }, onProperties = { dialog = Dialog.Properties(it) },
+                onCopyPath = { copyToClipboard(context, d.entries.joinToString("\n") { it.path.toString().removePrefix("file://") }) }),
+            onDismiss = { if (dialog is Dialog.Actions) dialog = null }
         )
         Dialog.EditPath -> TextInputDialog(stringResource(R.string.edit_path), state.path.toString().removePrefix("file://"), selectBaseName = false,
             validator = { null }, onDismiss = { dialog = null }) { vm.navigate(FsPath.parse(it)); dialog = null }

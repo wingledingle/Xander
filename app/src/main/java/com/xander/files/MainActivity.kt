@@ -32,7 +32,7 @@ class MainActivity : AppCompatActivity() {
             val settings by settingsRepo.settings.collectAsStateWithLifecycle(AppSettings())
             XanderTheme(settings) {
                 Surface(Modifier.fillMaxSize()) {
-                    XanderNavHost(hasAccess = StorageAccess.hasFullAccess(this), initialPath = initial)
+                    XanderNavHost(hasAccess = StorageAccess.hasFullAccess(this), initialPath = initial, initialRoute = intent.getStringExtra(EXTRA_ROUTE))
                 }
             }
         }
@@ -41,8 +41,12 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        if (intent.hasExtra(EXTRA_PATH)) recreate()
+        if (intent.hasExtra(EXTRA_PATH) || intent.hasExtra(EXTRA_ROUTE)) recreate()
     }
 
-    companion object { const val EXTRA_PATH = "com.xander.files.PATH" }
+    companion object {
+        const val EXTRA_PATH = "com.xander.files.PATH"
+        const val EXTRA_OPEN_FILE = "com.xander.files.OPEN_FILE"
+        const val EXTRA_ROUTE = "com.xander.files.ROUTE"
+    }
 }

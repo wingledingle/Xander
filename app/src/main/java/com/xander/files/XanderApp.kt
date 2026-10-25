@@ -1,6 +1,8 @@
 package com.xander.files
 
 import android.app.Application
+import androidx.hilt.work.HiltWorkerFactory
+import androidx.work.Configuration
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -10,18 +12,24 @@ import com.topjohnwu.superuser.Shell
 import com.xander.files.data.thumbs.FileEntryFetcher
 import com.xander.files.data.thumbs.FileEntryKeyer
 import com.xander.files.data.thumbs.ThumbnailService
+import com.xander.files.data.transfer.TransferWorker
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
 @HiltAndroidApp
-class XanderApp : Application(), SingletonImageLoader.Factory {
+class XanderApp : Application(), SingletonImageLoader.Factory, Configuration.Provider {
 
     @Inject lateinit var thumbnails: ThumbnailService
+    @Inject lateinit var workerFactory: HiltWorkerFactory
+
+    override val workManagerConfiguration: Configuration
+        get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
 
     override fun onCreate() {
         super.onCreate()
         Shell.enableVerboseLogging = BuildConfig.DEBUG
         Shell.setDefaultBuilder(Shell.Builder.create().setFlags(Shell.FLAG_MOUNT_MASTER).setTimeout(10))
+        TransferWorker.ensureChannel(this)
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader =

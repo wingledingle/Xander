@@ -5,7 +5,14 @@ import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.xander.files.data.bookmarks.BookmarkRepository
+import com.xander.files.data.clipboard.ClipOp
+import com.xander.files.data.clipboard.ClipboardRepository
 import com.xander.files.data.db.HistoryDao
+import com.xander.files.data.ops.FileActions
+import com.xander.files.data.transfer.TransferManager
+import com.xander.files.data.transfer.TransferRequest
+import com.xander.files.data.transfer.TransferType
 import com.xander.files.data.db.HistoryEntity
 import com.xander.files.data.fs.local.RestrictedFolderException
 import com.xander.files.data.fs.local.SafGrantRequiredException
@@ -77,7 +84,13 @@ class BrowserViewModel @Inject constructor(
     private val root: RootFileSystemProvider,
     private val safRoots: SafRootStore,
     private val volumes: StorageVolumes,
+    private val clipboard: ClipboardRepository,
+    private val transfers: TransferManager,
+    private val actions: FileActions,
+    private val bookmarks: BookmarkRepository,
 ) : ViewModel() {
+
+    val clipItems = clipboard.items.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val raw = MutableStateFlow(BrowserState())
     private val backStack = ArrayDeque<FsPath>()
@@ -174,7 +187,8 @@ class BrowserViewModel @Inject constructor(
         if (raw.value.selecting) { toggle(entry); return }
         if (entry.isDirectory) { navigate(entry.path); return }
         viewModelScope.launch {
-            try { _events.send(BrowserEvent.Launch(Intent.createChooser(opener.openExternal(entry), entry.name))) }
+            bookmarks.recordOpened(entry)
+            try { val i = opener.openExternal(entry); _events.send(BrowserEvent.Launch(if (i.component != null) i else Intent.createChooser(i, entry.name))) }
             catch (e: Exception) { _events.send(BrowserEvent.Toast(FsException.wrap(e).message ?: "Cannot open")) }
         }
     }
@@ -206,10 +220,54 @@ class BrowserViewModel @Inject constructor(
 
     fun newFolder(name: String) = op { registry.provider(raw.value.path).mkdir(raw.value.path, name) }
     fun newFile(name: String) = op { registry.provider(raw.value.path).createFile(raw.value.path, name) }
-    /** Deletes the given entries (routed through the recycle bin once it is enabled). */
-    fun delete(entries: List<FileEntry>) = op {
-        for (e in entries) registry.provider(e.path).delete(e.path)
+    /** Deletes through the transfer engine: to the recycle bin unless [permanent] or the bin is off. */
+    fun delete(entries: List<FileEntry>, permanent: Boolean) = viewModelScope.launch {
+        val toBin = !permanent && settings.value.recycleBinEnabled
+        val title = (if (toBin) "Moving to recycle bin: " else "Deleting ") + if (entries.size == 1) entries.first().name else "${entries.size} items"
+        transfers.enqueue(TransferRequest(if (toBin) TransferType.RECYCLE else TransferType.DELETE, entries.map { it.path.toString() }, null, title))
         clearSelection()
+    }
+
+    /** Asks the screen to show the delete confirmation (used from the action sheet). */
+    val deleteRequests = Channel<List<FileEntry>>(Channel.CONFLATED)
+    fun requestDelete(entries: List<FileEntry>) { deleteRequests.trySend(entries) }
+
+    suspend fun currentFolderEntry(): FileEntry? = runCatching { registry.provider(raw.value.path).stat(raw.value.path) }.getOrNull()
+
+    fun copy(entries: List<FileEntry>, cut: Boolean) = viewModelScope.launch {
+        clipboard.add(if (cut) ClipOp.CUT else ClipOp.COPY, entries.map { it.path })
+        _events.send(BrowserEvent.Toast(if (cut) "Cut ${entries.size} item(s)" else "Copied ${entries.size} item(s)"))
+        clearSelection()
+    }
+
+    fun pasteLatest() = viewModelScope.launch {
+        val item = clipItems.value.firstOrNull() ?: return@launch
+        clipboard.paste(item.id, raw.value.path)
+    }
+
+    /** Drag-and-drop / direct transfer used by dual-pane mode. */
+    fun transferTo(paths: List<FsPath>, destination: FsPath, move: Boolean) = viewModelScope.launch {
+        val title = (if (move) "Moving " else "Copying ") + if (paths.size == 1) paths.first().name else "${paths.size} items"
+        transfers.enqueue(TransferRequest(if (move) TransferType.MOVE else TransferType.COPY, paths.map { it.toString() }, destination.toString(), title))
+    }
+
+    fun share(entries: List<FileEntry>) = launchIntent { actions.shareIntent(entries) }
+    fun openWith(entry: FileEntry) = launchIntent { Intent.createChooser(opener.viewIntent(entry, "*/*").setType(entry.mimeType ?: "*/*").setData(opener.shareableUri(entry.path)), entry.name) }
+    fun setAs(entry: FileEntry) = launchIntent { actions.setAsIntent(entry) }
+    fun duplicate(entry: FileEntry) = op { actions.duplicate(entry); clearSelection() }
+    fun setHidden(entries: List<FileEntry>, hidden: Boolean) = op { entries.forEach { actions.setHidden(it, hidden) }; clearSelection() }
+    fun toggleFavorite(entries: List<FileEntry>) = viewModelScope.launch { entries.forEach { bookmarks.toggle(it) }; clearSelection() }
+    fun bookmarkCurrent() = viewModelScope.launch {
+        val p = raw.value.path
+        bookmarks.add(p, raw.value.title.ifEmpty { p.name.ifEmpty { "/" } }, true)
+        _events.send(BrowserEvent.Toast("Added to favorites"))
+    }
+    fun createShortcut(entry: FileEntry) = viewModelScope.launch {
+        if (!actions.createShortcut(entry)) _events.send(BrowserEvent.Toast("Your launcher does not support shortcuts"))
+    }
+
+    private fun launchIntent(block: suspend () -> Intent) = viewModelScope.launch {
+        try { _events.send(BrowserEvent.Launch(block())) } catch (e: Exception) { _events.send(BrowserEvent.Toast(FsException.wrap(e).message ?: "Failed")) }
     }
 
     fun rename(entry: FileEntry, name: String) = op { registry.provider(entry.path).rename(entry.path, name); clearSelection() }

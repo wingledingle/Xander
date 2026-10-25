@@ -5,8 +5,7 @@ data class FileEntry(
     val isDirectory: Boolean,
     val size: Long = 0L,
     val lastModified: Long = 0L,
-    val name: String = path.name,
-    val mimeType: String? = if (isDirectory) null else MimeTypes.fromName(name),
+    val mimeType: String? = if (isDirectory) null else MimeTypes.fromName(path.name),
     val childCount: Int? = null,
     val permissions: String? = null,
     val owner: String? = null,
@@ -20,6 +19,8 @@ data class FileEntry(
     val backendId: String? = null,
     val thumbnailUrl: String? = null,
 ) {
+    /** Always derived from the path so copies with a new path stay consistent. */
+    val name: String get() = path.name
     val isHidden: Boolean get() = name.startsWith(".")
     val extension: String get() = if (isDirectory) "" else name.substringAfterLast('.', "").lowercase()
     val category: FileCategory get() = if (isDirectory) FileCategory.FOLDER else FileCategory.of(name, mimeType)

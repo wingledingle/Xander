@@ -56,10 +56,16 @@ import com.xander.files.data.storage.VolumeInfo
 import com.xander.files.data.storage.VolumeKind
 import com.xander.files.domain.fs.FsPath
 import com.xander.files.ui.common.Format
+import com.xander.files.ui.navigation.Routes
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.SwapVert
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun HomeScreen(onOpen: (FsPath) -> Unit, onSearch: () -> Unit, vm: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(onOpen: (FsPath) -> Unit, onSearch: () -> Unit, onMenu: () -> Unit = {}, onRoute: (String) -> Unit = {}, vm: HomeViewModel = hiltViewModel()) {
     val volumes by vm.volumeList.collectAsStateWithLifecycle()
     val shizuku by vm.shizukuState.collectAsStateWithLifecycle()
     val rootMode by vm.rootMode.collectAsStateWithLifecycle()
@@ -69,7 +75,9 @@ fun HomeScreen(onOpen: (FsPath) -> Unit, onSearch: () -> Unit, vm: HomeViewModel
         lifecycle.addObserver(o); onDispose { lifecycle.removeObserver(o) }
     }
     Scaffold(topBar = {
-        TopAppBar(title = { Text(stringResource(R.string.app_name)) }, actions = {
+        TopAppBar(title = { Text(stringResource(R.string.app_name)) },
+            navigationIcon = { IconButton(onClick = onMenu) { Icon(Icons.Filled.Menu, stringResource(R.string.menu)) } },
+            actions = {
             IconButton(onClick = onSearch) { Icon(Icons.Filled.Search, stringResource(R.string.search)) }
         })
     }) { pad ->
@@ -79,6 +87,10 @@ fun HomeScreen(onOpen: (FsPath) -> Unit, onSearch: () -> Unit, vm: HomeViewModel
             Text(stringResource(R.string.quick_access), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
             val p = vm.primaryRoot
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Shortcut(Icons.Filled.Delete, stringResource(R.string.recycle_bin)) { onRoute(Routes.RECYCLE) }
+                Shortcut(Icons.Filled.Star, stringResource(R.string.favorites)) { onRoute(Routes.BOOKMARKS) }
+                Shortcut(Icons.Filled.ContentPaste, stringResource(R.string.clipboard)) { onRoute(Routes.CLIPBOARD_ROUTE) }
+                Shortcut(Icons.Filled.SwapVert, stringResource(R.string.transfers)) { onRoute(Routes.TRANSFERS) }
                 Shortcut(Icons.Filled.Download, stringResource(R.string.downloads)) { onOpen(FsPath.local("$p/Download")) }
                 Shortcut(Icons.Filled.PhotoCamera, "DCIM") { onOpen(FsPath.local("$p/DCIM")) }
                 Shortcut(Icons.Filled.FolderSpecial, "Android/data") { onOpen(FsPath.local("$p/Android/data")) }
