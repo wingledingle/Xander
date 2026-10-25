@@ -50,7 +50,7 @@ class NsfwRepository @Inject constructor(
 
     suspend fun scan(rescanAll: Boolean = false) {
         val s = settings.settings.first()
-        if (!s.nsfwEnabled) return
+        if (!s.nsfwEnabled || !supported) return
         val req = OneTimeWorkRequestBuilder<NsfwScanWorker>()
             .setInputData(workDataOf("all" to rescanAll))
             .setConstraints(Constraints.Builder().setRequiresCharging(s.nsfwChargingOnly).setRequiresBatteryNotLow(true).build())
@@ -62,7 +62,11 @@ class NsfwRepository @Inject constructor(
 
     suspend fun clear() { WorkManager.getInstance(context).cancelUniqueWork(WORK); dao.clear() }
 
-    companion object { const val WORK = "nsfw-scan" }
+    companion object {
+        const val WORK = "nsfw-scan"
+        /** ONNX Runtime needs Android 7.0+. */
+        val supported get() = Build.VERSION.SDK_INT >= 24
+    }
 }
 
 /** Scores every indexed local image (and sampled video frames) that has not been scored at its current size/mtime. */
@@ -78,7 +82,7 @@ class NsfwScanWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         val s = settings.settings.first()
-        if (!s.nsfwEnabled) return Result.success()
+        if (!s.nsfwEnabled || !NsfwRepository.supported) return Result.success()
         val all = inputData.getBoolean("all", false)
         val media = index.media().filter { s.nsfwVideos || it.category == "IMAGE" }
         var done = 0
@@ -102,7 +106,7 @@ class NsfwScanWorker @AssistedInject constructor(
         var sample = 1
         while (o.outWidth / (sample * 2) >= NsfwClassifier.SIZE && o.outHeight / (sample * 2) >= NsfwClassifier.SIZE) sample *= 2
         val b = BitmapFactory.decodeFile(f.path, BitmapFactory.Options().apply { inSampleSize = sample }) ?: return null
-        return try { classifier.score(b) } finally { b.recycle() }
+        return try { if (NsfwClassifier.isFlat(b)) 0f else classifier.score(b) } finally { b.recycle() }
     }
 
     /** Like nuditag: a video scores as its most explicit sampled frame, ignoring flat frames. */

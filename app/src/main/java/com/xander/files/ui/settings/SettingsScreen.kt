@@ -178,11 +178,11 @@ fun SettingsScreen(onBack: () -> Unit, onPremium: () -> Unit, onLicenses: () -> 
                 vm.clearDefaults(); Toast.makeText(ctx, R.string.done, Toast.LENGTH_SHORT).show()
             }
 
-            Section(R.string.adult_section)
-            Toggle(stringResource(R.string.adult_detect), s.nsfwEnabled, stringResource(R.string.adult_detect_summary)) { v ->
+            if (com.xander.files.data.nsfw.NsfwRepository.supported) Section(R.string.adult_section)
+            if (com.xander.files.data.nsfw.NsfwRepository.supported) Toggle(stringResource(R.string.adult_detect), s.nsfwEnabled, stringResource(R.string.adult_detect_summary)) { v ->
                 vm.update { it.copy(nsfwEnabled = v) }; if (v) vm.nsfwScan(false)
             }
-            if (s.nsfwEnabled) {
+            if (s.nsfwEnabled && com.xander.files.data.nsfw.NsfwRepository.supported) {
                 val scanned by vm.nsfw.observeScanned().collectAsStateWithLifecycle(0)
                 val work by vm.nsfw.progress().collectAsStateWithLifecycle(emptyList())
                 val running = work.firstOrNull { it.state == androidx.work.WorkInfo.State.RUNNING }

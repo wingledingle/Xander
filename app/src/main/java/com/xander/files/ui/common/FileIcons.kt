@@ -1,6 +1,7 @@
 package com.xander.files.ui.common
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.automirrored.filled.TextSnippet
 import androidx.compose.material.icons.filled.Android
@@ -33,6 +34,7 @@ object FileIcons {
         FileCategory.PDF -> Icons.Filled.PictureAsPdf
         FileCategory.EBOOK -> Icons.Filled.MenuBook
         FileCategory.ENCRYPTED -> Icons.Filled.Lock
+        FileCategory.GAME -> Icons.Filled.SportsEsports
         FileCategory.OTHER -> Icons.AutoMirrored.Filled.InsertDriveFile
     }
 
@@ -43,6 +45,7 @@ object FileIcons {
         FileCategory.AUDIO -> CategoryColors.audio
         FileCategory.DOCUMENT, FileCategory.TEXT -> CategoryColors.document
         FileCategory.PDF -> Color(0xFFE53935)
+        FileCategory.GAME -> Color(0xFF7E57C2)
         FileCategory.APK -> CategoryColors.apk
         FileCategory.ARCHIVE -> CategoryColors.archive
         FileCategory.CODE -> Color(0xFF546E7A)

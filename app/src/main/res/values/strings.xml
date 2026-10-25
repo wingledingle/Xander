@@ -541,4 +541,10 @@
     <string name="adult_rescan">Rescan everything</string>
     <string name="adult_rescan_summary">Re-check all images and videos</string>
     <string name="adult_clear">Forget all results</string>
+    <string name="audio_track">Audio track</string>
+    <string name="lock_controls">Lock controls</string>
+    <string name="aspect_ratio">Aspect ratio</string>
+    <string name="an_archive_copies">Archives already extracted: %1$d · %2$s</string>
+    <string name="an_select_archives">Select archives</string>
+    <string name="an_extracted_match">%1$d of %2$d files match</string>
 </resources>

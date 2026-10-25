@@ -143,9 +143,18 @@ fun ImageViewerScreen(onBack: () -> Unit, castButton: @Composable () -> Unit = {
     val scope = rememberCoroutineScope()
     val current = images.getOrNull(pager.currentPage)
 
-    LaunchedEffect(slideshow, pager.currentPage) {
-        if (slideshow) { delay(3000); if (pager.currentPage < images.lastIndex) pager.animateScrollToPage(pager.currentPage + 1) else slideshow = false }
+    // Keyed on the toggle only: currentPage flips mid-swipe, and restarting here would cancel the animation halfway.
+    LaunchedEffect(slideshow) {
+        while (slideshow) {
+            delay(3000)
+            if (pager.isScrollInProgress) continue
+            val next = pager.settledPage + 1
+            if (next <= images.lastIndex) pager.animateScrollToPage(next, animationSpec = androidx.compose.animation.core.tween(600)) else slideshow = false
+        }
     }
+    // Keep the screen on while the slideshow runs.
+    val view = androidx.compose.ui.platform.LocalView.current
+    androidx.compose.runtime.DisposableEffect(slideshow) { view.keepScreenOn = slideshow; onDispose { view.keepScreenOn = false } }
     LaunchedEffect(current) { current?.let(onCast) }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {

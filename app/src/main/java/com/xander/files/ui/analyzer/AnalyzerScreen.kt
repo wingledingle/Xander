@@ -129,6 +129,7 @@ class AnalyzerViewModel @Inject constructor(
                 duplicates = r.duplicates.map { g -> g.copy(files = g.files.filter { it.path !in gone }) }.filter { it.files.size > 1 },
                 emptyFolders = r.emptyFolders.filter { it.path !in gone }, junk = r.junk.filter { it.entry.path !in gone },
                 oldApks = r.oldApks.filter { it.entry.path !in gone },
+                archiveCopies = r.archiveCopies.filter { it.archive.path !in gone && it.folder !in gone },
             )
         }
         selection.value = emptySet()
@@ -216,7 +217,7 @@ private fun Overview(r: AnalysisResult) {
                     Text(Format.size(r.totalBytes), style = MaterialTheme.typography.headlineSmall)
                     Text(stringResource(R.string.an_files_folders, r.files, r.folders), style = MaterialTheme.typography.bodySmall)
                     if (r.volumeTotal > 0) Text(stringResource(R.string.an_free_of, Format.size(r.volumeFree), Format.size(r.volumeTotal)), style = MaterialTheme.typography.bodySmall)
-                    val dupWaste = r.duplicates.sumOf { it.wasted }; val junk = r.junk.sumOf { it.size }
+                    val dupWaste = r.duplicates.sumOf { it.wasted } + r.archiveCopies.sumOf { it.wasted }; val junk = r.junk.sumOf { it.size }
                     Text(stringResource(R.string.an_reclaimable, Format.size(dupWaste + junk)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
                 }
             }
@@ -296,6 +297,33 @@ private fun Duplicates(r: AnalysisResult, sel: Set<FsPath>, vm: AnalyzerViewMode
             TextButton(onClick = { vm.selectAll(r.duplicates.flatMap { g -> g.files.drop(1).map { it.path } }) }) { Text(stringResource(R.string.an_select_copies)) }
         }
         LazyColumn(Modifier.fillMaxSize()) {
+            if (r.archiveCopies.isNotEmpty()) {
+                item(key = "arch-h") {
+                    Row(Modifier.fillMaxWidth().padding(start = 16.dp, top = 12.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.an_archive_copies, r.archiveCopies.size, Format.size(r.archiveCopies.sumOf { it.wasted })),
+                            style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+                        TextButton(onClick = { vm.selectAll(r.archiveCopies.map { it.archive.path }) }) { Text(stringResource(R.string.an_select_archives)) }
+                    }
+                }
+                items(r.archiveCopies, key = { "arch" + it.archive.path }) { c ->
+                    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
+                        Row(Modifier.clickable { vm.toggle(c.archive.path) }, verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(c.archive.path in sel, { vm.toggle(c.archive.path) })
+                            Column(Modifier.weight(1f)) {
+                                Text(c.archive.name + " · " + Format.size(c.archive.size), style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                                Text(c.archive.path.parent?.path.orEmpty(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.MiddleEllipsis)
+                            }
+                        }
+                        Row(Modifier.clickable { vm.toggle(c.folder) }, verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(c.folder in sel, { vm.toggle(c.folder) })
+                            Column(Modifier.weight(1f)) {
+                                Text("📁 " + c.folder.name + " · " + Format.size(c.folderSize) + " · " + stringResource(R.string.an_extracted_match, c.matched, c.total), style = MaterialTheme.typography.bodyMedium, maxLines = 1)
+                                Text(c.folder.path, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.MiddleEllipsis)
+                            }
+                        }
+                    }
+                }
+            }
             r.duplicates.forEach { g ->
                 item(key = "h" + g.hash) {
                     Text("${g.files.size} × ${Format.size(g.size)}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 16.dp, top = 12.dp))
