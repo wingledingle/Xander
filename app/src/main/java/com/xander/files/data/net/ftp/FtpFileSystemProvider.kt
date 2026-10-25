@@ -45,7 +45,9 @@ class FtpFileSystemProvider @Inject constructor(private val connections: Connect
     init { connections.listeners += { id -> idle.remove(id)?.forEach { runCatching { it.disconnect() } } } }
 
     private fun create(c: Connection): FTPClient {
-        val client = if (c.type == ConnType.FTPS) FTPSClient("TLS", c.options.implicitTls) else FTPClient()
+        val client = if (c.type == ConnType.FTPS) FTPSClient("TLS", c.options.implicitTls).apply {
+            if (c.options.trustSelfSigned) trustManager = com.xander.files.data.net.HttpClients.trustAll
+        } else FTPClient()
         client.controlEncoding = c.options.encoding.ifBlank { "UTF-8" }
         client.setConnectTimeout(c.options.timeoutSec * 1000)
         client.setDefaultTimeout(c.options.timeoutSec * 1000)

@@ -1,21 +1,20 @@
 package com.xander.files.data.fs.local
 
-import android.system.Os
-import android.system.OsConstants
 
 object PosixInfo {
     private val userNames = HashMap<Int, String>()
 
     fun permissionString(mode: Int): String {
         val sb = StringBuilder()
+        // POSIX S_IFMT values (identical on Linux/Android), kept pure so it also runs off-device.
         sb.append(
-            when {
-                OsConstants.S_ISDIR(mode) -> 'd'
-                OsConstants.S_ISLNK(mode) -> 'l'
-                OsConstants.S_ISCHR(mode) -> 'c'
-                OsConstants.S_ISBLK(mode) -> 'b'
-                OsConstants.S_ISFIFO(mode) -> 'p'
-                OsConstants.S_ISSOCK(mode) -> 's'
+            when (mode and 0xF000) {
+                0x4000 -> 'd'
+                0xA000 -> 'l'
+                0x2000 -> 'c'
+                0x6000 -> 'b'
+                0x1000 -> 'p'
+                0xC000 -> 's'
                 else -> '-'
             }
         )

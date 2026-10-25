@@ -26,6 +26,10 @@ sealed class FsException(message: String, cause: Throwable? = null) : IOExceptio
             is FsException -> t
             is kotlinx.coroutines.CancellationException -> Cancelled()
             is SecurityException -> PermissionDenied(path, t)
+            is javax.net.ssl.SSLHandshakeException -> Generic(
+                if (generateSequence(t as Throwable) { it.cause }.any { it is java.security.cert.CertificateException })
+                    "The server certificate is not trusted. Enable \"Trust self-signed certificates\" for this connection."
+                else "Secure connection failed: ${t.message}", t)
             is java.net.SocketTimeoutException, is java.net.ConnectException, is java.net.UnknownHostException,
             is java.net.NoRouteToHostException, is java.net.SocketException, is javax.net.ssl.SSLException -> NetworkLost(t)
             is java.io.FileNotFoundException -> {

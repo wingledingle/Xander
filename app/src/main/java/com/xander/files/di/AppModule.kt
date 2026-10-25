@@ -60,5 +60,11 @@ abstract class ProviderModule {
     @Binds @IntoSet abstract fun saf(p: SafFileSystemProvider): FileSystemProvider
     @Binds @IntoSet abstract fun shizuku(p: ShizukuFileSystemProvider): FileSystemProvider
     @Binds @IntoSet abstract fun archive(p: com.xander.files.data.archive.ArchiveFileSystemProvider): FileSystemProvider
+    @Binds @IntoSet abstract fun smb(p: com.xander.files.data.net.smb.SmbFileSystemProvider): FileSystemProvider
+    @Binds @IntoSet abstract fun ftp(p: com.xander.files.data.net.ftp.FtpFileSystemProvider): FileSystemProvider
+    @Binds @IntoSet abstract fun sftp(p: com.xander.files.data.net.sftp.SftpFileSystemProvider): FileSystemProvider
+    @Binds @IntoSet abstract fun webdav(p: com.xander.files.data.net.webdav.WebDavFileSystemProvider): FileSystemProvider
+    @Binds @IntoSet abstract fun nfs(p: com.xander.files.data.net.nfs.NfsFileSystemProvider): FileSystemProvider
+    @Binds @IntoSet abstract fun http(p: com.xander.files.data.net.http.HttpBrowseProvider): FileSystemProvider
     @Binds abstract fun secretCipher(c: KeystoreSecretCipher): SecretCipher
 }

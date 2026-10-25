@@ -152,12 +152,23 @@ class SftpFileSystemProvider @Inject constructor(private val connections: Connec
 
     override suspend fun openOutput(path: FsPath, size: Long): OutputStream = io(path) { s ->
         val rf = s.open(path.path, EnumSet.of(OpenMode.WRITE, OpenMode.CREAT, OpenMode.TRUNC))
-        val out = rf.RemoteFileOutputStream(0, 16)
+        // Buffered sequential WRITE requests sized to the SFTP packet limit; each waits for its status.
         object : OutputStream() {
-            override fun write(b: Int) = out.write(b)
-            override fun write(b: ByteArray, off: Int, len: Int) = out.write(b, off, len)
-            override fun flush() = out.flush()
-            override fun close() { try { out.close() } finally { rf.close() } }
+            private val buf = ByteArray(32 * 1024)
+            private var n = 0
+            private var offset = 0L
+            override fun write(b: Int) { buf[n++] = b.toByte(); if (n == buf.size) drain() }
+            override fun write(b: ByteArray, off: Int, len: Int) {
+                var o = off; var l = len
+                while (l > 0) {
+                    val k = minOf(l, buf.size - n)
+                    System.arraycopy(b, o, buf, n, k); n += k; o += k; l -= k
+                    if (n == buf.size) drain()
+                }
+            }
+            private fun drain() { if (n > 0) { rf.write(offset, buf, 0, n); offset += n; n = 0 } }
+            override fun flush() = drain()
+            override fun close() { try { drain() } finally { rf.close() } }
         }
     }
 
