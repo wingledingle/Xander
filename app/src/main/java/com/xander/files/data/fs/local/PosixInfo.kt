@@ -41,7 +41,7 @@ object PosixInfo {
 
     fun userName(uid: Int): String = synchronized(userNames) {
         userNames.getOrPut(uid) {
-            try { Os.getpwuid(uid)?.pw_name ?: uid.toString() } catch (e: Throwable) { androidName(uid) }
+            androidName(uid)
         }
     }
 
