@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -49,6 +50,22 @@ fun EntryThumb(entry: FileEntry, size: Int, thumbnails: Boolean, modifier: Modif
     )
 }
 
+/** Opens the preview after the mouse rests on the thumbnail for 700 ms (tablets, Chromebooks, DeX). */
+fun Modifier.hoverPreview(onPreview: (() -> Unit)?): Modifier = if (onPreview == null) this else this.pointerInput(onPreview) {
+    awaitPointerEventScope {
+        var enteredAt = 0L
+        while (true) {
+            val e = awaitPointerEvent()
+            when (e.type) {
+                androidx.compose.ui.input.pointer.PointerEventType.Enter -> enteredAt = System.currentTimeMillis()
+                androidx.compose.ui.input.pointer.PointerEventType.Exit -> enteredAt = 0
+                androidx.compose.ui.input.pointer.PointerEventType.Move ->
+                    if (enteredAt > 0 && System.currentTimeMillis() - enteredAt > 700) { enteredAt = 0; onPreview() }
+            }
+        }
+    }
+}
+
 fun FileEntry.displayName(showExt: Boolean): String =
     if (showExt || isDirectory || !name.contains('.') || name.startsWith('.')) name else name.substringBeforeLast('.')
 
@@ -63,6 +80,7 @@ fun FileEntry.subtitle(): String = buildString {
 fun FileListRow(
     entry: FileEntry, selected: Boolean, showExt: Boolean, thumbnails: Boolean,
     onClick: () -> Unit, onLongClick: () -> Unit, onThumbLongPress: () -> Unit = {},
+    onHoverPreview: (() -> Unit)? = null,
 ) {
     val d = LocalDensityPrefs.current
     val bg = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
@@ -71,7 +89,7 @@ fun FileListRow(
             .combinedClickable(onClick = onClick, onLongClick = onLongClick).padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(Modifier.combinedClickable(onClick = onClick, onLongClick = onThumbLongPress)) {
+        Box(Modifier.combinedClickable(onClick = onClick, onLongClick = onThumbLongPress).hoverPreview(onHoverPreview)) {
             EntryThumb(entry, d.iconSize, thumbnails)
             if (selected) Icon(Icons.Filled.CheckCircle, null, tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.align(Alignment.BottomEnd).size(18.dp).background(MaterialTheme.colorScheme.surface, RoundedCornerShape(9.dp)))

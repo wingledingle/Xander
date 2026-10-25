@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -100,6 +101,7 @@ class BrowserViewModel @Inject constructor(
     private val archivePasswords: com.xander.files.data.archive.ArchivePasswords,
     private val archives: com.xander.files.data.archive.ArchiveFileSystemProvider,
     private val sftp: com.xander.files.data.net.sftp.SftpFileSystemProvider,
+    private val folderPrefs: com.xander.files.data.db.FolderPrefDao,
 ) : ViewModel() {
 
     val clipItems = clipboard.items.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -114,14 +116,41 @@ class BrowserViewModel @Inject constructor(
 
     val settings: StateFlow<AppSettings> = settingsRepo.settings.stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
 
+    // ---- per-folder view memory ----
+    private val folderPref = MutableStateFlow<com.xander.files.data.db.FolderPrefEntity?>(null)
+
+    /** Global settings with the current folder's remembered view applied (when enabled). */
+    val viewSettings: StateFlow<AppSettings> = combine(settings, folderPref) { s, f ->
+        if (!s.perFolderView || f == null) s else s.copy(
+            viewMode = runCatching { ViewMode.valueOf(f.viewMode) }.getOrDefault(s.viewMode),
+            sortBy = runCatching { SortBy.valueOf(f.sortBy) }.getOrDefault(s.sortBy),
+            sortAscending = f.ascending, foldersFirst = f.foldersFirst, gridSize = f.itemSize,
+        )
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
+
     /** Raw listing + current settings => visible, sorted list (computed off the main thread). */
-    val state: StateFlow<BrowserState> = combine(raw, settings) { s, st ->
+    val state: StateFlow<BrowserState> = combine(raw, viewSettings) { s, st ->
         withContext(Dispatchers.Default) { s.copy(entries = arrange(s.entries, st)) }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, BrowserState())
 
-    init {
-        val start = savedState.get<String>("path")?.takeIf { it.isNotEmpty() }?.let { FsPath.parse(it) } ?: FsPath.local(volumes.primaryRoot)
-        load(start)
+    private val defaultStart = savedState.get<String>("path")?.takeIf { it.isNotEmpty() }?.let { FsPath.parse(it) } ?: FsPath.local(volumes.primaryRoot)
+    private var started = false
+
+    /** Each tab/pane starts at its own location; called once by the pane. */
+    fun start(path: FsPath?) {
+        if (started) return
+        started = true
+        load(path ?: defaultStart)
+    }
+
+    private suspend fun loadFolderPref(path: FsPath) { folderPref.value = folderPrefs.get(path.toString()) }
+
+    private fun changeView(transform: (AppSettings) -> AppSettings) = viewModelScope.launch {
+        if (settings.value.perFolderView) {
+            val n = transform(viewSettings.value)
+            val e = com.xander.files.data.db.FolderPrefEntity(raw.value.path.toString(), n.viewMode.name, n.sortBy.name, n.sortAscending, n.foldersFirst, n.gridSize)
+            folderPrefs.upsert(e); folderPref.value = e
+        } else settingsRepo.update(transform)
     }
 
     private fun arrange(list: List<FileEntry>, s: AppSettings): List<FileEntry> {
@@ -149,9 +178,11 @@ class BrowserViewModel @Inject constructor(
             val provider = try { registry.provider(path) } catch (e: FsException) { raw.update { it.copy(loading = false, error = BrowserError.Message(e.message ?: "", false)) }; return@launch }
             val title = if (path.isRoot) provider.rootTitle(path.authority) else path.name
             val writable = Capability.WRITE in provider.capabilities(path)
+            if (settings.value.perFolderView) loadFolderPref(path) else folderPref.value = null
             try {
                 val list = provider.list(path)
                 raw.update { it.copy(entries = list, loading = false, error = null, title = title, writable = writable) }
+                if (settings.value.showFolderCounts) countChildren(path, list)
                 if (!silent) history.upsert(HistoryEntity(path.toString(), title, System.currentTimeMillis()))
             } catch (e: RestrictedFolderException) {
                 raw.update { it.copy(entries = emptyList(), loading = false, error = BrowserError.Restricted(path), title = title) }
@@ -174,6 +205,27 @@ class BrowserViewModel @Inject constructor(
         if (p is WatchableProvider) {
             watchJob = viewModelScope.launch { p.watch(path).debounce(400).collect { load(path, keepSelection = true, silent = true) } }
         }
+    }
+
+    /** Fills in "N items" for local folders in the background without blocking the listing. */
+    private fun countChildren(path: FsPath, list: List<FileEntry>) = viewModelScope.launch(Dispatchers.IO) {
+        val local = registry.provider(path) as? com.xander.files.data.fs.local.LocalFileSystemProvider ?: return@launch
+        val dirs = list.filter { it.isDirectory && it.childCount == null }
+        if (dirs.isEmpty()) return@launch
+        val counts = HashMap<FsPath, Int>()
+        for ((i, d) in dirs.withIndex()) {
+            local.childCount(d.path)?.let { counts[d.path] = it }
+            if (i % 200 == 199 || i == dirs.lastIndex) {
+                val snapshot = HashMap(counts)
+                raw.update { st -> if (st.path != path) st else st.copy(entries = st.entries.map { e -> snapshot[e.path]?.let { c -> e.copy(childCount = c) } ?: e }) }
+            }
+        }
+    }
+
+    /** Renames entries one by one (batch rename dialog computes the names). */
+    fun batchRename(pairs: List<Pair<FileEntry, String>>) = op {
+        for ((e, n) in pairs) if (n != e.name) registry.provider(e.path).rename(e.path, n)
+        clearSelection()
     }
 
     fun navigate(path: FsPath) {
@@ -355,13 +407,11 @@ class BrowserViewModel @Inject constructor(
 
     fun rename(entry: FileEntry, name: String) = op { registry.provider(entry.path).rename(entry.path, name); clearSelection() }
 
-    fun setSort(by: SortBy) = viewModelScope.launch {
-        settingsRepo.update { if (it.sortBy == by) it.copy(sortAscending = !it.sortAscending) else it.copy(sortBy = by, sortAscending = by == SortBy.NAME || by == SortBy.TYPE) }
-    }
-    fun toggleFoldersFirst() = viewModelScope.launch { settingsRepo.update { it.copy(foldersFirst = !it.foldersFirst) } }
+    fun setSort(by: SortBy) = changeView { if (it.sortBy == by) it.copy(sortAscending = !it.sortAscending) else it.copy(sortBy = by, sortAscending = by == SortBy.NAME || by == SortBy.TYPE) }
+    fun toggleFoldersFirst() = changeView { it.copy(foldersFirst = !it.foldersFirst) }
     fun toggleHidden() = viewModelScope.launch { settingsRepo.update { it.copy(showHidden = !it.showHidden) } }
-    fun setViewMode(m: ViewMode) = viewModelScope.launch { settingsRepo.update { it.copy(viewMode = m) } }
-    fun setGridSize(n: Int) = viewModelScope.launch { settingsRepo.update { it.copy(gridSize = n.coerceIn(2, 6)) } }
+    fun setViewMode(m: ViewMode) = changeView { it.copy(viewMode = m) }
+    fun setGridSize(n: Int) = changeView { it.copy(gridSize = n.coerceIn(2, 6)) }
 
     // ---- restricted folder access ----
 

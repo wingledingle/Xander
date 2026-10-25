@@ -69,3 +69,10 @@ abstract class ProviderModule {
     @Binds @IntoSet abstract fun cloud(p: com.xander.files.data.cloud.CloudFileSystemProvider): FileSystemProvider
     @Binds abstract fun secretCipher(c: KeystoreSecretCipher): SecretCipher
 }
+
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class AdsModule {
+    /** Swap NoAdProvider for a real SDK adapter here to enable ads in release builds. */
+    @Binds abstract fun adProvider(p: com.xander.files.data.ads.NoAdProvider): com.xander.files.data.ads.AdProvider
+}

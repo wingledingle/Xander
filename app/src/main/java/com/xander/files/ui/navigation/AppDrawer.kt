@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Lan
 import androidx.compose.material.icons.filled.ContentPaste
@@ -88,6 +89,8 @@ fun AppDrawer(
             }
             Section(R.string.tools)
             drawerTools.forEach { d -> Item(d.icon, stringResource(d.label)) { onRoute(d.route) } }
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            Item(Icons.Filled.Settings, stringResource(R.string.settings)) { onRoute(Routes.SETTINGS) }
             Spacer(Modifier.height(24.dp))
         }
     }

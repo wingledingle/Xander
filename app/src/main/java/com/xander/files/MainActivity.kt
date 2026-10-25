@@ -23,6 +23,8 @@ import javax.inject.Inject
 class MainActivity : AppCompatActivity() {
 
     @Inject lateinit var settingsRepo: SettingsRepository
+    @Inject lateinit var appLock: com.xander.files.data.lock.AppLock
+    @Inject lateinit var billing: com.xander.files.data.billing.BillingRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -30,9 +32,12 @@ class MainActivity : AppCompatActivity() {
         val initial = intent.getStringExtra(EXTRA_PATH)?.let(FsPath::parse)
         setContent {
             val settings by settingsRepo.settings.collectAsStateWithLifecycle(AppSettings())
-            XanderTheme(settings) {
+            val premium by billing.premium.collectAsStateWithLifecycle()
+            val locked by appLock.locked.collectAsStateWithLifecycle()
+            XanderTheme(settings, isPremium = premium) {
                 Surface(Modifier.fillMaxSize()) {
                     XanderNavHost(hasAccess = StorageAccess.hasFullAccess(this), initialPath = initial, initialRoute = intent.getStringExtra(EXTRA_ROUTE))
+                    if (locked && settings.appLockEnabled) com.xander.files.ui.lock.LockScreen(appLock, settings.appLockBiometric)
                 }
             }
         }

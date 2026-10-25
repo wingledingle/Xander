@@ -44,6 +44,9 @@ object Routes {
     const val APPS = "apps"
     const val NETWORK = "network"
     const val CLOUD = "cloud"
+    const val SETTINGS = "settings"
+    const val PREMIUM = "premium"
+    const val LICENSES = "licenses"
     const val CONNECTION = "connection?id={id}&type={type}&host={host}&port={port}"
     fun connection(id: String?, type: com.xander.files.data.net.ConnType?, host: String?, port: Int?) =
         "connection?id=${id ?: ""}&type=${type?.name ?: ""}&host=${Uri.encode(host ?: "")}&port=${port ?: 0}"
@@ -140,6 +143,11 @@ fun XanderNavHost(
                 com.xander.files.ui.network.ConnectionEditScreen(onBack = { nav.popBackStack() }, onConnected = { root -> nav.popBackStack(); nav.openFolder(root) })
             }
             composable(Routes.CLOUD) { com.xander.files.ui.cloud.CloudScreen(onBack = { nav.popBackStack() }, onBrowse = nav::openFolder) }
+            composable(Routes.SETTINGS) {
+                com.xander.files.ui.settings.SettingsScreen(onBack = { nav.popBackStack() }, onPremium = { nav.navigate(Routes.PREMIUM) }, onLicenses = { nav.navigate(Routes.LICENSES) })
+            }
+            composable(Routes.PREMIUM) { com.xander.files.ui.premium.PaywallScreen(onBack = { nav.popBackStack() }) }
+            composable(Routes.LICENSES) { com.xander.files.ui.settings.LicensesScreen(onBack = { nav.popBackStack() }) }
             composable(Routes.HISTORY) { HistoryScreen(onBack = { nav.popBackStack() }, onOpen = nav::openFolder) }
         }
     }

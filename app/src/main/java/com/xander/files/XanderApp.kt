@@ -29,6 +29,7 @@ class XanderApp : Application(), SingletonImageLoader.Factory, Configuration.Pro
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var indexer: FileIndexer
     @Inject @AppScope lateinit var appScope: CoroutineScope
+    @Inject lateinit var appLock: com.xander.files.data.lock.AppLock
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
@@ -39,6 +40,7 @@ class XanderApp : Application(), SingletonImageLoader.Factory, Configuration.Pro
         Shell.setDefaultBuilder(Shell.Builder.create().setFlags(Shell.FLAG_MOUNT_MASTER).setTimeout(10))
         TransferWorker.ensureChannel(this)
         MaintenanceWorker.schedule(this)
+        appLock.install()
         startIndexing()
     }
 

@@ -58,6 +58,7 @@ import com.xander.files.domain.fs.FsPath
 import com.xander.files.ui.common.Format
 import com.xander.files.ui.navigation.Routes
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.ContentPaste
@@ -87,6 +88,7 @@ fun HomeScreen(onOpen: (FsPath) -> Unit, onSearch: () -> Unit, onMenu: () -> Uni
             navigationIcon = { IconButton(onClick = onMenu) { Icon(Icons.Filled.Menu, stringResource(R.string.menu)) } },
             actions = {
             IconButton(onClick = onSearch) { Icon(Icons.Filled.Search, stringResource(R.string.search)) }
+            IconButton(onClick = { onRoute(Routes.SETTINGS) }) { Icon(Icons.Filled.Settings, stringResource(R.string.settings)) }
         })
     }) { pad ->
         Column(Modifier.padding(pad).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

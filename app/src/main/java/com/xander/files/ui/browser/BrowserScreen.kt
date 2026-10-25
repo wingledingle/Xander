@@ -100,6 +100,16 @@ import com.xander.files.ui.ops.PropertiesDialog
 import com.xander.files.ui.ops.FolderPickerDialog
 import com.xander.files.ui.ops.CompressDialog
 import com.xander.files.ui.ops.PasswordDialog
+import com.xander.files.ui.ops.BatchRenameDialog
+import androidx.compose.foundation.draganddrop.dragAndDropTarget
+import androidx.compose.ui.draganddrop.DragAndDropEvent
+import androidx.compose.ui.draganddrop.DragAndDropTarget
+import androidx.compose.ui.draganddrop.mimeTypes
+import androidx.compose.ui.draganddrop.toAndroidDragEvent
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import com.xander.files.domain.fs.FileCategory
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Info
@@ -121,19 +131,32 @@ private sealed interface Dialog {
     data class Encrypt(val entries: List<FileEntry>) : Dialog
     data class Decrypt(val entries: List<FileEntry>) : Dialog
     data class ArchivePassword(val archive: FsPath, val wrong: Boolean) : Dialog
+    data class BatchRename(val entries: List<FileEntry>) : Dialog
+    data class Drop(val paths: List<FsPath>) : Dialog
+    data class Preview(val entry: FileEntry) : Dialog
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun BrowserScreen(
+fun BrowserPane(
+    tabId: String,
+    initialPath: FsPath?,
     onExit: () -> Unit,
     onSearch: (FsPath) -> Unit,
     onOpenClipboard: (FsPath) -> Unit = {},
     onReauth: (FsPath) -> Unit = {},
-    vm: BrowserViewModel = hiltViewModel(),
+    onTitle: (String) -> Unit = {},
+    onOpenInNewTab: ((FsPath) -> Unit)? = null,
+    dualPane: Boolean = false,
+    isActive: Boolean = true,
+    onActivate: () -> Unit = {},
+    tabStrip: (@Composable () -> Unit)? = null,
+    vm: BrowserViewModel = hiltViewModel(key = "browser-$tabId"),
 ) {
+    LaunchedEffect(tabId) { vm.start(initialPath) }
     val state by vm.state.collectAsStateWithLifecycle()
-    val settings by vm.settings.collectAsStateWithLifecycle()
+    val settings by vm.viewSettings.collectAsStateWithLifecycle()
+    LaunchedEffect(state.title, state.path) { onTitle(state.title.ifEmpty { state.path.name.ifEmpty { "/" } }) }
     val clips by vm.clipItems.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var dialog by remember { mutableStateOf<Dialog?>(null) }
@@ -153,7 +176,7 @@ fun BrowserScreen(
         }
     }
 
-    BackHandler { if (!vm.back()) onExit() }
+    BackHandler(enabled = isActive) { if (!vm.back()) onExit() }
     LaunchedEffect(Unit) { for (req in vm.deleteRequests) dialog = Dialog.Delete(req) }
 
     // SAF tree grant for restricted folders (Android 11/12) and SD cards on old releases.
@@ -180,6 +203,7 @@ fun BrowserScreen(
                             IconButton(onClick = { dialog = Dialog.Delete(sel) }) { Icon(Icons.Filled.Delete, stringResource(R.string.delete)) }
                         }
                         IconButton(onClick = { vm.share(sel) }, enabled = sel.any { !it.isDirectory }) { Icon(Icons.Filled.Share, stringResource(R.string.share)) }
+                        if (sel.size > 1 && state.writable) IconButton(onClick = { dialog = Dialog.BatchRename(sel) }) { Icon(Icons.Filled.DriveFileRenameOutline, stringResource(R.string.batch_rename)) }
                         IconButton(onClick = { dialog = Dialog.Actions(sel) }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.more)) }
                     }
                 )
@@ -248,7 +272,23 @@ fun BrowserScreen(
             }
         }
     ) { pad ->
-        Column(Modifier.padding(pad).fillMaxSize()) {
+        val dropTarget = remember(vm) {
+            object : DragAndDropTarget {
+                override fun onDrop(event: DragAndDropEvent): Boolean {
+                    val clip = event.toAndroidDragEvent().clipData ?: return false
+                    val text = (0 until clip.itemCount).joinToString("\n") { clip.getItemAt(it).text?.toString().orEmpty() }
+                    if (!text.startsWith(DRAG_PREFIX)) return false
+                    val paths = text.removePrefix(DRAG_PREFIX).lines().filter { it.isNotBlank() }.map(FsPath::parse).filter { it.parent != state.path }
+                    if (paths.isEmpty() || !state.writable) return false
+                    dialog = Dialog.Drop(paths); return true
+                }
+            }
+        }
+        Column(Modifier.padding(pad).fillMaxSize()
+            .then(if (dualPane) Modifier.dragAndDropTarget(shouldStartDragAndDrop = { e -> e.mimeTypes().contains(android.content.ClipDescription.MIMETYPE_TEXT_PLAIN) }, target = dropTarget) else Modifier)
+            .pointerInput(isActive) { awaitPointerEventScope { while (true) { awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Initial); if (!isActive) onActivate() } } }
+        ) {
+            tabStrip?.invoke()
             Breadcrumbs(state.path, onJump = vm::navigate, onCopy = { copyToClipboard(context, it.path) })
             HorizontalDivider()
             PullToRefreshBox(isRefreshing = state.loading && state.entries.isNotEmpty(), onRefresh = vm::refresh, modifier = Modifier.fillMaxSize()) {
@@ -304,9 +344,13 @@ fun BrowserScreen(
                         val listState = rememberLazyListState()
                         LazyColumn(Modifier.fillMaxSize(), state = listState) {
                             items(state.entries, key = { it.path.toString() }) { e ->
-                                FileListRow(e, e.path in state.selection, settings.showExtensions, settings.thumbnails,
-                                    onClick = { vm.open(e) }, onLongClick = { if (state.selecting) vm.selectRange(e) else vm.toggle(e) },
-                                    onThumbLongPress = { if (state.selecting) vm.selectRange(e) else vm.toggle(e) })
+                                Box {
+                                    FileListRow(e, e.path in state.selection, settings.showExtensions, settings.thumbnails,
+                                        onClick = { vm.open(e) }, onLongClick = { if (state.selecting) vm.selectRange(e) else vm.toggle(e) },
+                                        onThumbLongPress = { if (e.category in previewable) dialog = Dialog.Preview(e) else if (state.selecting) vm.selectRange(e) else vm.toggle(e) },
+                                        onHoverPreview = if (e.category in previewable) ({ dialog = Dialog.Preview(e) }) else null)
+                                    if (dualPane && e.path in state.selection) DragHandle(Modifier.align(Alignment.CenterEnd)) { vm.selectedEntries().map { it.path } }
+                                }
                             }
                         }
                     }
@@ -329,7 +373,8 @@ fun BrowserScreen(
                 onCopyPath = { copyToClipboard(context, d.entries.joinToString("\n") { it.path.toString().removePrefix("file://") }) },
                 onPick = { dialog = Dialog.Pick(it, d.entries) }, onCompress = { dialog = Dialog.Compress(d.entries) },
                 onEncrypt = { dialog = Dialog.Encrypt(d.entries) }, onDecrypt = { dialog = Dialog.Decrypt(d.entries) },
-                onShareLink = if (vm.canShareLink() && d.entries.size == 1) ({ vm.shareLink(d.entries.first()) { link -> copyToClipboard(context, link) } }) else null),
+                onShareLink = if (vm.canShareLink() && d.entries.size == 1) ({ vm.shareLink(d.entries.first()) { link -> copyToClipboard(context, link) } }) else null,
+                onOpenInNewTab = onOpenInNewTab),
             onDismiss = { if (dialog is Dialog.Actions) dialog = null }
         )
         Dialog.EditPath -> TextInputDialog(stringResource(R.string.edit_path), state.path.toString().removePrefix("file://"), selectBaseName = false,
@@ -354,11 +399,23 @@ fun BrowserScreen(
         is Dialog.Decrypt -> PasswordDialog(stringResource(R.string.decrypt_title), showDeleteOriginal = true, onDismiss = { dialog = null }) { pwd, del ->
             dialog = null; vm.decrypt(d.entries, pwd, del)
         }
+        is Dialog.BatchRename -> BatchRenameDialog(d.entries, state.entries.map { it.name }.toSet(), onDismiss = { dialog = null }) { pairs -> dialog = null; vm.batchRename(pairs) }
+        is Dialog.Drop -> AlertDialog(
+            onDismissRequest = { dialog = null },
+            title = { Text(stringResource(R.string.drop_title, d.paths.size)) },
+            text = { Text(d.paths.joinToString("\n") { it.name }, maxLines = 6) },
+            confirmButton = { TextButton(onClick = { dialog = null; vm.transferTo(d.paths, state.path, move = false) }) { Text(stringResource(R.string.drop_copy_here)) } },
+            dismissButton = { TextButton(onClick = { dialog = null; vm.transferTo(d.paths, state.path, move = true) }) { Text(stringResource(R.string.drop_move_here)) } },
+        )
+        is Dialog.Preview -> PreviewDialog(d.entry, onDismiss = { dialog = null }, onOpen = { dialog = null; vm.open(d.entry) })
         is Dialog.ArchivePassword -> PasswordDialog(stringResource(R.string.archive_password), error = if (d.wrong) stringResource(R.string.wrong_password) else null,
             onDismiss = { dialog = null }) { pwd, _ -> dialog = null; vm.submitArchivePassword(d.archive, pwd) }
         null -> Unit
     }
 }
+
+internal const val DRAG_PREFIX = "xander-paths:\n"
+private val previewable = setOf(FileCategory.IMAGE, FileCategory.VIDEO)
 
 private fun sortLabel(by: SortBy) = when (by) {
     SortBy.NAME -> R.string.sort_name
