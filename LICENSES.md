@@ -1,28 +1,42 @@
 # Third-party license policy
 
-Only Apache-2.0 or MIT (or MIT-equivalent) open-source dependencies are allowed.
+Open-source dependencies must be Apache-2.0 or MIT (or MIT-equivalent). Nothing in the APK requires
+you to publish your own source code or pay a licence fee. Audited from `mobileReleaseRuntimeClasspath`.
 
 | Library | Purpose | License |
 |---|---|---|
-| AndroidX / Jetpack Compose / Room / WorkManager / DataStore / Media3 | App framework, players | Apache-2.0 |
-| Hilt / Dagger | DI | Apache-2.0 |
-| Kotlin, kotlinx.coroutines, kotlinx.serialization | Language/runtime | Apache-2.0 |
-| OkHttp | HTTP, WebDAV, cloud REST clients | Apache-2.0 |
-| Coil | Thumbnails | Apache-2.0 |
-| smbj | SMB 2/3 client | Apache-2.0 |
-| Apache Commons Net | FTP/FTPS client | Apache-2.0 |
+| AndroidX / Jetpack Compose / Room / WorkManager / DataStore / Media3 / Leanback / MediaRouter | App framework, players, TV | Apache-2.0 |
+| Hilt / Dagger, javax.inject, jakarta.inject | Dependency injection | Apache-2.0 |
+| Kotlin stdlib, kotlinx.coroutines, JetBrains annotations, JSpecify | Language/runtime | Apache-2.0 |
+| Guava (transitive) | Utilities used by Media3/Cast | Apache-2.0 |
+| OkHttp, Okio | HTTP, WebDAV, cloud REST, TV client | Apache-2.0 |
+| Coil 3 | Thumbnails and images | Apache-2.0 |
+| smbj, asn-one (hierynomus) | SMB 2/3 client | Apache-2.0 |
+| MBassador (transitive of smbj) | Event bus | MIT |
+| SLF4J API | Logging facade used by smbj/sshj | MIT |
+| Apache Commons Net / IO / Codec / Compress | FTP/FTPS, archives | Apache-2.0 |
 | sshj | SFTP client | Apache-2.0 |
-| Bouncy Castle | Crypto provider for sshj | MIT (Bouncy Castle licence) |
-| EMC nfs-client | NFS v3 client | Apache-2.0 |
-| Apache Commons Compress | 7z / tar / gz / bz2 / xz | Apache-2.0 |
-| XZ for Java | LZMA for 7z | 0BSD (public-domain equivalent) |
+| Bouncy Castle | Crypto provider for sshj / MEGA | MIT (Bouncy Castle licence) |
+| EdDSA-Java (net.i2p.crypto, transitive of sshj) | Ed25519 SSH keys | CC0-1.0 (public-domain dedication, no conditions) |
+| EMC nfs-client, Netty (transitive) | NFS v3 client | Apache-2.0 |
+| XZ for Java 1.9 (pinned) | LZMA for 7z / .xz | Public domain |
 | Zip4j | ZIP with AES passwords | Apache-2.0 |
 | libsu | Root shell | Apache-2.0 |
-| Shizuku API | Non-root privileged access | Apache-2.0 |
-| AppAuth | OAuth for cloud drives | Apache-2.0 |
+| Shizuku API | Non-root privileged access | MIT |
+| AppAuth | OAuth for Dropbox / OneDrive / Box / Yandex | Apache-2.0 |
+| Accompanist | Compose helpers | Apache-2.0 |
+| Firebase encoders / Google datatransport (transitive of Play Billing) | Play telemetry plumbing | Apache-2.0 |
 
-Proprietary Google SDKs required for platform features (not open source, but free to use):
-Google Play Billing, Google Cast framework, Google Play services Auth (Drive sign-in).
+Excluded on purpose:
+- `com.google.code.findbugs:jsr305` (BSD-3, annotations only) is excluded from the runtime classpath.
+- `org.tukaani:xz` 1.10+ (0BSD) is replaced by 1.9 (public domain).
+- jcifs-ng (LGPL, SMB1), junrar (UnRAR licence), NanoHTTPD (BSD-3), Readium (BSD-3) and libarchive (BSD) are not used.
+  The FTP server, web server, Cast stream server, TV companion API, EPUB reader and Office converters are written in this codebase.
 
-Removed to comply with the policy: jcifs-ng (LGPL, SMB1), junrar (UnRAR licence), NanoHTTPD (BSD-3).
-The built-in FTP and HTTP servers are implemented in this codebase.
+Proprietary Google SDKs (free of charge, closed source, no source-release obligation; Google's Android SDK terms apply):
+- Google Play Billing (`com.android.billingclient`) – subscriptions.
+- Google Play services Auth (`play-services-auth`) – Google Drive sign-in.
+- Google Cast framework (`play-services-cast-framework`) – Chromecast.
+
+These cannot be replaced with Apache/MIT code if you want Play subscriptions, Google Drive and Chromecast.
+On devices without Google Play services the app still runs; those three features are simply unavailable.

@@ -213,3 +213,12 @@ dependencies {
     kspAndroidTest(libs.hilt.compiler)
     androidTestImplementation(libs.coroutines.test)
 }
+
+// jsr305 (BSD-3) only carries @Nullable-style annotations; keep it out of the APK per the licence policy.
+configurations.matching { it.name.endsWith("RuntimeClasspath") }.configureEach {
+    exclude(group = "com.google.code.findbugs", module = "jsr305")
+}
+// commons-compress asks for xz 1.10 (0BSD); force the public-domain 1.9 release.
+configurations.configureEach {
+    resolutionStrategy.force("org.tukaani:xz:${libs.versions.xz.get()}")
+}
