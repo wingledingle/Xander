@@ -26,11 +26,13 @@ class MainActivity : AppCompatActivity() {
     @Inject lateinit var appLock: com.xander.files.data.lock.AppLock
     @Inject lateinit var billing: com.xander.files.data.billing.BillingRepository
     @Inject lateinit var cast: com.xander.files.data.cast.CastManager
+    @Inject lateinit var tvCompanion: com.xander.files.data.tv.companion.TvCompanionController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         cast.init()
+        if (BuildConfig.IS_TV_BUILD) tvCompanion.start()
         val initial = intent.getStringExtra(EXTRA_PATH)?.let(FsPath::parse)
         setContent {
             val settings by settingsRepo.settings.collectAsStateWithLifecycle(AppSettings())

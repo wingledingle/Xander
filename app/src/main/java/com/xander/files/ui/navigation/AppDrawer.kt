@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Lan
+import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.LibraryMusic
@@ -51,6 +52,8 @@ val drawerNetwork = listOf(
     DrawerDestination(Routes.CLOUD, Icons.Filled.Cloud, R.string.cloud),
     DrawerDestination(Routes.SERVERS, Icons.Filled.Computer, R.string.access_from_pc),
     DrawerDestination(Routes.BLUETOOTH, Icons.Filled.Bluetooth, R.string.bluetooth),
+    if (com.xander.files.BuildConfig.IS_TV_BUILD) DrawerDestination(Routes.TV_HOST, Icons.Filled.Tv, R.string.tv_companion)
+    else DrawerDestination(Routes.TV, Icons.Filled.Tv, R.string.tv_management),
 )
 
 val drawerTools = listOf(

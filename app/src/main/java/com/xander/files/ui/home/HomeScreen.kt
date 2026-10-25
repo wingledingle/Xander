@@ -105,6 +105,9 @@ fun HomeScreen(onOpen: (FsPath) -> Unit, onOpenFile: (com.xander.files.domain.fs
         })
     }) { pad ->
         Column(Modifier.padding(pad).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (com.xander.files.BuildConfig.IS_TV_BUILD) androidx.compose.material3.Card(onClick = { onRoute(Routes.TV_HOST) }) {
+                Text(stringResource(R.string.tv_host_title), Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
+            }
             volumes.forEach { v -> VolumeCard(v, onEject = if (v.isRemovable) ({ vm.eject(v) }) else null) { onOpen(v.root) } }
             Text(
                 stringResource(R.string.files_and_apps, fileCount, appCount) + if (index.running) " · " + stringResource(R.string.indexing) else "",

@@ -52,6 +52,10 @@ object Routes {
     const val MUSIC = "music"
     const val SERVERS = "servers"
     const val BLUETOOTH = "bluetooth"
+    const val TV = "tv"
+    const val TV_DEVICE = "tv/{id}"
+    const val TV_HOST = "tvhost"
+    fun tvDevice(id: String) = "tv/${Uri.encode(id)}"
     const val NOW_PLAYING = com.xander.files.data.open.ViewerLauncher.NOW_PLAYING
     val VIEWERS = listOf("image", "video", "pdf", "office", "book", "editor")
     const val CONNECTION = "connection?id={id}&type={type}&host={host}&port={port}"
@@ -179,6 +183,9 @@ fun XanderNavHost(
             composable("editor?path={path}", pathArg) { com.xander.files.ui.editor.TextEditorScreen(onBack = { nav.popBackStack() }) }
             composable(Routes.SERVERS) { com.xander.files.ui.server.ServerScreen(onBack = { nav.popBackStack() }) }
             composable(Routes.BLUETOOTH) { com.xander.files.ui.bluetooth.BluetoothScreen(onBack = { nav.popBackStack() }, onOpenFolder = nav::openFolder) }
+            composable(Routes.TV) { com.xander.files.ui.tv.TvListScreen(onBack = { nav.popBackStack() }, onOpen = { nav.navigate(Routes.tvDevice(it)) }) }
+            composable(Routes.TV_DEVICE, listOf(navArgument("id") { type = NavType.StringType })) { com.xander.files.ui.tv.TvDeviceScreen(onBack = { nav.popBackStack() }, onBrowse = nav::openFolder) }
+            composable(Routes.TV_HOST) { com.xander.files.ui.tv.TvHostScreen(onBack = { nav.popBackStack() }) }
             composable(Routes.MUSIC) { com.xander.files.ui.music.MusicScreen(onBack = { nav.popBackStack() }, onNowPlaying = { nav.navigate(Routes.NOW_PLAYING) { launchSingleTop = true } }) }
             composable(Routes.NOW_PLAYING) { com.xander.files.ui.music.NowPlayingScreen(onBack = { nav.popBackStack() }, castButton = { com.xander.files.ui.cast.CastButton(shell.cast) }) }
         }
