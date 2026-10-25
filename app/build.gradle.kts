@@ -26,7 +26,7 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
-        testInstrumentationRunner = "com.xander.files.HiltTestRunner"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
 
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${cfg("xander.googleWebClientId")}\"")
