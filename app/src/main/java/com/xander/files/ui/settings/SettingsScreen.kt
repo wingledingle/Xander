@@ -178,21 +178,22 @@ fun SettingsScreen(onBack: () -> Unit, onPremium: () -> Unit, onLicenses: () -> 
                 vm.clearDefaults(); Toast.makeText(ctx, R.string.done, Toast.LENGTH_SHORT).show()
             }
 
-            if (com.xander.files.data.nsfw.NsfwRepository.supported) Section(R.string.adult_section)
-            if (com.xander.files.data.nsfw.NsfwRepository.supported) Toggle(stringResource(R.string.adult_detect), s.nsfwEnabled, stringResource(R.string.adult_detect_summary)) { v ->
+            Section(R.string.adult_section)
+            Toggle(stringResource(R.string.adult_detect), s.nsfwEnabled, stringResource(R.string.adult_detect_summary)) { v ->
                 vm.update { it.copy(nsfwEnabled = v) }; if (v) vm.nsfwScan(false)
             }
-            if (s.nsfwEnabled && com.xander.files.data.nsfw.NsfwRepository.supported) {
+            if (s.nsfwEnabled) {
                 val scanned by vm.nsfw.observeScanned().collectAsStateWithLifecycle(0)
                 val work by vm.nsfw.progress().collectAsStateWithLifecycle(emptyList())
                 val running = work.firstOrNull { it.state == androidx.work.WorkInfo.State.RUNNING }
                 Column(Modifier.padding(horizontal = 16.dp)) {
                     Text(stringResource(R.string.adult_threshold, s.nsfwThreshold))
-                    Slider(s.nsfwThreshold.toFloat(), { v -> vm.update { it.copy(nsfwThreshold = v.toInt()) } }, valueRange = 20f..90f)
+                    Slider(s.nsfwThreshold.toFloat(), { v -> vm.update { it.copy(nsfwThreshold = v.toInt()) } }, valueRange = 50f..95f)
                     Text(stringResource(R.string.adult_threshold_hint), style = MaterialTheme.typography.bodySmall)
                     Text(running?.progress?.let { p -> stringResource(R.string.adult_scanning, p.getInt("done", 0), p.getInt("total", 0)) }
                         ?: stringResource(R.string.adult_scanned, scanned), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
                 }
+                Toggle(stringResource(R.string.adult_drawn), s.nsfwDrawn, stringResource(R.string.adult_drawn_summary)) { v -> vm.update { it.copy(nsfwDrawn = v) } }
                 Toggle(stringResource(R.string.adult_videos), s.nsfwVideos) { v -> vm.update { it.copy(nsfwVideos = v) } }
                 Toggle(stringResource(R.string.adult_charging), s.nsfwChargingOnly) { v -> vm.update { it.copy(nsfwChargingOnly = v) } }
                 Item(stringResource(R.string.adult_rescan), stringResource(R.string.adult_rescan_summary)) { vm.nsfwScan(true) }

@@ -524,7 +524,7 @@
     <string name="adult_detect">Detectar imágenes y vídeos para adultos</string>
     <string name="adult_detect_summary">Usa un modelo en el dispositivo (sin subir nada) y muestra las coincidencias en Adultos en la pantalla de inicio</string>
     <string name="adult_threshold">Umbral de sensibilidad: %d%%</string>
-    <string name="adult_threshold_hint">Un valor más bajo encuentra más, pero marca más fotos inofensivas. 40 % es el valor probado.</string>
+    <string name="adult_threshold_hint">Un valor más bajo encuentra más, pero marca más fotos inofensivas. Con 70 % no se marcó ninguna de nuestras fotos de prueba inofensivas.</string>
     <string name="adult_scanning">Analizando… %1$d de %2$d</string>
     <string name="adult_scanned">%d archivos revisados</string>
     <string name="adult_videos">Incluir vídeos</string>
@@ -538,6 +538,8 @@
     <string name="an_archive_copies">Archivos comprimidos ya extraídos: %1$d · %2$s</string>
     <string name="an_select_archives">Seleccionar archivos comprimidos</string>
     <string name="an_extracted_match">Coinciden %1$d de %2$d archivos</string>
+    <string name="adult_drawn">Incluir contenido adulto dibujado (hentai)</string>
+    <string name="adult_drawn_summary">Desactivado por defecto: los cómics y mangas normales pueden puntuar alto</string>
     <plurals name="delete_confirm">
         <item quantity="one">¿Eliminar %d elemento?</item>
         <item quantity="many">¿Eliminar %d elementos?</item>

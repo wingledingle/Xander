@@ -21,6 +21,8 @@ you to publish your own source code or pay a licence fee. Audited from `mobileRe
 | EMC nfs-client, Netty (transitive) | NFS v3 client | Apache-2.0 |
 | XZ for Java 1.9 (pinned) | LZMA for 7z / .xz | Public domain |
 | Zip4j | ZIP with AES passwords | Apache-2.0 |
+| TensorFlow Lite | On-device image classifier runtime | Apache-2.0 |
+| GantMan nsfw_model (MobileNetV2 224, bundled asset) | Adult-content classes: drawings/hentai/neutral/porn/sexy | MIT |
 | libsu | Root shell | Apache-2.0 |
 | Shizuku API | Non-root privileged access | MIT |
 | AppAuth | OAuth for Dropbox / OneDrive / Box / Yandex | Apache-2.0 |

@@ -12,11 +12,15 @@ import androidx.room.RoomDatabase
         PlaylistItemEntity::class, FolderPrefEntity::class, DefaultAppEntity::class, TvDeviceEntity::class,
         NsfwScoreEntity::class,
     ],
-    version = 2,
-    autoMigrations = [AutoMigration(from = 1, to = 2)],
+    version = 3,
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3, spec = AppDatabase.DropMarqoScores::class)],
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
+    /** v3 replaced the Marqo NSFW scores (which mis-flagged drawings) with GantMan class probabilities. */
+    @androidx.room.DeleteTable(tableName = "nsfw_scores")
+    class DropMarqoScores : androidx.room.migration.AutoMigrationSpec
+
     abstract fun safRoots(): SafRootDao
     abstract fun bookmarks(): BookmarkDao
     abstract fun recents(): RecentDao

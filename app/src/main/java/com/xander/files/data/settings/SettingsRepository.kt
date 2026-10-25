@@ -54,7 +54,8 @@ data class AppSettings(
     val serverCharset: String = "UTF-8",
     val serverReadOnly: Boolean = false,
     val nsfwEnabled: Boolean = false,
-    val nsfwThreshold: Int = 40,
+    val nsfwThreshold: Int = 70,
+    val nsfwDrawn: Boolean = false,
     val nsfwVideos: Boolean = true,
     val nsfwChargingOnly: Boolean = false,
 )
@@ -99,7 +100,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         val srvCharset = stringPreferencesKey("srv_charset")
         val srvRo = booleanPreferencesKey("srv_ro")
         val nsfw = booleanPreferencesKey("nsfw")
-        val nsfwThreshold = intPreferencesKey("nsfw_threshold")
+        val nsfwThreshold = intPreferencesKey("nsfw_threshold2")
+        val nsfwDrawn = booleanPreferencesKey("nsfw_drawn")
         val nsfwVideos = booleanPreferencesKey("nsfw_videos")
         val nsfwCharging = booleanPreferencesKey("nsfw_charging")
     }
@@ -142,7 +144,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         serverCharset = p[K.srvCharset] ?: "UTF-8",
         serverReadOnly = p[K.srvRo] ?: false,
         nsfwEnabled = p[K.nsfw] ?: false,
-        nsfwThreshold = p[K.nsfwThreshold] ?: 40,
+        nsfwThreshold = p[K.nsfwThreshold] ?: 70,
+        nsfwDrawn = p[K.nsfwDrawn] ?: false,
         nsfwVideos = p[K.nsfwVideos] ?: true,
         nsfwChargingOnly = p[K.nsfwCharging] ?: false,
     )
@@ -161,7 +164,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             p[K.builtIn] = n.builtInViewers; p[K.srvPort] = n.serverPort; p[K.httpPort] = n.httpServerPort
             p[K.srvAnon] = n.serverAnonymous; p[K.srvUser] = n.serverUser; p[K.srvPass] = n.serverPassword
             p[K.srvRoot] = n.serverRoot; p[K.srvCharset] = n.serverCharset; p[K.srvRo] = n.serverReadOnly
-            p[K.nsfw] = n.nsfwEnabled; p[K.nsfwThreshold] = n.nsfwThreshold; p[K.nsfwVideos] = n.nsfwVideos; p[K.nsfwCharging] = n.nsfwChargingOnly
+            p[K.nsfw] = n.nsfwEnabled; p[K.nsfwThreshold] = n.nsfwThreshold; p[K.nsfwDrawn] = n.nsfwDrawn; p[K.nsfwVideos] = n.nsfwVideos; p[K.nsfwCharging] = n.nsfwChargingOnly
         }
     }
 }

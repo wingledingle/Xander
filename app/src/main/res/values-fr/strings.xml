@@ -524,7 +524,7 @@
     <string name="adult_detect">Détecter les images et vidéos pour adultes</string>
     <string name="adult_detect_summary">Utilise un modèle sur l’appareil (aucun envoi) et liste les résultats sous Adulte sur l’écran d’accueil</string>
     <string name="adult_threshold">Seuil de sensibilité : %d%%</string>
-    <string name="adult_threshold_hint">Plus bas trouve davantage mais signale plus de photos anodines. 40 % est la valeur testée.</string>
+    <string name="adult_threshold_hint">Plus bas trouve davantage mais signale plus de photos anodines. À 70 %, aucune de nos photos de test anodines n’a été signalée.</string>
     <string name="adult_scanning">Analyse… %1$d sur %2$d</string>
     <string name="adult_scanned">%d fichiers vérifiés</string>
     <string name="adult_videos">Inclure les vidéos</string>
@@ -538,6 +538,8 @@
     <string name="an_archive_copies">Archives déjà extraites : %1$d · %2$s</string>
     <string name="an_select_archives">Sélectionner les archives</string>
     <string name="an_extracted_match">%1$d fichiers sur %2$d identiques</string>
+    <string name="adult_drawn">Inclure le contenu adulte dessiné (hentai)</string>
+    <string name="adult_drawn_summary">Désactivé par défaut : les BD et mangas ordinaires peuvent obtenir un score élevé</string>
     <plurals name="delete_confirm">
         <item quantity="one">Supprimer %d élément ?</item>
         <item quantity="many">Supprimer %d éléments ?</item>

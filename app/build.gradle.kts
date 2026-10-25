@@ -21,7 +21,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        // ONNX Runtime ships native code; skip 32-bit x86 (emulators only) to keep the APK smaller.
+        // TensorFlow Lite ships native code; skip 32-bit x86 (emulators only) to keep the APK smaller.
         // -Pxander.abi=arm64-v8a builds a single-ABI APK for sideloading onto one phone.
         ndk { abiFilters += cfg("xander.abi").ifBlank { null }?.split(',') ?: listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
         applicationId = "com.xander.files"
@@ -77,7 +77,7 @@ android {
         buildConfig = true
         aidl = true
     }
-    androidResources { noCompress += "onnx" }
+    androidResources { noCompress += "tflite" }
 
     packaging {
         resources {
@@ -192,7 +192,7 @@ dependencies {
     implementation(libs.appauth)
     implementation(libs.play.auth)
     implementation(libs.billing)
-    implementation(libs.onnxruntime)
+    implementation(libs.tflite)
     implementation(libs.biometric)
     implementation(libs.leanback)
 

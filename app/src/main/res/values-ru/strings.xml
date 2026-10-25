@@ -524,7 +524,7 @@
     <string name="adult_detect">Распознавать изображения и видео 18+</string>
     <string name="adult_detect_summary">Работает на устройстве (ничего не загружается) и показывает найденное в разделе «18+» на главном экране</string>
     <string name="adult_threshold">Порог чувствительности: %d%%</string>
-    <string name="adult_threshold_hint">Ниже — больше находок, но и больше ложных срабатываний. 40% — проверенное значение.</string>
+    <string name="adult_threshold_hint">Ниже — больше находок, но и больше ложных срабатываний. При 70% ни одно из наших безобидных тестовых фото не было отмечено.</string>
     <string name="adult_scanning">Сканирование… %1$d из %2$d</string>
     <string name="adult_scanned">Проверено файлов: %d</string>
     <string name="adult_videos">Включая видео</string>
@@ -538,6 +538,8 @@
     <string name="an_archive_copies">Уже распакованные архивы: %1$d · %2$s</string>
     <string name="an_select_archives">Выбрать архивы</string>
     <string name="an_extracted_match">Совпадает файлов: %1$d из %2$d</string>
+    <string name="adult_drawn">Включать рисованный контент 18+ (хентай)</string>
+    <string name="adult_drawn_summary">По умолчанию выключено: обычные комиксы и манга могут получать высокий балл</string>
     <plurals name="delete_confirm">
         <item quantity="one">Удалить %d элемент?</item>
         <item quantity="few">Удалить %d элемента?</item>

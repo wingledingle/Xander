@@ -185,11 +185,11 @@ interface TvDeviceDao {
 
 @Dao
 interface NsfwDao {
-    @Query("SELECT * FROM nsfw_scores WHERE path = :path") suspend fun get(path: String): NsfwScoreEntity?
+    @Query("SELECT * FROM nsfw_results WHERE path = :path") suspend fun get(path: String): NsfwScoreEntity?
     @Upsert suspend fun upsert(e: NsfwScoreEntity)
-    @Query("SELECT path FROM nsfw_scores WHERE score >= :threshold ORDER BY score DESC") suspend fun flagged(threshold: Float): List<String>
-    @Query("SELECT COUNT(*) AS count, COALESCE(SUM(size),0) AS size FROM nsfw_scores WHERE score >= :threshold") fun observeFlagged(threshold: Float): Flow<CountSize>
-    @Query("SELECT COUNT(*) FROM nsfw_scores") fun observeScanned(): Flow<Int>
-    @Query("DELETE FROM nsfw_scores WHERE path = :path") suspend fun delete(path: String)
-    @Query("DELETE FROM nsfw_scores") suspend fun clear()
+    @Query("SELECT path FROM nsfw_results WHERE porn >= :t OR (:drawn AND hentai >= :t) ORDER BY MAX(porn, hentai) DESC") suspend fun flagged(t: Float, drawn: Boolean): List<String>
+    @Query("SELECT COUNT(*) AS count, COALESCE(SUM(size),0) AS size FROM nsfw_results WHERE porn >= :t OR (:drawn AND hentai >= :t)") fun observeFlagged(t: Float, drawn: Boolean): Flow<CountSize>
+    @Query("SELECT COUNT(*) FROM nsfw_results") fun observeScanned(): Flow<Int>
+    @Query("DELETE FROM nsfw_results WHERE path = :path") suspend fun delete(path: String)
+    @Query("DELETE FROM nsfw_results") suspend fun clear()
 }

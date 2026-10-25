@@ -1,70 +1,57 @@
 package com.xander.files.data.nsfw
 
-import ai.onnxruntime.OnnxTensor
-import ai.onnxruntime.OrtEnvironment
-import ai.onnxruntime.OrtSession
 import android.content.Context
 import android.graphics.Bitmap
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.nio.FloatBuffer
+import org.tensorflow.lite.Interpreter
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.nio.channels.FileChannel
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.math.exp
 import kotlin.math.sqrt
 
+/** Class probabilities from GantMan's nsfw_model (MobileNetV2 224, MIT). */
+data class NsfwScores(val drawings: Float, val hentai: Float, val neutral: Float, val porn: Float, val sexy: Float)
+
 /**
- * On-device NSFW image classifier: Marqo/nsfw-image-detection-384 (ViT-tiny, Apache-2.0) exported to ONNX
- * by ICIJ for nuditag, run with ONNX Runtime (MIT). Nothing leaves the phone.
+ * On-device classifier: GantMan nsfw_model mobilenet_v2_140_224 (MIT) run with TensorFlow Lite (Apache-2.0).
+ * It has a separate "drawings" class, so comics and manga are not treated as porn. Nothing leaves the phone.
  */
 @Singleton
 class NsfwClassifier @Inject constructor(@ApplicationContext private val context: Context) {
-    private val env: OrtEnvironment by lazy { OrtEnvironment.getEnvironment() }
-    private val session: OrtSession by lazy {
-        val bytes = context.assets.open(MODEL).use { it.readBytes() }
-        OrtSession.SessionOptions().use { o -> o.setIntraOpNumThreads(2); env.createSession(bytes, o) }
-    }
-
-    /** NSFW probability in [0, 1] for one image. */
-    @Synchronized
-    fun score(bitmap: Bitmap): Float {
-        val input = preprocess(bitmap)
-        OnnxTensor.createTensor(env, input, longArrayOf(1, 3, SIZE.toLong(), SIZE.toLong())).use { t ->
-            session.run(mapOf(session.inputNames.first() to t)).use { out ->
-                @Suppress("UNCHECKED_CAST")
-                val logits = (out[0].value as Array<FloatArray>)[0]
-                return softmax(logits)[0]
-            }
+    private val interpreter: Interpreter by lazy {
+        val buf = context.assets.openFd(MODEL).use { fd ->
+            java.io.FileInputStream(fd.fileDescriptor).channel.map(FileChannel.MapMode.READ_ONLY, fd.startOffset, fd.declaredLength)
         }
+        Interpreter(buf, Interpreter.Options().setNumThreads(2))
+    }
+    private val input = ByteBuffer.allocateDirect(4 * SIZE * SIZE * 3).order(ByteOrder.nativeOrder())
+    private val output = Array(1) { FloatArray(5) }
+
+    @Synchronized
+    fun classify(bitmap: Bitmap): NsfwScores {
+        fill(input, bitmap)
+        interpreter.run(input, output)
+        val p = output[0]
+        return NsfwScores(p[0], p[1], p[2], p[3], p[4])
     }
 
     companion object {
-        const val MODEL = "nsfw/marqo-nsfw-384.onnx"
-        const val SIZE = 384
+        const val MODEL = "nsfw/gantman_mobilenet_v2_224.tflite"
+        const val SIZE = 224
 
-        /** Resize to 384×384 and scale RGB to [-1, 1] (mean 0.5, std 0.5), NCHW. */
-        fun preprocess(src: Bitmap): FloatBuffer {
-            val b = if (src.width == SIZE && src.height == SIZE && src.config == Bitmap.Config.ARGB_8888) src
-            else Bitmap.createScaledBitmap(src.copyIfNeeded(), SIZE, SIZE, true)
+        /** Same as the model's predict.py: nearest-neighbour resize to 224×224, RGB / 255, NHWC. */
+        fun fill(buf: ByteBuffer, src: Bitmap) {
+            val b0 = if (src.config == Bitmap.Config.HARDWARE) src.copy(Bitmap.Config.ARGB_8888, false) else src
+            val b = if (b0.width == SIZE && b0.height == SIZE) b0 else Bitmap.createScaledBitmap(b0, SIZE, SIZE, false)
             val px = IntArray(SIZE * SIZE); b.getPixels(px, 0, SIZE, 0, 0, SIZE, SIZE)
-            val buf = FloatBuffer.allocate(3 * SIZE * SIZE)
-            val plane = SIZE * SIZE
-            for (i in px.indices) {
-                val c = px[i]
-                buf.put(i, ((c shr 16 and 0xff) / 127.5f) - 1f)
-                buf.put(plane + i, ((c shr 8 and 0xff) / 127.5f) - 1f)
-                buf.put(2 * plane + i, ((c and 0xff) / 127.5f) - 1f)
-            }
-            return buf
+            buf.rewind()
+            for (c in px) { buf.putFloat((c shr 16 and 0xff) / 255f); buf.putFloat((c shr 8 and 0xff) / 255f); buf.putFloat((c and 0xff) / 255f) }
+            buf.rewind()
         }
 
-        private fun Bitmap.copyIfNeeded(): Bitmap = if (config == Bitmap.Config.HARDWARE) copy(Bitmap.Config.ARGB_8888, false) else this
-
-        fun softmax(l: FloatArray): FloatArray {
-            val m = l.max(); val e = l.map { exp((it - m).toDouble()) }; val s = e.sum()
-            return FloatArray(l.size) { (e[it] / s).toFloat() }
-        }
-
-        /** Near-uniform frames (fades, black frames) score ~0.36 regardless of content, so videos skip them. */
+        /** Near-uniform frames (fades, black frames, blank pages) carry no signal; skip them. */
         fun isFlat(b: Bitmap): Boolean {
             val w = b.width; val h = b.height; var n = 0; var sum = 0.0; var sq = 0.0
             var y = 0

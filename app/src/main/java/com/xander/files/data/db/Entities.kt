@@ -179,12 +179,16 @@ data class TvDeviceEntity(
     val lastSeen: Long = System.currentTimeMillis(),
 )
 
-/** On-device NSFW classifier result for one image or video (rescored when size or mtime change). */
-@Entity(tableName = "nsfw_scores", indices = [Index("score")])
+/** GantMan nsfw_model class probabilities for one image or video (rescored when size or mtime change). */
+@Entity(tableName = "nsfw_results", indices = [Index("porn"), Index("hentai")])
 data class NsfwScoreEntity(
     @PrimaryKey val path: String,
     val size: Long,
     val modified: Long,
-    val score: Float,
+    val drawings: Float,
+    val hentai: Float,
+    val neutral: Float,
+    val porn: Float,
+    val sexy: Float,
     val scannedAt: Long = System.currentTimeMillis(),
 )

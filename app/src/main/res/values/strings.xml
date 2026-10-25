@@ -533,7 +533,7 @@
     <string name="adult_detect">Detect adult images and videos</string>
     <string name="adult_detect_summary">Runs an on-device model (no uploads) and lists matches under Adult on the home screen</string>
     <string name="adult_threshold">Sensitivity threshold: %d%%</string>
-    <string name="adult_threshold_hint">Lower finds more but flags more harmless photos. 40% is the tested default.</string>
+    <string name="adult_threshold_hint">Lower finds more but flags more harmless photos. 70% flagged none of our harmless test photos.</string>
     <string name="adult_scanning">Scanning… %1$d of %2$d</string>
     <string name="adult_scanned">%d files checked</string>
     <string name="adult_videos">Include videos</string>
@@ -547,4 +547,6 @@
     <string name="an_archive_copies">Archives already extracted: %1$d · %2$s</string>
     <string name="an_select_archives">Select archives</string>
     <string name="an_extracted_match">%1$d of %2$d files match</string>
+    <string name="adult_drawn">Include drawn adult content (hentai)</string>
+    <string name="adult_drawn_summary">Off by default: ordinary comics and manga can score high</string>
 </resources>
