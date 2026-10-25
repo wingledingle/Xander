@@ -42,6 +42,11 @@ object Routes {
     const val HISTORY = "history"
     const val LIBRARY = "library/{kind}"
     const val APPS = "apps"
+    const val NETWORK = "network"
+    const val CLOUD = "cloud"
+    const val CONNECTION = "connection?id={id}&type={type}&host={host}&port={port}"
+    fun connection(id: String?, type: com.xander.files.data.net.ConnType?, host: String?, port: Int?) =
+        "connection?id=${id ?: ""}&type=${type?.name ?: ""}&host=${Uri.encode(host ?: "")}&port=${port ?: 0}"
     fun library(kind: com.xander.files.data.index.LibraryKind) = "library/${kind.name}"
     fun browser(p: FsPath) = "browser?path=${Uri.encode(p.toString())}"
     fun search(root: FsPath?) = "search?root=${Uri.encode(root?.toString() ?: "")}"
@@ -123,6 +128,13 @@ fun XanderNavHost(
                 com.xander.files.ui.library.LibraryScreen(onBack = { nav.popBackStack() }, onOpenFolder = nav::openFolder)
             }
             composable(Routes.APPS) { com.xander.files.ui.apps.AppsScreen(onBack = { nav.popBackStack() }) }
+            composable(Routes.NETWORK) {
+                com.xander.files.ui.network.NetworkScreen(onBack = { nav.popBackStack() }, onBrowse = nav::openFolder,
+                    onEdit = { id, t, h, p -> nav.navigate(Routes.connection(id, t, h, p)) }, onCloud = { nav.navigate(Routes.CLOUD) })
+            }
+            composable(Routes.CONNECTION, arguments = listOf("id", "type", "host", "port").map { n -> navArgument(n) { type = NavType.StringType; defaultValue = "" } }) {
+                com.xander.files.ui.network.ConnectionEditScreen(onBack = { nav.popBackStack() }, onConnected = { root -> nav.popBackStack(); nav.openFolder(root) })
+            }
             composable(Routes.HISTORY) { HistoryScreen(onBack = { nav.popBackStack() }, onOpen = nav::openFolder) }
         }
     }
