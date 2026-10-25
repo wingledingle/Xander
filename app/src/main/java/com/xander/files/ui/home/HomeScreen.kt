@@ -58,6 +58,7 @@ import com.xander.files.domain.fs.FsPath
 import com.xander.files.ui.common.Format
 import com.xander.files.ui.navigation.Routes
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Star
@@ -104,6 +105,7 @@ fun HomeScreen(onOpen: (FsPath) -> Unit, onSearch: () -> Unit, onMenu: () -> Uni
             val p = vm.primaryRoot
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Shortcut(Icons.Filled.Delete, stringResource(R.string.recycle_bin)) { onRoute(Routes.RECYCLE) }
+                Shortcut(Icons.Filled.PieChart, stringResource(R.string.analyzer)) { onRoute(Routes.ANALYZER) }
                 Shortcut(Icons.Filled.Star, stringResource(R.string.favorites)) { onRoute(Routes.BOOKMARKS) }
                 Shortcut(Icons.Filled.ContentPaste, stringResource(R.string.clipboard)) { onRoute(Routes.CLIPBOARD_ROUTE) }
                 Shortcut(Icons.Filled.SwapVert, stringResource(R.string.transfers)) { onRoute(Routes.TRANSFERS) }

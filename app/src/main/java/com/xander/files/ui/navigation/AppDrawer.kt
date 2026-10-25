@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Lan
@@ -53,6 +54,7 @@ val drawerTools = listOf(
     DrawerDestination(Routes.RECYCLE, Icons.Filled.Delete, R.string.recycle_bin),
     DrawerDestination(Routes.HISTORY, Icons.Filled.History, R.string.history),
     DrawerDestination(Routes.APPS, Icons.Filled.Apps, R.string.app_manager),
+    DrawerDestination(Routes.ANALYZER, Icons.Filled.PieChart, R.string.analyzer),
 )
 
 @Composable

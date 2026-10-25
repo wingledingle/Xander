@@ -45,6 +45,7 @@ object Routes {
     const val NETWORK = "network"
     const val CLOUD = "cloud"
     const val SETTINGS = "settings"
+    const val ANALYZER = "analyzer"
     const val PREMIUM = "premium"
     const val LICENSES = "licenses"
     const val CONNECTION = "connection?id={id}&type={type}&host={host}&port={port}"
@@ -148,6 +149,7 @@ fun XanderNavHost(
             }
             composable(Routes.PREMIUM) { com.xander.files.ui.premium.PaywallScreen(onBack = { nav.popBackStack() }) }
             composable(Routes.LICENSES) { com.xander.files.ui.settings.LicensesScreen(onBack = { nav.popBackStack() }) }
+            composable(Routes.ANALYZER) { com.xander.files.ui.analyzer.AnalyzerScreen(onBack = { nav.popBackStack() }, onOpenFolder = nav::openFolder) }
             composable(Routes.HISTORY) { HistoryScreen(onBack = { nav.popBackStack() }, onOpen = nav::openFolder) }
         }
     }
