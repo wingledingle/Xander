@@ -30,6 +30,7 @@ class HomeViewModel @Inject constructor(
     private val settings: SettingsRepository,
     private val library: LibraryRepository,
     indexer: FileIndexer,
+    private val ejector: com.xander.files.data.storage.UsbEjector,
 ) : ViewModel() {
 
     val stats = library.stats.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -61,6 +62,15 @@ class HomeViewModel @Inject constructor(
         _volumes.value = volumes.volumes(); shizuku.refresh()
         _appCount.value = library.appCount()
         loadRecent()
+    }
+
+    val events = kotlinx.coroutines.channels.Channel<Any>(kotlinx.coroutines.channels.Channel.BUFFERED)
+
+    fun eject(v: VolumeInfo) = viewModelScope.launch {
+        when (val r = ejector.eject(v)) {
+            com.xander.files.data.storage.EjectResult.Ejected -> { events.send("ejected"); refresh() }
+            is com.xander.files.data.storage.EjectResult.OpenSettings -> events.send(r.intent)
+        }
     }
 
     fun requestShizuku() = viewModelScope.launch { shizuku.requestPermission() }

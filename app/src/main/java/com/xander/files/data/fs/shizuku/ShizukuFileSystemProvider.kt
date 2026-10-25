@@ -110,6 +110,9 @@ class ShizukuFileSystemProvider @Inject constructor(
         }
     }
 
+    /** Runs [command] with shell (ADB) privileges, e.g. `sm unmount`. */
+    suspend fun exec(command: String): String = withContext(Dispatchers.IO) { svc().exec(command) }
+
     private suspend fun svc(): IFileService {
         service?.let { return it }
         if (!isAvailable()) throw FsException.PermissionDenied(null, IllegalStateException("Shizuku is not running or not authorized"))

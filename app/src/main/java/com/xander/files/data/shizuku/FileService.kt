@@ -56,6 +56,13 @@ class FileService : IFileService.Stub() {
     override fun createFile(path: String) = File(path).createNewFile()
     override fun exists(path: String) = File(path).exists()
 
+    override fun exec(command: String): String {
+        val p = ProcessBuilder("sh", "-c", command).redirectErrorStream(true).start()
+        val out = p.inputStream.bufferedReader().readText()
+        p.waitFor()
+        return out
+    }
+
     /** Emits "<parent dir>/|<stat line>" for every match below [root]. */
     override fun find(root: String, needle: String, includeHidden: Boolean): ParcelFileDescriptor = pipe { pw ->
         val stack = ArrayDeque<File>().apply { add(File(root)) }

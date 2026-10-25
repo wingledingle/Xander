@@ -14,4 +14,6 @@ interface IFileService {
     boolean exists(String path) = 9;
     /** Streams matching absolute paths (as stat lines) under root whose name contains needle. */
     ParcelFileDescriptor find(String root, String needle, boolean includeHidden) = 10;
+    /** Runs a shell command as the shell user; returns stdout+stderr. */
+    String exec(String command) = 11;
 }

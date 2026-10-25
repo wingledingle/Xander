@@ -7,6 +7,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -184,4 +185,20 @@ fun XanderNavHost(
     }
 
     conflict?.let { p -> ConflictDialog(p) { choice, all -> shell.conflicts.answer(choice, all) } }
+
+    // Offer to open a USB drive / SD card as soon as it is mounted.
+    var known by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<Set<String>?>(null) }
+    var attached by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<com.xander.files.data.storage.VolumeInfo?>(null) }
+    LaunchedEffect(volumes) {
+        val ids = volumes.map { it.id }.toSet()
+        val prev = known
+        if (prev != null && volumes.isNotEmpty()) volumes.firstOrNull { it.isRemovable && it.id !in prev }?.let { attached = it }
+        if (volumes.isNotEmpty()) known = ids
+    }
+    attached?.let { v ->
+        androidx.compose.material3.AlertDialog(onDismissRequest = { attached = null },
+            title = { androidx.compose.material3.Text(androidx.compose.ui.res.stringResource(com.xander.files.R.string.usb_connected, v.label)) },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { attached = null; nav.openFolder(v.root) }) { androidx.compose.material3.Text(androidx.compose.ui.res.stringResource(com.xander.files.R.string.open)) } },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { attached = null }) { androidx.compose.material3.Text(androidx.compose.ui.res.stringResource(com.xander.files.R.string.dismiss)) } })
+    }
 }

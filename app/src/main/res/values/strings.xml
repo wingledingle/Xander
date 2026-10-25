@@ -481,4 +481,8 @@
     <string name="bt_direct">Direct (Xander)</string>
     <string name="bt_unpair">Unpair</string>
     <string name="send_bluetooth">Send via Bluetooth</string>
+    <string name="eject">Eject</string>
+    <string name="ejected">Safe to remove</string>
+    <string name="eject_in_settings">Tap Eject next to the drive in Storage settings</string>
+    <string name="usb_connected">%s connected</string>
 </resources>

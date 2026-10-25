@@ -17,6 +17,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Eject
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Folder
@@ -39,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -80,6 +82,16 @@ fun HomeScreen(onOpen: (FsPath) -> Unit, onOpenFile: (com.xander.files.domain.fs
     val recentDays by vm.recentDays.collectAsStateWithLifecycle()
     val index by vm.indexStatus.collectAsStateWithLifecycle()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(Unit) {
+        for (e in vm.events) when (e) {
+            is android.content.Intent -> {
+                android.widget.Toast.makeText(ctx, R.string.eject_in_settings, android.widget.Toast.LENGTH_LONG).show()
+                runCatching { ctx.startActivity(e) }
+            }
+            else -> android.widget.Toast.makeText(ctx, R.string.ejected, android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
     DisposableEffect(lifecycle) {
         val o = LifecycleEventObserver { _, e -> if (e == Lifecycle.Event.ON_RESUME) vm.refresh() }
         lifecycle.addObserver(o); onDispose { lifecycle.removeObserver(o) }
@@ -93,7 +105,7 @@ fun HomeScreen(onOpen: (FsPath) -> Unit, onOpenFile: (com.xander.files.domain.fs
         })
     }) { pad ->
         Column(Modifier.padding(pad).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            volumes.forEach { v -> VolumeCard(v) { onOpen(v.root) } }
+            volumes.forEach { v -> VolumeCard(v, onEject = if (v.isRemovable) ({ vm.eject(v) }) else null) { onOpen(v.root) } }
             Text(
                 stringResource(R.string.files_and_apps, fileCount, appCount) + if (index.running) " · " + stringResource(R.string.indexing) else "",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -154,7 +166,7 @@ private fun shizukuLabel(s: ShizukuState) = when (s) {
 }
 
 @Composable
-fun VolumeCard(v: VolumeInfo, onClick: () -> Unit) {
+fun VolumeCard(v: VolumeInfo, onEject: (() -> Unit)? = null, onClick: () -> Unit) {
     Card(onClick = onClick, shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(when (v.kind) { VolumeKind.INTERNAL -> Icons.Filled.PhoneAndroid; VolumeKind.SD_CARD -> Icons.Filled.SdCard; VolumeKind.USB -> Icons.Filled.Usb },
@@ -166,6 +178,7 @@ fun VolumeCard(v: VolumeInfo, onClick: () -> Unit) {
                 Spacer(Modifier.height(4.dp))
                 Text("${Format.size(v.used)} / ${Format.size(v.total)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            if (onEject != null) IconButton(onClick = onEject) { Icon(Icons.Filled.Eject, stringResource(R.string.eject)) }
         }
     }
 }

@@ -50,3 +50,11 @@ class FsPathTest {
         assertFalse(SearchQuery("holiday", includeHidden = false).matches(e.copy(path = FsPath.local("/x/.holiday.jpg"))))
     }
 }
+
+class UsbEjectorParseTest {
+    @Test fun findsVolumeIdByUuid() {
+        val out = "public:8,1 mounted 1A2B-3C4D\npublic:179,65 unmounted null\n"
+        assertEquals("public:8,1", com.xander.files.data.storage.UsbEjector.volumeId(out, "1a2b-3c4d"))
+        assertEquals(null, com.xander.files.data.storage.UsbEjector.volumeId(out, "FFFF-0000"))
+    }
+}

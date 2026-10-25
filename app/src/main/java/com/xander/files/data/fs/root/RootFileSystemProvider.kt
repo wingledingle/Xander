@@ -40,6 +40,9 @@ class RootFileSystemProvider @Inject constructor() : PosixFileSystemProvider {
         try { Shell.getCachedShell()?.close(); Shell.getShell().isRoot } catch (e: Exception) { false }
     }
 
+    /** Runs [cmd] as root and returns its output, or null if it failed. */
+    suspend fun exec(cmd: String): String? = withContext(Dispatchers.IO) { sh(cmd).let { r -> if (r.isSuccess) r.out.joinToString("\n") else null } }
+
     private fun sh(cmd: String): Shell.Result {
         if (!isAvailable()) throw FsException.PermissionDenied(null, IllegalStateException("Root not available"))
         return Shell.cmd(cmd).exec()
