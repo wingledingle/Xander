@@ -436,4 +436,24 @@
     <string name="open_as_text">Open as text</string>
     <string name="builtin_viewers">Use built-in viewers</string>
     <string name="builtin_viewers_summary">Open images, video, music, PDF, documents and books inside Xander</string>
+    <string name="access_from_pc">Access from PC</string>
+    <string name="access_from_pc_running">Access from PC is on</string>
+    <string name="ftp_server">FTP server</string>
+    <string name="web_server">Web browser access</string>
+    <string name="server_hint">Connect your computer to the same Wi-Fi, then type the address into File Explorer, Finder (Go → Connect to Server) or a web browser.</string>
+    <string name="server_no_network">No Wi-Fi or hotspot address found. Connect to Wi-Fi or turn on the hotspot.</string>
+    <string name="server_port">Port</string>
+    <string name="server_anonymous">Anonymous access (no password)</string>
+    <string name="server_user">User name</string>
+    <string name="server_password">Password</string>
+    <string name="server_root">Shared folder</string>
+    <string name="server_charset">FTP file name encoding</string>
+    <string name="server_read_only">Read-only</string>
+    <string name="server_clients">%d connected</string>
+    <string name="server_password_needed">Set a password, or allow anonymous access</string>
+    <string name="copy_address">Copy address</string>
+    <string name="address_copied">Address copied</string>
+    <string name="stop">Stop</string>
+    <string name="start">Start</string>
+    <string name="change">Change</string>
 </resources>

@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Lan
+import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
@@ -47,6 +48,7 @@ data class DrawerDestination(val route: String, val icon: ImageVector, val label
 val drawerNetwork = listOf(
     DrawerDestination(Routes.NETWORK, Icons.Filled.Lan, R.string.network),
     DrawerDestination(Routes.CLOUD, Icons.Filled.Cloud, R.string.cloud),
+    DrawerDestination(Routes.SERVERS, Icons.Filled.Computer, R.string.access_from_pc),
 )
 
 val drawerTools = listOf(

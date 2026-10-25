@@ -49,6 +49,7 @@ object Routes {
     const val PREMIUM = "premium"
     const val LICENSES = "licenses"
     const val MUSIC = "music"
+    const val SERVERS = "servers"
     const val NOW_PLAYING = com.xander.files.data.open.ViewerLauncher.NOW_PLAYING
     val VIEWERS = listOf("image", "video", "pdf", "office", "book", "editor")
     const val CONNECTION = "connection?id={id}&type={type}&host={host}&port={port}"
@@ -174,6 +175,7 @@ fun XanderNavHost(
             composable("office?path={path}", pathArg) { com.xander.files.ui.viewers.OfficeViewerScreen(onBack = { nav.popBackStack() }) }
             composable("book?path={path}", pathArg) { com.xander.files.ui.viewers.BookReaderScreen(onBack = { nav.popBackStack() }) }
             composable("editor?path={path}", pathArg) { com.xander.files.ui.editor.TextEditorScreen(onBack = { nav.popBackStack() }) }
+            composable(Routes.SERVERS) { com.xander.files.ui.server.ServerScreen(onBack = { nav.popBackStack() }) }
             composable(Routes.MUSIC) { com.xander.files.ui.music.MusicScreen(onBack = { nav.popBackStack() }, onNowPlaying = { nav.navigate(Routes.NOW_PLAYING) { launchSingleTop = true } }) }
             composable(Routes.NOW_PLAYING) { com.xander.files.ui.music.NowPlayingScreen(onBack = { nav.popBackStack() }) }
         }

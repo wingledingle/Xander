@@ -111,7 +111,7 @@ class TransferWorker @AssistedInject constructor(
 
     private fun foreground(title: String, text: String?, fraction: Float, indeterminate: Boolean): ForegroundInfo {
         val n = NotificationCompat.Builder(applicationContext, CHANNEL)
-            .setSmallIcon(android.R.drawable.stat_sys_download)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title).setContentText(text)
             .setOnlyAlertOnce(true).setOngoing(true)
             .setProgress(1000, (fraction * 1000).toInt(), indeterminate)
