@@ -22,7 +22,8 @@ android {
 
     defaultConfig {
         // ONNX Runtime ships native code; skip 32-bit x86 (emulators only) to keep the APK smaller.
-        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
+        // -Pxander.abi=arm64-v8a builds a single-ABI APK for sideloading onto one phone.
+        ndk { abiFilters += cfg("xander.abi").ifBlank { null }?.split(',') ?: listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
         applicationId = "com.xander.files"
         minSdk = 23
         targetSdk = 36
