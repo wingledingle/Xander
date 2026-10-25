@@ -97,6 +97,9 @@ import com.xander.files.ui.common.TextInputDialog
 import com.xander.files.ui.ops.ActionSheet
 import com.xander.files.ui.ops.DeleteDialog
 import com.xander.files.ui.ops.PropertiesDialog
+import com.xander.files.ui.ops.FolderPickerDialog
+import com.xander.files.ui.ops.CompressDialog
+import com.xander.files.ui.ops.PasswordDialog
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Info
@@ -113,6 +116,11 @@ private sealed interface Dialog {
     data object EditPath : Dialog
     data class Properties(val entries: List<FileEntry>) : Dialog
     data class Actions(val entries: List<FileEntry>) : Dialog
+    data class Pick(val purpose: PickPurpose, val entries: List<FileEntry>) : Dialog
+    data class Compress(val entries: List<FileEntry>) : Dialog
+    data class Encrypt(val entries: List<FileEntry>) : Dialog
+    data class Decrypt(val entries: List<FileEntry>) : Dialog
+    data class ArchivePassword(val archive: FsPath, val wrong: Boolean) : Dialog
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -139,6 +147,7 @@ fun BrowserScreen(
                 is BrowserEvent.Toast -> Toast.makeText(context, e.text, Toast.LENGTH_LONG).show()
                 is BrowserEvent.Launch -> runCatching { context.startActivity(e.intent) }
                     .onFailure { Toast.makeText(context, R.string.no_app_found, Toast.LENGTH_SHORT).show() }
+                is BrowserEvent.AskArchivePassword -> dialog = Dialog.ArchivePassword(e.archive, e.wrong)
             }
         }
     }
@@ -165,8 +174,10 @@ fun BrowserScreen(
                     actions = {
                         val sel = vm.selectedEntries()
                         IconButton(onClick = { vm.copy(sel, cut = false) }) { Icon(Icons.Filled.ContentCopy, stringResource(R.string.copy)) }
-                        IconButton(onClick = { vm.copy(sel, cut = true) }) { Icon(Icons.Filled.ContentCut, stringResource(R.string.cut)) }
-                        IconButton(onClick = { dialog = Dialog.Delete(sel) }) { Icon(Icons.Filled.Delete, stringResource(R.string.delete)) }
+                        if (state.writable) {
+                            IconButton(onClick = { vm.copy(sel, cut = true) }) { Icon(Icons.Filled.ContentCut, stringResource(R.string.cut)) }
+                            IconButton(onClick = { dialog = Dialog.Delete(sel) }) { Icon(Icons.Filled.Delete, stringResource(R.string.delete)) }
+                        }
                         IconButton(onClick = { vm.share(sel) }, enabled = sel.any { !it.isDirectory }) { Icon(Icons.Filled.Share, stringResource(R.string.share)) }
                         IconButton(onClick = { dialog = Dialog.Actions(sel) }) { Icon(Icons.Filled.MoreVert, stringResource(R.string.more)) }
                     }
@@ -225,7 +236,7 @@ fun BrowserScreen(
             if (top != null && !state.selecting && state.error == null) PasteBar(top, clips.size, onPaste = vm::pasteLatest, onMore = { onOpenClipboard(state.path) })
         },
         floatingActionButton = {
-            if (!state.selecting && state.error == null) Box {
+            if (!state.selecting && state.error == null && state.writable) Box {
                 FloatingActionButton(onClick = { fabMenu = true }) { Icon(Icons.Filled.Add, stringResource(R.string.create)) }
                 DropdownMenu(expanded = fabMenu, onDismissRequest = { fabMenu = false }) {
                     DropdownMenuItem(text = { Text(stringResource(R.string.new_folder)) }, leadingIcon = { Icon(Icons.Filled.CreateNewFolder, null) },
@@ -256,6 +267,12 @@ fun BrowserScreen(
                                 pendingKind = SafRootKind.SD_CARD
                                 treeLauncher.launch(if (Build.VERSION.SDK_INT >= 26 && e.volumeUuid != null) DocumentsContract.buildRootUri(SafRootStore.EXTERNAL_STORAGE_AUTHORITY, e.volumeUuid) else null)
                             }) { Text(stringResource(R.string.grant_access)) }
+                        }
+                    }
+                    state.error is BrowserError.Password -> {
+                        val e = state.error as BrowserError.Password
+                        EmptyState(Icons.Filled.Lock, stringResource(if (e.wrong) R.string.wrong_password else R.string.archive_password)) {
+                            Button(onClick = { dialog = Dialog.ArchivePassword(e.archive, e.wrong) }) { Text(stringResource(R.string.password)) }
                         }
                     }
                     state.error is BrowserError.Message -> {
@@ -295,12 +312,36 @@ fun BrowserScreen(
         is Dialog.Properties -> PropertiesDialog(d.entries, onDismiss = { dialog = null })
         is Dialog.Actions -> ActionSheet(
             title = if (d.entries.size == 1) d.entries.first().name else "${d.entries.size} items",
-            actions = entryActions(d.entries, vm, onRename = { dialog = Dialog.Rename(it) }, onProperties = { dialog = Dialog.Properties(it) },
-                onCopyPath = { copyToClipboard(context, d.entries.joinToString("\n") { it.path.toString().removePrefix("file://") }) }),
+            actions = entryActions(d.entries, vm, state.writable, onRename = { dialog = Dialog.Rename(it) }, onProperties = { dialog = Dialog.Properties(it) },
+                onCopyPath = { copyToClipboard(context, d.entries.joinToString("\n") { it.path.toString().removePrefix("file://") }) },
+                onPick = { dialog = Dialog.Pick(it, d.entries) }, onCompress = { dialog = Dialog.Compress(d.entries) },
+                onEncrypt = { dialog = Dialog.Encrypt(d.entries) }, onDecrypt = { dialog = Dialog.Decrypt(d.entries) }),
             onDismiss = { if (dialog is Dialog.Actions) dialog = null }
         )
         Dialog.EditPath -> TextInputDialog(stringResource(R.string.edit_path), state.path.toString().removePrefix("file://"), selectBaseName = false,
             validator = { null }, onDismiss = { dialog = null }) { vm.navigate(FsPath.parse(it)); dialog = null }
+        is Dialog.Pick -> FolderPickerDialog(
+            title = stringResource(when (d.purpose) { PickPurpose.COPY -> R.string.copy_to; PickPurpose.MOVE -> R.string.move_to; PickPurpose.EXTRACT -> R.string.extract_to }),
+            initial = state.path, onDismiss = { dialog = null },
+            onPick = { dest ->
+            dialog = null
+            when (d.purpose) {
+                PickPurpose.COPY -> vm.copyTo(d.entries, dest, move = false)
+                PickPurpose.MOVE -> vm.copyTo(d.entries, dest, move = true)
+                PickPurpose.EXTRACT -> vm.extractTo(d.entries, dest)
+            }
+        })
+        is Dialog.Compress -> CompressDialog(
+            defaultName = if (d.entries.size == 1) d.entries.first().name.substringBeforeLast('.').ifEmpty { d.entries.first().name } else state.path.name.ifEmpty { "Archive" },
+            onDismiss = { dialog = null }) { spec -> dialog = null; vm.compress(d.entries, spec) }
+        is Dialog.Encrypt -> PasswordDialog(stringResource(R.string.encrypt_title), confirm = true, showDeleteOriginal = true, onDismiss = { dialog = null }) { pwd, del ->
+            dialog = null; vm.encrypt(d.entries, pwd, del)
+        }
+        is Dialog.Decrypt -> PasswordDialog(stringResource(R.string.decrypt_title), showDeleteOriginal = true, onDismiss = { dialog = null }) { pwd, del ->
+            dialog = null; vm.decrypt(d.entries, pwd, del)
+        }
+        is Dialog.ArchivePassword -> PasswordDialog(stringResource(R.string.archive_password), error = if (d.wrong) stringResource(R.string.wrong_password) else null,
+            onDismiss = { dialog = null }) { pwd, _ -> dialog = null; vm.submitArchivePassword(d.archive, pwd) }
         null -> Unit
     }
 }

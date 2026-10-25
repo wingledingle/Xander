@@ -13,6 +13,9 @@ import com.xander.files.data.ops.FileActions
 import com.xander.files.data.transfer.TransferManager
 import com.xander.files.data.transfer.TransferRequest
 import com.xander.files.data.transfer.TransferType
+import com.xander.files.data.transfer.TransferOptions
+import com.xander.files.data.archive.ArchiveFormats
+import com.xander.files.domain.fs.Capability
 import com.xander.files.data.db.HistoryEntity
 import com.xander.files.data.fs.local.RestrictedFolderException
 import com.xander.files.data.fs.local.SafGrantRequiredException
@@ -53,11 +56,13 @@ sealed interface BrowserError {
     data class Restricted(val path: FsPath) : BrowserError
     data class SafGrant(val path: FsPath, val volumeUuid: String?) : BrowserError
     data class Message(val text: String, val retryable: Boolean) : BrowserError
+    data class Password(val archive: FsPath, val wrong: Boolean) : BrowserError
 }
 
 sealed interface BrowserEvent {
     data class Toast(val text: String) : BrowserEvent
     data class Launch(val intent: Intent) : BrowserEvent
+    data class AskArchivePassword(val archive: FsPath, val wrong: Boolean) : BrowserEvent
 }
 
 data class BrowserState(
@@ -69,6 +74,7 @@ data class BrowserState(
     val selection: Set<FsPath> = emptySet(),
     val canGoBack: Boolean = false,
     val canGoForward: Boolean = false,
+    val writable: Boolean = true,
 ) {
     val selecting get() = selection.isNotEmpty()
 }
@@ -89,6 +95,8 @@ class BrowserViewModel @Inject constructor(
     private val actions: FileActions,
     private val bookmarks: BookmarkRepository,
     private val installer: com.xander.files.data.apps.ApkInstaller,
+    private val archivePasswords: com.xander.files.data.archive.ArchivePasswords,
+    private val archives: com.xander.files.data.archive.ArchiveFileSystemProvider,
 ) : ViewModel() {
 
     val clipItems = clipboard.items.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -137,14 +145,19 @@ class BrowserViewModel @Inject constructor(
         loadJob = viewModelScope.launch {
             val provider = try { registry.provider(path) } catch (e: FsException) { raw.update { it.copy(loading = false, error = BrowserError.Message(e.message ?: "", false)) }; return@launch }
             val title = if (path.isRoot) provider.rootTitle(path.authority) else path.name
+            val writable = Capability.WRITE in provider.capabilities(path)
             try {
                 val list = provider.list(path)
-                raw.update { it.copy(entries = list, loading = false, error = null, title = title) }
+                raw.update { it.copy(entries = list, loading = false, error = null, title = title, writable = writable) }
                 if (!silent) history.upsert(HistoryEntity(path.toString(), title, System.currentTimeMillis()))
             } catch (e: RestrictedFolderException) {
                 raw.update { it.copy(entries = emptyList(), loading = false, error = BrowserError.Restricted(path), title = title) }
             } catch (e: SafGrantRequiredException) {
                 raw.update { it.copy(loading = false, error = BrowserError.SafGrant(path, e.volumeUuid), title = title) }
+            } catch (e: FsException.PasswordRequired) {
+                raw.update { it.copy(entries = emptyList(), loading = false, error = BrowserError.Password(e.path, false), title = title) }
+            } catch (e: FsException.WrongPassword) {
+                raw.update { it.copy(entries = emptyList(), loading = false, error = BrowserError.Password(archiveOf(path), true), title = title) }
             } catch (e: FsException) {
                 raw.update { it.copy(entries = emptyList(), loading = false, error = BrowserError.Message(e.message ?: "Error", e.retryable), title = title) }
             }
@@ -188,12 +201,57 @@ class BrowserViewModel @Inject constructor(
         if (raw.value.selecting) { toggle(entry); return }
         if (entry.isDirectory) { navigate(entry.path); return }
         if (entry.extension in setOf("apk", "apks", "xapk", "apkm")) { install(entry); return }
+        if (ArchiveFormats.isArchiveName(entry.name)) { navigate(FsPath.archive(entry.path)); return }
         viewModelScope.launch {
             bookmarks.recordOpened(entry)
             try { val i = opener.openExternal(entry); _events.send(BrowserEvent.Launch(if (i.component != null) i else Intent.createChooser(i, entry.name))) }
+            catch (e: FsException.PasswordRequired) { _events.send(BrowserEvent.AskArchivePassword(e.path, false)) }
+            catch (e: FsException.WrongPassword) { _events.send(BrowserEvent.AskArchivePassword(archiveOf(entry.path), true)) }
             catch (e: Exception) { _events.send(BrowserEvent.Toast(FsException.wrap(e).message ?: "Cannot open")) }
         }
     }
+
+    private fun archiveOf(p: FsPath): FsPath = if (p.scheme == FsPath.SCHEME_ARCHIVE) FsPath.parse(FsPath.decodeAuthority(p.authority)) else p
+
+    fun submitArchivePassword(archive: FsPath, password: String) { archivePasswords.set(archive, password); refresh() }
+
+    // ---- archives, encryption, copy/move to ----
+
+    private fun enqueue(type: TransferType, sources: List<FsPath>, dest: FsPath?, title: String, options: TransferOptions = TransferOptions()) =
+        viewModelScope.launch { transfers.enqueue(TransferRequest(type, sources.map { it.toString() }, dest?.toString(), title, options)); clearSelection() }
+
+    fun compress(entries: List<FileEntry>, spec: com.xander.files.ui.ops.CompressSpec) = enqueue(
+        TransferType.COMPRESS, entries.map { it.path }, raw.value.path.takeIf { raw.value.writable } ?: entries.first().path.parent, "Compressing ${spec.name}",
+        TransferOptions(archiveFormat = spec.format.name, archiveName = spec.name, password = spec.password, compressionLevel = spec.level))
+
+    fun extractHere(entries: List<FileEntry>) = viewModelScope.launch {
+        if (!passwordsReady(entries)) return@launch
+        entries.groupBy { it.path.parent!! }.forEach { (dir, list) -> enqueue(TransferType.EXTRACT, list.map { it.path }, dir, "Extracting ${list.first().name}") }
+    }
+
+    fun extractTo(entries: List<FileEntry>, dest: FsPath) = viewModelScope.launch {
+        if (!passwordsReady(entries)) return@launch
+        enqueue(TransferType.EXTRACT, entries.map { it.path }, dest, "Extracting ${entries.first().name}")
+    }
+
+    /** Asks for the archive password up front so background extraction doesn't fail half way. */
+    private suspend fun passwordsReady(entries: List<FileEntry>): Boolean {
+        for (e in entries) {
+            val root = if (e.path.scheme == FsPath.SCHEME_ARCHIVE) FsPath(e.path.scheme, e.path.authority, "/") else FsPath.archive(e.path)
+            if (archives.needsPassword(root)) { _events.send(BrowserEvent.AskArchivePassword(archiveOf(root), false)); return false }
+        }
+        return true
+    }
+
+    fun copyTo(entries: List<FileEntry>, dest: FsPath, move: Boolean) = transferTo(entries.map { it.path }, dest, move).also { clearSelection() }
+
+    fun encrypt(entries: List<FileEntry>, password: String, deleteOriginal: Boolean) = enqueue(
+        TransferType.ENCRYPT, entries.map { it.path }, null, "Encrypting ${entries.size} item(s)", TransferOptions(password = password, deleteOriginal = deleteOriginal))
+
+    fun decrypt(entries: List<FileEntry>, password: String, deleteOriginal: Boolean) = enqueue(
+        TransferType.DECRYPT, entries.map { it.path }, null, "Decrypting ${entries.size} item(s)", TransferOptions(password = password, deleteOriginal = deleteOriginal))
+
+    fun viewAsZip(entry: FileEntry) = navigate(FsPath.archive(entry.path))
 
     fun install(entry: FileEntry) = viewModelScope.launch {
         if (!installer.canInstall()) { _events.send(BrowserEvent.Launch(installer.permissionIntent())); _events.send(BrowserEvent.Toast("Allow installs, then tap the file again")); return@launch }

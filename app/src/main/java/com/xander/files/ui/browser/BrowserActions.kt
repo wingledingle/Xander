@@ -36,26 +36,48 @@ import com.xander.files.data.clipboard.ClipOp
 import com.xander.files.domain.fs.FileCategory
 import com.xander.files.domain.fs.FileEntry
 import com.xander.files.ui.ops.SheetAction
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.DriveFileMove
+import androidx.compose.material.icons.filled.FolderZip
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.Unarchive
+
+enum class PickPurpose { COPY, MOVE, EXTRACT }
 
 /** Full action list for a selection (shown from the overflow / long-press sheet). */
 @Composable
 fun entryActions(
-    entries: List<FileEntry>, vm: BrowserViewModel,
+    entries: List<FileEntry>, vm: BrowserViewModel, writable: Boolean,
     onRename: (FileEntry) -> Unit, onProperties: (List<FileEntry>) -> Unit, onCopyPath: () -> Unit,
+    onPick: (PickPurpose) -> Unit = {}, onCompress: () -> Unit = {}, onEncrypt: () -> Unit = {}, onDecrypt: () -> Unit = {},
 ): List<SheetAction> {
     val single = entries.singleOrNull()
     val anyHidden = entries.any { it.isHidden }
+    val inArchive = entries.first().path.scheme == com.xander.files.domain.fs.FsPath.SCHEME_ARCHIVE
+    val archivesSelected = entries.all { !it.isDirectory && com.xander.files.data.archive.ArchiveFormats.detect(it.name, null) != com.xander.files.data.archive.ArchiveFormat.UNKNOWN }
     return buildList {
         add(SheetAction(Icons.Filled.ContentCopy, stringResource(R.string.copy)) { vm.copy(entries, false) })
-        add(SheetAction(Icons.Filled.ContentCut, stringResource(R.string.cut)) { vm.copy(entries, true) })
-        if (single != null) add(SheetAction(Icons.Filled.DriveFileRenameOutline, stringResource(R.string.rename)) { onRename(single) })
-        add(SheetAction(Icons.Filled.Delete, stringResource(R.string.delete)) { vm.requestDelete(entries) })
+        if (writable) add(SheetAction(Icons.Filled.ContentCut, stringResource(R.string.cut)) { vm.copy(entries, true) })
+        add(SheetAction(Icons.Filled.DriveFileMove, stringResource(R.string.copy_to)) { onPick(PickPurpose.COPY) })
+        if (writable) add(SheetAction(Icons.Filled.DriveFileMove, stringResource(R.string.move_to)) { onPick(PickPurpose.MOVE) })
+        if (inArchive) add(SheetAction(Icons.Filled.Unarchive, stringResource(R.string.extract_selected)) { onPick(PickPurpose.EXTRACT) })
+        if (archivesSelected && !inArchive) {
+            if (writable) add(SheetAction(Icons.Filled.Unarchive, stringResource(R.string.extract_here)) { vm.extractHere(entries) })
+            add(SheetAction(Icons.Filled.Unarchive, stringResource(R.string.extract_to)) { onPick(PickPurpose.EXTRACT) })
+        }
+        if (single != null && single.extension in setOf("apk", "apks", "xapk", "apkm")) add(SheetAction(Icons.Filled.FolderZip, stringResource(R.string.view_as_zip)) { vm.viewAsZip(single) })
+        if (!inArchive) add(SheetAction(Icons.Filled.Archive, stringResource(R.string.compress)) { onCompress() })
+        if (writable && entries.any { it.isDirectory || it.extension != "xenc" }) add(SheetAction(Icons.Filled.Lock, stringResource(R.string.encrypt)) { onEncrypt() })
+        if (writable && entries.any { it.isDirectory || it.extension == "xenc" }) add(SheetAction(Icons.Filled.LockOpen, stringResource(R.string.decrypt)) { onDecrypt() })
+        if (single != null && writable) add(SheetAction(Icons.Filled.DriveFileRenameOutline, stringResource(R.string.rename)) { onRename(single) })
+        if (writable) add(SheetAction(Icons.Filled.Delete, stringResource(R.string.delete)) { vm.requestDelete(entries) })
         if (entries.any { !it.isDirectory }) add(SheetAction(Icons.Filled.Share, stringResource(R.string.share)) { vm.share(entries) })
         if (single != null && !single.isDirectory) add(SheetAction(Icons.AutoMirrored.Filled.OpenInNew, stringResource(R.string.open_with)) { vm.openWith(single) })
         if (single != null && single.category in setOf(FileCategory.IMAGE, FileCategory.AUDIO))
             add(SheetAction(Icons.Filled.Wallpaper, stringResource(R.string.set_as)) { vm.setAs(single) })
-        if (single != null) add(SheetAction(Icons.Filled.FileCopy, stringResource(R.string.duplicate)) { vm.duplicate(single) })
-        add(SheetAction(if (anyHidden) Icons.Filled.Visibility else Icons.Filled.VisibilityOff, stringResource(if (anyHidden) R.string.unhide else R.string.hide)) {
+        if (single != null && writable) add(SheetAction(Icons.Filled.FileCopy, stringResource(R.string.duplicate)) { vm.duplicate(single) })
+        if (writable) add(SheetAction(if (anyHidden) Icons.Filled.Visibility else Icons.Filled.VisibilityOff, stringResource(if (anyHidden) R.string.unhide else R.string.hide)) {
             vm.setHidden(entries, !anyHidden)
         })
         add(SheetAction(Icons.Filled.Star, stringResource(R.string.toggle_favorite)) { vm.toggleFavorite(entries) })

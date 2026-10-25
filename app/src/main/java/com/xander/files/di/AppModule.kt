@@ -59,5 +59,6 @@ abstract class ProviderModule {
     @Binds @IntoSet abstract fun root(p: RootFileSystemProvider): FileSystemProvider
     @Binds @IntoSet abstract fun saf(p: SafFileSystemProvider): FileSystemProvider
     @Binds @IntoSet abstract fun shizuku(p: ShizukuFileSystemProvider): FileSystemProvider
+    @Binds @IntoSet abstract fun archive(p: com.xander.files.data.archive.ArchiveFileSystemProvider): FileSystemProvider
     @Binds abstract fun secretCipher(c: KeystoreSecretCipher): SecretCipher
 }

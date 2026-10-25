@@ -193,4 +193,27 @@
     <string name="install">Install</string>
     <string name="allow_install_title">Allow app installs</string>
     <string name="allow_install_body">To install apps from files, allow Xander Files to install unknown apps.</string>
+    <string name="up">Up</string>
+    <string name="select_this_folder">Select this folder</string>
+    <string name="compress">Compress</string>
+    <string name="archive_name">Archive name</string>
+    <string name="password_optional">Password (optional, AES-256)</string>
+    <string name="no_password_7z">7z archives are created without a password.</string>
+    <string name="compression_level">Compression level: %d</string>
+    <string name="password">Password</string>
+    <string name="repeat_password">Repeat password</string>
+    <string name="delete_original">Delete original files</string>
+    <string name="extract_here">Extract here</string>
+    <string name="extract_to">Extract to…</string>
+    <string name="extract_selected">Extract selected to…</string>
+    <string name="encrypt">Encrypt…</string>
+    <string name="decrypt">Decrypt…</string>
+    <string name="view_as_zip">View as ZIP</string>
+    <string name="copy_to">Copy to…</string>
+    <string name="move_to">Move to…</string>
+    <string name="archive_password">Archive password</string>
+    <string name="wrong_password">Wrong password</string>
+    <string name="encrypt_title">Encrypt with password</string>
+    <string name="decrypt_title">Decrypt</string>
+    <string name="read_only_location">Read-only location</string>
 </resources>
