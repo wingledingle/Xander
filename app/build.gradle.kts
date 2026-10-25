@@ -173,7 +173,7 @@ dependencies {
 
     implementation(libs.smbj)
     implementation(libs.commons.net)
-    implementation(libs.sshj)
+    implementation(libs.sshj) { exclude(group = "com.jcraft", module = "jzlib") }
     implementation(libs.bouncycastle)
     implementation(libs.nfs.client)
     implementation(libs.commons.compress)
