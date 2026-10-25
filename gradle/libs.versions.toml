@@ -31,6 +31,7 @@ playAuth = "21.4.0"
 cast = "22.1.0"
 mediarouter = "1.8.1"
 billing = "8.0.0"
+onnxruntime = "1.22.0"
 biometric = "1.1.0"
 documentfile = "1.1.0"
 leanback = "1.0.0"
@@ -112,6 +113,7 @@ play-auth = { module = "com.google.android.gms:play-services-auth", version.ref 
 cast-framework = { module = "com.google.android.gms:play-services-cast-framework", version.ref = "cast" }
 mediarouter = { module = "androidx.mediarouter:mediarouter", version.ref = "mediarouter" }
 billing = { module = "com.android.billingclient:billing-ktx", version.ref = "billing" }
+onnxruntime = { module = "com.microsoft.onnxruntime:onnxruntime-android", version.ref = "onnxruntime" }
 biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 documentfile = { module = "androidx.documentfile:documentfile", version.ref = "documentfile" }
 leanback = { module = "androidx.leanback:leanback", version.ref = "leanback" }

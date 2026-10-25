@@ -81,11 +81,14 @@ class SettingsViewModel @Inject constructor(
     private val lock: AppLock,
     private val opener: FileOpener,
     private val folderPrefs: FolderPrefDao,
+    val nsfw: com.xander.files.data.nsfw.NsfwRepository,
 ) : ViewModel() {
     val settings = repo.settings.stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
     val premium = billing.premium
     fun update(f: (AppSettings) -> AppSettings) = viewModelScope.launch { repo.update(f) }
     fun setPin(pin: String?) = viewModelScope.launch { lock.setPin(pin) }
+    fun nsfwScan(all: Boolean) = viewModelScope.launch { nsfw.scan(all) }
+    fun nsfwClear() = viewModelScope.launch { nsfw.clear() }
 
     suspend fun cacheSize(): Long = withContext(Dispatchers.IO) { context.cacheDir.walkTopDown().filter { it.isFile }.sumOf { it.length() } }
     fun clearCache(done: () -> Unit) = viewModelScope.launch {
@@ -173,6 +176,27 @@ fun SettingsScreen(onBack: () -> Unit, onPremium: () -> Unit, onLicenses: () -> 
             Toggle(stringResource(R.string.root_mode), s.rootMode, stringResource(R.string.root_mode_summary)) { v -> vm.update { it.copy(rootMode = v) } }
             Item(stringResource(R.string.reset_defaults), stringResource(R.string.reset_defaults_summary)) {
                 vm.clearDefaults(); Toast.makeText(ctx, R.string.done, Toast.LENGTH_SHORT).show()
+            }
+
+            Section(R.string.adult_section)
+            Toggle(stringResource(R.string.adult_detect), s.nsfwEnabled, stringResource(R.string.adult_detect_summary)) { v ->
+                vm.update { it.copy(nsfwEnabled = v) }; if (v) vm.nsfwScan(false)
+            }
+            if (s.nsfwEnabled) {
+                val scanned by vm.nsfw.observeScanned().collectAsStateWithLifecycle(0)
+                val work by vm.nsfw.progress().collectAsStateWithLifecycle(emptyList())
+                val running = work.firstOrNull { it.state == androidx.work.WorkInfo.State.RUNNING }
+                Column(Modifier.padding(horizontal = 16.dp)) {
+                    Text(stringResource(R.string.adult_threshold, s.nsfwThreshold))
+                    Slider(s.nsfwThreshold.toFloat(), { v -> vm.update { it.copy(nsfwThreshold = v.toInt()) } }, valueRange = 20f..90f)
+                    Text(stringResource(R.string.adult_threshold_hint), style = MaterialTheme.typography.bodySmall)
+                    Text(running?.progress?.let { p -> stringResource(R.string.adult_scanning, p.getInt("done", 0), p.getInt("total", 0)) }
+                        ?: stringResource(R.string.adult_scanned, scanned), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
+                }
+                Toggle(stringResource(R.string.adult_videos), s.nsfwVideos) { v -> vm.update { it.copy(nsfwVideos = v) } }
+                Toggle(stringResource(R.string.adult_charging), s.nsfwChargingOnly) { v -> vm.update { it.copy(nsfwChargingOnly = v) } }
+                Item(stringResource(R.string.adult_rescan), stringResource(R.string.adult_rescan_summary)) { vm.nsfwScan(true) }
+                Item(stringResource(R.string.adult_clear), "") { vm.nsfwClear() }
             }
 
             Section(R.string.security)

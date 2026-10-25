@@ -28,6 +28,7 @@ class XanderApp : Application(), SingletonImageLoader.Factory, Configuration.Pro
     @Inject lateinit var thumbnails: ThumbnailService
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var indexer: FileIndexer
+    @Inject lateinit var nsfw: com.xander.files.data.nsfw.NsfwRepository
     @Inject @AppScope lateinit var appScope: CoroutineScope
     @Inject lateinit var appLock: com.xander.files.data.lock.AppLock
     @Inject lateinit var registry: com.xander.files.domain.fs.FileSystemRegistry
@@ -47,7 +48,7 @@ class XanderApp : Application(), SingletonImageLoader.Factory, Configuration.Pro
 
     /** Indexes storage in the background once storage access exists (called again after onboarding). */
     fun startIndexing() {
-        if (StorageAccess.hasFullAccess(this)) appScope.launch { runCatching { indexer.indexAll(full = true) } }
+        if (StorageAccess.hasFullAccess(this)) appScope.launch { runCatching { indexer.indexAll(full = true) }; runCatching { nsfw.scan() } }
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader =

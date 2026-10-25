@@ -1,5 +1,6 @@
 package com.xander.files.data.db
 
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 
@@ -9,8 +10,10 @@ import androidx.room.RoomDatabase
         RecycleEntity::class, ClipboardEntity::class, ConnectionEntity::class, CloudAccountEntity::class,
         TransferEntity::class, FileIndexEntity::class, MediaPositionEntity::class, PlaylistEntity::class,
         PlaylistItemEntity::class, FolderPrefEntity::class, DefaultAppEntity::class, TvDeviceEntity::class,
+        NsfwScoreEntity::class,
     ],
-    version = 1,
+    version = 2,
+    autoMigrations = [AutoMigration(from = 1, to = 2)],
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -29,4 +32,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun folderPrefs(): FolderPrefDao
     abstract fun defaultApps(): DefaultAppDao
     abstract fun tvDevices(): TvDeviceDao
+    abstract fun nsfw(): NsfwDao
 }

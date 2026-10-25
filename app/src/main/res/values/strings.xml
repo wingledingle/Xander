@@ -526,4 +526,19 @@
     <string name="send_to_tv">Send to TV</string>
     <string name="install_on_tv">Install on TV</string>
     <string name="tv_pick">Choose a TV</string>
+    <string name="cat_games">Games</string>
+    <string name="cat_adult">Adult</string>
+    <string name="move_to_private">Move to private folder</string>
+    <string name="adult_section">Adult content</string>
+    <string name="adult_detect">Detect adult images and videos</string>
+    <string name="adult_detect_summary">Runs an on-device model (no uploads) and lists matches under Adult on the home screen</string>
+    <string name="adult_threshold">Sensitivity threshold: %d%%</string>
+    <string name="adult_threshold_hint">Lower finds more but flags more harmless photos. 40% is the tested default.</string>
+    <string name="adult_scanning">Scanning… %1$d of %2$d</string>
+    <string name="adult_scanned">%d files checked</string>
+    <string name="adult_videos">Include videos</string>
+    <string name="adult_charging">Only scan while charging</string>
+    <string name="adult_rescan">Rescan everything</string>
+    <string name="adult_rescan_summary">Re-check all images and videos</string>
+    <string name="adult_clear">Forget all results</string>
 </resources>

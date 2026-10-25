@@ -47,6 +47,7 @@ object AppModule {
     @Provides fun folderPrefs(db: AppDatabase) = db.folderPrefs()
     @Provides fun defaultApps(db: AppDatabase) = db.defaultApps()
     @Provides fun tvDevices(db: AppDatabase) = db.tvDevices()
+    @Provides fun nsfw(db: AppDatabase) = db.nsfw()
 
     @Provides @Singleton @AppScope
     fun appScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

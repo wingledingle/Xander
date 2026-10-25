@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.SportsEsports
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Android
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.AudioFile
@@ -55,6 +57,8 @@ val categoryTiles = listOf(
     CategoryTile(LibraryKind.DOCUMENTS, Icons.Filled.Description, R.string.cat_documents, CategoryColors.document),
     CategoryTile(LibraryKind.APKS, Icons.Filled.Android, R.string.cat_apks, CategoryColors.apk),
     CategoryTile(LibraryKind.ARCHIVES, Icons.Filled.FolderZip, R.string.cat_archives, CategoryColors.archive),
+    CategoryTile(LibraryKind.GAMES, Icons.Filled.SportsEsports, R.string.cat_games, Color(0xFF7E57C2)),
+    CategoryTile(LibraryKind.ADULT, Icons.Filled.VisibilityOff, R.string.cat_adult, Color(0xFFE53935)),
     CategoryTile(LibraryKind.DOWNLOADS, Icons.Filled.Download, R.string.downloads, CategoryColors.download),
     CategoryTile(LibraryKind.LARGE, Icons.Filled.SdStorage, R.string.cat_large, CategoryColors.large),
     CategoryTile(null, Icons.Filled.Apps, R.string.cat_apps, CategoryColors.apps),
@@ -66,6 +70,8 @@ fun CategoryGrid(stats: List<LibraryStat>, appCount: Int, onOpen: (LibraryKind) 
     FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.spacedBy(12.dp), maxItemsInEachRow = 3) {
         categoryTiles.forEach { t ->
             val st = stats.firstOrNull { it.kind == t.kind }
+            // The Adult tile only appears once detection is on and has found something.
+            if (t.kind == LibraryKind.ADULT && (st == null || st.count == 0)) return@forEach
             Column(
                 Modifier.width(104.dp).clip(RoundedCornerShape(14.dp)).clickable { if (t.kind != null) onOpen(t.kind) else onApps() }.padding(vertical = 10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally

@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Close
@@ -141,6 +142,15 @@ class LibraryViewModel @Inject constructor(
         clipboard.add(if (cut) ClipOp.CUT else ClipOp.COPY, selection.value.toList()); events.send("Added to clipboard"); clear()
     }
 
+    /** Moves the selection into a private folder that gallery apps skip (.nomedia). */
+    fun moveToPrivate() = viewModelScope.launch {
+        val dir = java.io.File(android.os.Environment.getExternalStorageDirectory(), "Xander Private").apply { mkdirs() }
+        runCatching { java.io.File(dir, ".nomedia").createNewFile() }
+        val sel = selected()
+        transfers.enqueue(TransferRequest(TransferType.MOVE, sel.map { it.path.toString() }, FsPath.local(dir.path).toString(), "Moving ${sel.size} item(s) to Xander Private"))
+        raw = raw.filter { it.path !in selection.value }; clear(); apply()
+    }
+
     fun share() = viewModelScope.launch { runCatching { events.send(actions.shareIntent(selected())) } }
 
     fun delete(permanent: Boolean) = viewModelScope.launch {
@@ -184,6 +194,7 @@ fun LibraryScreen(onBack: () -> Unit, onOpenFolder: (FsPath) -> Unit, vm: Librar
                 IconButton(onClick = vm::share) { Icon(Icons.Filled.Share, stringResource(R.string.share)) }
                 IconButton(onClick = { deleting = true }) { Icon(Icons.Filled.Delete, stringResource(R.string.delete)) }
                 IconButton(onClick = { props = vm.selected() }) { Icon(Icons.Filled.Info, stringResource(R.string.properties)) }
+                if (vm.kind == LibraryKind.ADULT) IconButton(onClick = vm::moveToPrivate) { Icon(Icons.Filled.VisibilityOff, stringResource(R.string.move_to_private)) }
                 if (sel.size == 1) IconButton(onClick = { sel.first().parent?.let(onOpenFolder) }) { Icon(Icons.Filled.FolderOpen, stringResource(R.string.open_containing_folder)) }
             }
         ) else TopAppBar(
@@ -228,5 +239,6 @@ private val Int.dp get() = androidx.compose.ui.unit.Dp(this.toFloat())
 fun libraryTitle(k: LibraryKind) = when (k) {
     LibraryKind.IMAGES -> R.string.cat_images; LibraryKind.VIDEOS -> R.string.cat_videos; LibraryKind.MUSIC -> R.string.cat_music
     LibraryKind.DOCUMENTS -> R.string.cat_documents; LibraryKind.APKS -> R.string.cat_apks; LibraryKind.ARCHIVES -> R.string.cat_archives
+    LibraryKind.GAMES -> R.string.cat_games; LibraryKind.ADULT -> R.string.cat_adult
     LibraryKind.DOWNLOADS -> R.string.downloads; LibraryKind.RECENT -> R.string.recent_files; LibraryKind.LARGE -> R.string.cat_large
 }

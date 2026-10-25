@@ -21,6 +21,8 @@ android {
     compileSdk = 36
 
     defaultConfig {
+        // ONNX Runtime ships native code; skip 32-bit x86 (emulators only) to keep the APK smaller.
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
         applicationId = "com.xander.files"
         minSdk = 23
         targetSdk = 36
@@ -74,6 +76,8 @@ android {
         buildConfig = true
         aidl = true
     }
+    androidResources { noCompress += "onnx" }
+
     packaging {
         resources {
             excludes += setOf(
@@ -187,6 +191,7 @@ dependencies {
     implementation(libs.appauth)
     implementation(libs.play.auth)
     implementation(libs.billing)
+    implementation(libs.onnxruntime)
     implementation(libs.biometric)
     implementation(libs.leanback)
 

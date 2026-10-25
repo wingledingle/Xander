@@ -101,6 +101,7 @@ interface TransferDao {
 }
 
 data class CategoryStat(val category: String, val count: Int, val size: Long)
+data class CountSize(val count: Int, val size: Long)
 
 @Dao
 interface FileIndexDao {
@@ -116,6 +117,10 @@ interface FileIndexDao {
     @Query("SELECT category, COUNT(*) AS count, COALESCE(SUM(size),0) AS size FROM file_index WHERE isDirectory = 0 GROUP BY category")
     fun observeCategoryStats(): Flow<List<CategoryStat>>
     @Query("SELECT COUNT(*) FROM file_index WHERE isDirectory = 0") fun observeFileCount(): Flow<Int>
+    @Query("SELECT COUNT(*) AS count, COALESCE(SUM(size),0) AS size FROM file_index WHERE isDirectory = 0 AND name LIKE '%.obb'") fun observeObbStats(): Flow<CountSize>
+    @Query("SELECT * FROM file_index WHERE isDirectory = 0 AND name LIKE '%.obb'") suspend fun obbFiles(): List<FileIndexEntity>
+    @Query("SELECT * FROM file_index WHERE path = :path") suspend fun get(path: String): FileIndexEntity?
+    @Query("SELECT * FROM file_index WHERE isDirectory = 0 AND (category = 'IMAGE' OR category = 'VIDEO')") suspend fun media(): List<FileIndexEntity>
     @Query("SELECT * FROM file_index WHERE category = :category AND isDirectory = 0 ORDER BY modified DESC")
     suspend fun byCategory(category: String): List<FileIndexEntity>
     @Query("SELECT * FROM file_index WHERE isDirectory = 0 AND size >= :minSize ORDER BY size DESC LIMIT :limit")
@@ -176,4 +181,15 @@ interface TvDeviceDao {
     @Query("SELECT * FROM tv_devices") suspend fun observeAllOnce(): List<TvDeviceEntity>
     @Upsert suspend fun upsert(e: TvDeviceEntity)
     @Query("DELETE FROM tv_devices WHERE id = :id") suspend fun delete(id: String)
+}
+
+@Dao
+interface NsfwDao {
+    @Query("SELECT * FROM nsfw_scores WHERE path = :path") suspend fun get(path: String): NsfwScoreEntity?
+    @Upsert suspend fun upsert(e: NsfwScoreEntity)
+    @Query("SELECT path FROM nsfw_scores WHERE score >= :threshold ORDER BY score DESC") suspend fun flagged(threshold: Float): List<String>
+    @Query("SELECT COUNT(*) AS count, COALESCE(SUM(size),0) AS size FROM nsfw_scores WHERE score >= :threshold") fun observeFlagged(threshold: Float): Flow<CountSize>
+    @Query("SELECT COUNT(*) FROM nsfw_scores") fun observeScanned(): Flow<Int>
+    @Query("DELETE FROM nsfw_scores WHERE path = :path") suspend fun delete(path: String)
+    @Query("DELETE FROM nsfw_scores") suspend fun clear()
 }

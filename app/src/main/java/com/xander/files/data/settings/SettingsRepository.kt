@@ -53,6 +53,10 @@ data class AppSettings(
     val serverRoot: String = "",
     val serverCharset: String = "UTF-8",
     val serverReadOnly: Boolean = false,
+    val nsfwEnabled: Boolean = false,
+    val nsfwThreshold: Int = 40,
+    val nsfwVideos: Boolean = true,
+    val nsfwChargingOnly: Boolean = false,
 )
 
 @Singleton
@@ -94,6 +98,10 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         val srvRoot = stringPreferencesKey("srv_root")
         val srvCharset = stringPreferencesKey("srv_charset")
         val srvRo = booleanPreferencesKey("srv_ro")
+        val nsfw = booleanPreferencesKey("nsfw")
+        val nsfwThreshold = intPreferencesKey("nsfw_threshold")
+        val nsfwVideos = booleanPreferencesKey("nsfw_videos")
+        val nsfwCharging = booleanPreferencesKey("nsfw_charging")
     }
 
     val settings: Flow<AppSettings> = store.data.map { read(it) }
@@ -133,6 +141,10 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         serverRoot = p[K.srvRoot] ?: "",
         serverCharset = p[K.srvCharset] ?: "UTF-8",
         serverReadOnly = p[K.srvRo] ?: false,
+        nsfwEnabled = p[K.nsfw] ?: false,
+        nsfwThreshold = p[K.nsfwThreshold] ?: 40,
+        nsfwVideos = p[K.nsfwVideos] ?: true,
+        nsfwChargingOnly = p[K.nsfwCharging] ?: false,
     )
 
     suspend fun update(transform: (AppSettings) -> AppSettings) {
@@ -149,6 +161,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             p[K.builtIn] = n.builtInViewers; p[K.srvPort] = n.serverPort; p[K.httpPort] = n.httpServerPort
             p[K.srvAnon] = n.serverAnonymous; p[K.srvUser] = n.serverUser; p[K.srvPass] = n.serverPassword
             p[K.srvRoot] = n.serverRoot; p[K.srvCharset] = n.serverCharset; p[K.srvRo] = n.serverReadOnly
+            p[K.nsfw] = n.nsfwEnabled; p[K.nsfwThreshold] = n.nsfwThreshold; p[K.nsfwVideos] = n.nsfwVideos; p[K.nsfwCharging] = n.nsfwChargingOnly
         }
     }
 }
