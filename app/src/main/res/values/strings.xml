@@ -513,10 +513,7 @@
     <string name="tv_system_apps">Show system apps</string>
     <string name="tv_remote_disabled">Enable “Xander remote control” in the TV\'s Settings → Accessibility to use the remote.</string>
     <string name="tv_host_title">Manage this TV from your phone</string>
-    <string name="tv_host_steps">1. Install Xander Files on your phone.
-2. Connect the phone to the same Wi-Fi.
-3. Open Xander → TV management and pick this TV.
-4. Enter this code:</string>
+    <string name="tv_host_steps">1. Install Xander Files on your phone.\n2. Connect the phone to the same Wi-Fi.\n3. Open Xander → TV management and pick this TV.\n4. Enter this code:</string>
     <string name="tv_host_addr">Address: %s</string>
     <string name="tv_host_paired">%d phone(s) paired</string>
     <string name="tv_host_revoke">Unpair all phones</string>
