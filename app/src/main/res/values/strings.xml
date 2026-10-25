@@ -425,4 +425,11 @@
     <string name="replace">Replace</string>
     <string name="replace_all">Replace all</string>
     <string name="match_case">Match case</string>
+    <string name="pages">Pages</string>
+    <string name="go_to_page">Go to page</string>
+    <string name="night_mode">Night mode</string>
+    <string name="contents">Contents</string>
+    <string name="reading_style">Reading style</string>
+    <string name="font_size_pct">Font size: %d%%</string>
+    <string name="read_as_book">Read as book</string>
 </resources>
