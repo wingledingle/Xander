@@ -379,4 +379,11 @@
     <string name="new_symlink">New symbolic link</string>
     <string name="link_name">Link name</string>
     <string name="link_target">Target path</string>
+    <string name="slideshow">Slideshow</string>
+    <string name="rotate">Rotate</string>
+    <string name="details">Details</string>
+    <string name="deleted">Deleted</string>
+    <string name="subtitles">Subtitles</string>
+    <string name="speed">Playback speed</string>
+    <string name="pip">Picture-in-picture</string>
 </resources>

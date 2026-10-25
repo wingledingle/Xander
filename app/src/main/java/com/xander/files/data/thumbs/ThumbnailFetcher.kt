@@ -27,6 +27,8 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.io.File
+import okio.buffer
+import okio.source
 import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -171,4 +173,27 @@ class AppIconFetcher(private val model: AppIconModel, private val context: andro
     class Factory(private val context: android.content.Context) : Fetcher.Factory<AppIconModel> {
         override fun create(data: AppIconModel, options: Options, imageLoader: ImageLoader): Fetcher = AppIconFetcher(data, context)
     }
+}
+
+/** Full-resolution image from any backend, decoded by Coil itself (animated GIF/WebP, HEIF, EXIF rotation). */
+data class FullImage(val entry: FileEntry)
+
+class FullImageFetcher(private val model: FullImage, private val registry: FileSystemRegistry) : Fetcher {
+    override suspend fun fetch(): FetchResult = withContext(Dispatchers.IO) {
+        val path = model.entry.path
+        val stream = registry.provider(path).openInput(path)
+        coil3.fetch.SourceFetchResult(
+            source = coil3.decode.ImageSource(source = stream.source().buffer(), fileSystem = okio.FileSystem.SYSTEM),
+            mimeType = model.entry.mimeType,
+            dataSource = if (path.isLocal) DataSource.DISK else DataSource.NETWORK,
+        )
+    }
+
+    class Factory(private val registry: FileSystemRegistry) : Fetcher.Factory<FullImage> {
+        override fun create(data: FullImage, options: Options, imageLoader: ImageLoader): Fetcher = FullImageFetcher(data, registry)
+    }
+}
+
+class FullImageKeyer : coil3.key.Keyer<FullImage> {
+    override fun key(data: FullImage, options: Options) = "full|${data.entry.path}|${data.entry.lastModified}|${data.entry.size}"
 }

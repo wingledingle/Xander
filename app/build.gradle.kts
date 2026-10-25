@@ -130,6 +130,8 @@ dependencies {
     implementation(libs.splashscreen)
     implementation(libs.window)
     implementation(libs.documentfile)
+    implementation(libs.exifinterface)
+    implementation(libs.webkit)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

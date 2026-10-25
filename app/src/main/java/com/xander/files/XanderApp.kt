@@ -30,6 +30,7 @@ class XanderApp : Application(), SingletonImageLoader.Factory, Configuration.Pro
     @Inject lateinit var indexer: FileIndexer
     @Inject @AppScope lateinit var appScope: CoroutineScope
     @Inject lateinit var appLock: com.xander.files.data.lock.AppLock
+    @Inject lateinit var registry: com.xander.files.domain.fs.FileSystemRegistry
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
@@ -55,6 +56,9 @@ class XanderApp : Application(), SingletonImageLoader.Factory, Configuration.Pro
                 add(FileEntryKeyer())
                 add(FileEntryFetcher.Factory(thumbnails))
                 add(com.xander.files.data.thumbs.AppIconFetcher.Factory(this@XanderApp))
+                add(com.xander.files.data.thumbs.FullImageKeyer())
+                add(com.xander.files.data.thumbs.FullImageFetcher.Factory(registry))
+                add(coil3.gif.AnimatedImageDecoder.Factory())
             }
             .memoryCache { MemoryCache.Builder().maxSizePercent(context, 0.2).build() }
             .crossfade(true)
