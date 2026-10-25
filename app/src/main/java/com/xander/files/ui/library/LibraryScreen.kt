@@ -92,6 +92,7 @@ class LibraryViewModel @Inject constructor(
     private val actions: FileActions,
     private val opener: FileOpener,
     private val bookmarks: BookmarkRepository,
+    private val launcher: com.xander.files.data.open.ViewerLauncher,
     settings: SettingsRepository,
 ) : ViewModel() {
     val kind: LibraryKind = LibraryKind.valueOf(saved.get<String>("kind") ?: LibraryKind.IMAGES.name)
@@ -133,9 +134,7 @@ class LibraryViewModel @Inject constructor(
 
     fun open(e: FileEntry) = viewModelScope.launch {
         if (selection.value.isNotEmpty()) { toggle(e); return@launch }
-        bookmarks.recordOpened(e)
-        runCatching { val i = opener.openExternal(e); events.send(if (i.component != null) i else Intent.createChooser(i, e.name)) }
-            .onFailure { events.send(it.message ?: "Cannot open") }
+        launcher.open(e)
     }
 
     fun copy(cut: Boolean) = viewModelScope.launch {

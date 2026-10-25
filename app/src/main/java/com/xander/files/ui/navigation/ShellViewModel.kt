@@ -24,6 +24,8 @@ class ShellViewModel @Inject constructor(
     bookmarkRepo: BookmarkRepository,
     settings: SettingsRepository,
     val conflicts: ConflictBroker,
+    val launcher: com.xander.files.data.open.ViewerLauncher,
+    private val registry: com.xander.files.domain.fs.FileSystemRegistry,
 ) : ViewModel() {
     private val _volumes = MutableStateFlow<List<VolumeInfo>>(emptyList())
     val volumes: StateFlow<List<VolumeInfo>> = _volumes
@@ -32,6 +34,14 @@ class ShellViewModel @Inject constructor(
 
     /** Sections such as Library, Network and Cloud are added here as those features register. */
     val extraDrawerSections: List<Pair<Int, List<DrawerDestination>>> = DrawerRegistry.sections
+
+    fun openFile(e: com.xander.files.domain.fs.FileEntry) = viewModelScope.launch { launcher.open(e) }
+
+    /** Opens a path whose type is unknown (history, bookmarks, shortcuts): folders browse, files view. */
+    fun openPath(p: com.xander.files.domain.fs.FsPath, onFolder: (com.xander.files.domain.fs.FsPath) -> Unit) = viewModelScope.launch {
+        val e = runCatching { kotlinx.coroutines.withContext(Dispatchers.IO) { registry.provider(p).stat(p) } }.getOrNull()
+        if (e == null || e.isDirectory) onFolder(p) else launcher.open(e)
+    }
 
     init {
         viewModelScope.launch(Dispatchers.IO) { storage.changes().collect { _volumes.value = storage.volumes() } }

@@ -47,6 +47,7 @@ class SearchViewModel @Inject constructor(
     savedState: SavedStateHandle,
     private val repo: SearchRepository,
     private val opener: FileOpener,
+    private val launcher: com.xander.files.data.open.ViewerLauncher,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
@@ -99,7 +100,7 @@ class SearchViewModel @Inject constructor(
     }
 
     fun open(e: FileEntry) = viewModelScope.launch {
-        runCatching { _launch.send(Intent.createChooser(opener.openExternal(e), e.name)) }
+        launcher.open(e)
     }
 
     companion object { const val MAX_RESULTS = 5000 }

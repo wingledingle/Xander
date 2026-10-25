@@ -102,6 +102,7 @@ class BrowserViewModel @Inject constructor(
     private val archives: com.xander.files.data.archive.ArchiveFileSystemProvider,
     private val sftp: com.xander.files.data.net.sftp.SftpFileSystemProvider,
     private val folderPrefs: com.xander.files.data.db.FolderPrefDao,
+    private val launcher: com.xander.files.data.open.ViewerLauncher,
 ) : ViewModel() {
 
     val clipItems = clipboard.items.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -262,13 +263,16 @@ class BrowserViewModel @Inject constructor(
         if (entry.extension in setOf("apk", "apks", "xapk", "apkm")) { install(entry); return }
         if (ArchiveFormats.isArchiveName(entry.name)) { navigate(FsPath.archive(entry.path)); return }
         viewModelScope.launch {
-            bookmarks.recordOpened(entry)
-            try { val i = opener.openExternal(entry); _events.send(BrowserEvent.Launch(if (i.component != null) i else Intent.createChooser(i, entry.name))) }
-            catch (e: FsException.PasswordRequired) { _events.send(BrowserEvent.AskArchivePassword(e.path, false)) }
-            catch (e: FsException.WrongPassword) { _events.send(BrowserEvent.AskArchivePassword(archiveOf(entry.path), true)) }
-            catch (e: Exception) { _events.send(BrowserEvent.Toast(FsException.wrap(e).message ?: "Cannot open")) }
+            // Encrypted archive members need the password before any viewer can read them.
+            if (entry.path.scheme == FsPath.SCHEME_ARCHIVE && archives.needsPassword(entry.path)) {
+                _events.send(BrowserEvent.AskArchivePassword(archiveOf(entry.path), false)); return@launch
+            }
+            launcher.open(entry)
         }
     }
+
+    /** Opens with a specific built-in viewer (e.g. "Read as book" for .txt, "Open as text"). */
+    fun openAs(entry: FileEntry, kind: com.xander.files.data.open.ViewerKind) = viewModelScope.launch { launcher.open(entry, kind) }
 
     private fun archiveOf(p: FsPath): FsPath = if (p.scheme == FsPath.SCHEME_ARCHIVE) FsPath.parse(FsPath.decodeAuthority(p.authority)) else p
 

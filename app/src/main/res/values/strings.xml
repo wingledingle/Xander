@@ -432,4 +432,8 @@
     <string name="reading_style">Reading style</string>
     <string name="font_size_pct">Font size: %d%%</string>
     <string name="read_as_book">Read as book</string>
+    <string name="no_app_to_open">No app can open this file</string>
+    <string name="open_as_text">Open as text</string>
+    <string name="builtin_viewers">Use built-in viewers</string>
+    <string name="builtin_viewers_summary">Open images, video, music, PDF, documents and books inside Xander</string>
 </resources>

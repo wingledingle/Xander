@@ -48,6 +48,9 @@ object Routes {
     const val ANALYZER = "analyzer"
     const val PREMIUM = "premium"
     const val LICENSES = "licenses"
+    const val MUSIC = "music"
+    const val NOW_PLAYING = com.xander.files.data.open.ViewerLauncher.NOW_PLAYING
+    val VIEWERS = listOf("image", "video", "pdf", "office", "book", "editor")
     const val CONNECTION = "connection?id={id}&type={type}&host={host}&port={port}"
     fun connection(id: String?, type: com.xander.files.data.net.ConnType?, host: String?, port: Int?) =
         "connection?id=${id ?: ""}&type=${type?.name ?: ""}&host=${Uri.encode(host ?: "")}&port=${port ?: 0}"
@@ -75,6 +78,18 @@ fun XanderNavHost(
     val conflict by shell.conflicts.pending.collectAsStateWithLifecycle()
 
     fun go(action: () -> Unit) { scope.launch { drawerState.close() }; action() }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(Unit) {
+        shell.launcher.requests.collect { r ->
+            when (r) {
+                is com.xander.files.data.open.OpenRequest.Route -> nav.navigate(r.route) { launchSingleTop = true }
+                is com.xander.files.data.open.OpenRequest.Launch -> runCatching { context.startActivity(r.intent) }
+                    .onFailure { android.widget.Toast.makeText(context, com.xander.files.R.string.no_app_to_open, android.widget.Toast.LENGTH_SHORT).show() }
+                is com.xander.files.data.open.OpenRequest.Error -> android.widget.Toast.makeText(context, r.message, android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    val openPath: (FsPath) -> Unit = { p -> shell.openPath(p) { nav.openFolder(it) } }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -100,6 +115,7 @@ fun XanderNavHost(
             composable(Routes.HOME) {
                 HomeScreen(
                     onOpen = nav::openFolder,
+                    onOpenFile = shell::openFile,
                     onSearch = { nav.navigate(Routes.search(null)) },
                     onMenu = { scope.launch { drawerState.open() } },
                     onRoute = { nav.navigate(it) },
@@ -130,7 +146,7 @@ fun XanderNavHost(
                 ClipboardScreen(onBack = { nav.popBackStack() }, pasteTarget = target)
             }
             composable(Routes.BOOKMARKS) {
-                BookmarksScreen(onBack = { nav.popBackStack() }, onOpen = { p, folder -> if (folder) nav.openFolder(p) else p.parent?.let(nav::openFolder) })
+                BookmarksScreen(onBack = { nav.popBackStack() }, onOpen = { p, folder -> if (folder) nav.openFolder(p) else openPath(p) })
             }
             composable(Routes.LIBRARY) {
                 com.xander.files.ui.library.LibraryScreen(onBack = { nav.popBackStack() }, onOpenFolder = nav::openFolder)
@@ -150,7 +166,16 @@ fun XanderNavHost(
             composable(Routes.PREMIUM) { com.xander.files.ui.premium.PaywallScreen(onBack = { nav.popBackStack() }) }
             composable(Routes.LICENSES) { com.xander.files.ui.settings.LicensesScreen(onBack = { nav.popBackStack() }) }
             composable(Routes.ANALYZER) { com.xander.files.ui.analyzer.AnalyzerScreen(onBack = { nav.popBackStack() }, onOpenFolder = nav::openFolder) }
-            composable(Routes.HISTORY) { HistoryScreen(onBack = { nav.popBackStack() }, onOpen = nav::openFolder) }
+            composable(Routes.HISTORY) { HistoryScreen(onBack = { nav.popBackStack() }, onOpen = openPath) }
+            val pathArg = listOf(navArgument("path") { type = NavType.StringType })
+            composable("image?path={path}", pathArg) { com.xander.files.ui.viewers.ImageViewerScreen(onBack = { nav.popBackStack() }) }
+            composable("video?path={path}", pathArg) { com.xander.files.ui.viewers.VideoPlayerScreen(onBack = { nav.popBackStack() }) }
+            composable("pdf?path={path}", pathArg) { com.xander.files.ui.viewers.PdfViewerScreen(onBack = { nav.popBackStack() }) }
+            composable("office?path={path}", pathArg) { com.xander.files.ui.viewers.OfficeViewerScreen(onBack = { nav.popBackStack() }) }
+            composable("book?path={path}", pathArg) { com.xander.files.ui.viewers.BookReaderScreen(onBack = { nav.popBackStack() }) }
+            composable("editor?path={path}", pathArg) { com.xander.files.ui.editor.TextEditorScreen(onBack = { nav.popBackStack() }) }
+            composable(Routes.MUSIC) { com.xander.files.ui.music.MusicScreen(onBack = { nav.popBackStack() }, onNowPlaying = { nav.navigate(Routes.NOW_PLAYING) { launchSingleTop = true } }) }
+            composable(Routes.NOW_PLAYING) { com.xander.files.ui.music.NowPlayingScreen(onBack = { nav.popBackStack() }) }
         }
     }
 

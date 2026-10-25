@@ -161,6 +161,7 @@ fun SettingsScreen(onBack: () -> Unit, onPremium: () -> Unit, onLicenses: () -> 
             Toggle(stringResource(R.string.show_folder_counts), s.showFolderCounts) { v -> vm.update { it.copy(showFolderCounts = v) } }
             Toggle(stringResource(R.string.show_thumbnails), s.thumbnails) { v -> vm.update { it.copy(thumbnails = v) } }
             Item(stringResource(R.string.default_encoding), s.defaultEncoding) { choice = "encoding" }
+            Toggle(stringResource(R.string.builtin_viewers), s.builtInViewers, stringResource(R.string.builtin_viewers_summary)) { v -> vm.update { it.copy(builtInViewers = v) } }
 
             Section(R.string.files_section)
             Toggle(stringResource(R.string.confirm_delete), s.confirmDelete) { v -> vm.update { it.copy(confirmDelete = v) } }

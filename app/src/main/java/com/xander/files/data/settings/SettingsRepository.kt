@@ -44,6 +44,15 @@ data class AppSettings(
     val appLockPinHash: String = "",
     val onboardingDone: Boolean = false,
     val language: String = "",
+    val builtInViewers: Boolean = true,
+    val serverPort: Int = 2121,
+    val httpServerPort: Int = 8080,
+    val serverAnonymous: Boolean = false,
+    val serverUser: String = "xander",
+    val serverPassword: String = "",
+    val serverRoot: String = "",
+    val serverCharset: String = "UTF-8",
+    val serverReadOnly: Boolean = false,
 )
 
 @Singleton
@@ -76,58 +85,59 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         val lockPin = stringPreferencesKey("lock_pin")
         val onboarding = booleanPreferencesKey("onboarding")
         val language = stringPreferencesKey("language")
+        val builtIn = booleanPreferencesKey("builtin_viewers")
+        val srvPort = intPreferencesKey("srv_port")
+        val httpPort = intPreferencesKey("http_port")
+        val srvAnon = booleanPreferencesKey("srv_anon")
+        val srvUser = stringPreferencesKey("srv_user")
+        val srvPass = stringPreferencesKey("srv_pass")
+        val srvRoot = stringPreferencesKey("srv_root")
+        val srvCharset = stringPreferencesKey("srv_charset")
+        val srvRo = booleanPreferencesKey("srv_ro")
     }
 
-    val settings: Flow<AppSettings> = store.data.map { p ->
-        AppSettings(
-            themeMode = p[K.theme]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
-            accent = p[K.accent] ?: 0,
-            skin = p[K.skin] ?: "default",
-            dynamicColor = p[K.dynamic] ?: false,
-            compactText = p[K.compact] ?: false,
-            viewMode = p[K.view]?.let { runCatching { ViewMode.valueOf(it) }.getOrNull() } ?: ViewMode.LIST,
-            gridSize = p[K.grid] ?: 3,
-            sortBy = p[K.sort]?.let { runCatching { SortBy.valueOf(it) }.getOrNull() } ?: SortBy.NAME,
-            sortAscending = p[K.asc] ?: true,
-            foldersFirst = p[K.foldersFirst] ?: true,
-            perFolderView = p[K.perFolder] ?: false,
-            showHidden = p[K.hidden] ?: false,
-            showExtensions = p[K.ext] ?: true,
-            showFolderCounts = p[K.counts] ?: true,
-            thumbnails = p[K.thumbs] ?: true,
-            confirmDelete = p[K.confirmDelete] ?: true,
-            recycleBinEnabled = p[K.bin] ?: true,
-            recycleRetentionDays = p[K.binDays] ?: 30,
-            rootMode = p[K.root] ?: false,
-            defaultEncoding = p[K.encoding] ?: "UTF-8",
-            appLockEnabled = p[K.lock] ?: false,
-            appLockBiometric = p[K.lockBio] ?: false,
-            appLockPinHash = p[K.lockPin] ?: "",
-            onboardingDone = p[K.onboarding] ?: false,
-            language = p[K.language] ?: "",
-        )
-    }
+    val settings: Flow<AppSettings> = store.data.map { read(it) }
+
+    private fun read(p: Preferences) = AppSettings(
+        themeMode = p[K.theme]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
+        accent = p[K.accent] ?: 0,
+        skin = p[K.skin] ?: "default",
+        dynamicColor = p[K.dynamic] ?: false,
+        compactText = p[K.compact] ?: false,
+        viewMode = p[K.view]?.let { runCatching { ViewMode.valueOf(it) }.getOrNull() } ?: ViewMode.LIST,
+        gridSize = p[K.grid] ?: 3,
+        sortBy = p[K.sort]?.let { runCatching { SortBy.valueOf(it) }.getOrNull() } ?: SortBy.NAME,
+        sortAscending = p[K.asc] ?: true,
+        foldersFirst = p[K.foldersFirst] ?: true,
+        perFolderView = p[K.perFolder] ?: false,
+        showHidden = p[K.hidden] ?: false,
+        showExtensions = p[K.ext] ?: true,
+        showFolderCounts = p[K.counts] ?: true,
+        thumbnails = p[K.thumbs] ?: true,
+        confirmDelete = p[K.confirmDelete] ?: true,
+        recycleBinEnabled = p[K.bin] ?: true,
+        recycleRetentionDays = p[K.binDays] ?: 30,
+        rootMode = p[K.root] ?: false,
+        defaultEncoding = p[K.encoding] ?: "UTF-8",
+        appLockEnabled = p[K.lock] ?: false,
+        appLockBiometric = p[K.lockBio] ?: false,
+        appLockPinHash = p[K.lockPin] ?: "",
+        onboardingDone = p[K.onboarding] ?: false,
+        language = p[K.language] ?: "",
+        builtInViewers = p[K.builtIn] ?: true,
+        serverPort = p[K.srvPort] ?: 2121,
+        httpServerPort = p[K.httpPort] ?: 8080,
+        serverAnonymous = p[K.srvAnon] ?: false,
+        serverUser = p[K.srvUser] ?: "xander",
+        serverPassword = p[K.srvPass] ?: "",
+        serverRoot = p[K.srvRoot] ?: "",
+        serverCharset = p[K.srvCharset] ?: "UTF-8",
+        serverReadOnly = p[K.srvRo] ?: false,
+    )
 
     suspend fun update(transform: (AppSettings) -> AppSettings) {
         store.edit { p ->
-            val cur = AppSettings(
-                themeMode = p[K.theme]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM,
-                accent = p[K.accent] ?: 0, skin = p[K.skin] ?: "default", dynamicColor = p[K.dynamic] ?: false,
-                compactText = p[K.compact] ?: false,
-                viewMode = p[K.view]?.let { runCatching { ViewMode.valueOf(it) }.getOrNull() } ?: ViewMode.LIST,
-                gridSize = p[K.grid] ?: 3,
-                sortBy = p[K.sort]?.let { runCatching { SortBy.valueOf(it) }.getOrNull() } ?: SortBy.NAME,
-                sortAscending = p[K.asc] ?: true, foldersFirst = p[K.foldersFirst] ?: true,
-                perFolderView = p[K.perFolder] ?: false, showHidden = p[K.hidden] ?: false,
-                showExtensions = p[K.ext] ?: true, showFolderCounts = p[K.counts] ?: true,
-                thumbnails = p[K.thumbs] ?: true, confirmDelete = p[K.confirmDelete] ?: true,
-                recycleBinEnabled = p[K.bin] ?: true, recycleRetentionDays = p[K.binDays] ?: 30,
-                rootMode = p[K.root] ?: false, defaultEncoding = p[K.encoding] ?: "UTF-8",
-                appLockEnabled = p[K.lock] ?: false, appLockBiometric = p[K.lockBio] ?: false,
-                appLockPinHash = p[K.lockPin] ?: "", onboardingDone = p[K.onboarding] ?: false,
-                language = p[K.language] ?: "",
-            )
-            val n = transform(cur)
+            val n = transform(read(p))
             p[K.theme] = n.themeMode.name; p[K.accent] = n.accent; p[K.skin] = n.skin; p[K.dynamic] = n.dynamicColor
             p[K.compact] = n.compactText; p[K.view] = n.viewMode.name; p[K.grid] = n.gridSize; p[K.sort] = n.sortBy.name
             p[K.asc] = n.sortAscending; p[K.foldersFirst] = n.foldersFirst; p[K.perFolder] = n.perFolderView
@@ -136,6 +146,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             p[K.binDays] = n.recycleRetentionDays; p[K.root] = n.rootMode; p[K.encoding] = n.defaultEncoding
             p[K.lock] = n.appLockEnabled; p[K.lockBio] = n.appLockBiometric; p[K.lockPin] = n.appLockPinHash
             p[K.onboarding] = n.onboardingDone; p[K.language] = n.language
+            p[K.builtIn] = n.builtInViewers; p[K.srvPort] = n.serverPort; p[K.httpPort] = n.httpServerPort
+            p[K.srvAnon] = n.serverAnonymous; p[K.srvUser] = n.serverUser; p[K.srvPass] = n.serverPassword
+            p[K.srvRoot] = n.serverRoot; p[K.srvCharset] = n.serverCharset; p[K.srvRo] = n.serverReadOnly
         }
     }
 }

@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.AddToHomeScreen
 import androidx.compose.material.icons.filled.ContentCopy
@@ -79,6 +81,9 @@ fun entryActions(
         if (entries.any { !it.isDirectory }) add(SheetAction(Icons.Filled.Share, stringResource(R.string.share)) { vm.share(entries) })
         if (onShareLink != null) add(SheetAction(Icons.Filled.Link, stringResource(R.string.share_link)) { onShareLink() })
         if (single != null && !single.isDirectory) add(SheetAction(Icons.AutoMirrored.Filled.OpenInNew, stringResource(R.string.open_with)) { vm.openWith(single) })
+        if (single != null && !single.isDirectory && single.extension == "txt") add(SheetAction(Icons.AutoMirrored.Filled.MenuBook, stringResource(R.string.read_as_book)) { vm.openAs(single, com.xander.files.data.open.ViewerKind.BOOK) })
+        if (single != null && !single.isDirectory && com.xander.files.data.open.ViewerRouter.kindOf(single) !in setOf(com.xander.files.data.open.ViewerKind.TEXT, com.xander.files.data.open.ViewerKind.IMAGE, com.xander.files.data.open.ViewerKind.VIDEO, com.xander.files.data.open.ViewerKind.AUDIO))
+            add(SheetAction(Icons.Filled.Description, stringResource(R.string.open_as_text)) { vm.openAs(single, com.xander.files.data.open.ViewerKind.TEXT) })
         if (single != null && single.category in setOf(FileCategory.IMAGE, FileCategory.AUDIO))
             add(SheetAction(Icons.Filled.Wallpaper, stringResource(R.string.set_as)) { vm.setAs(single) })
         if (single != null && writable) add(SheetAction(Icons.Filled.FileCopy, stringResource(R.string.duplicate)) { vm.duplicate(single) })

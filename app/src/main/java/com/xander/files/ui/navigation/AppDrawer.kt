@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Lan
+import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
@@ -49,6 +50,7 @@ val drawerNetwork = listOf(
 )
 
 val drawerTools = listOf(
+    DrawerDestination(Routes.MUSIC, Icons.Filled.LibraryMusic, R.string.music),
     DrawerDestination(Routes.TRANSFERS, Icons.Filled.SwapVert, R.string.transfers),
     DrawerDestination(Routes.CLIPBOARD_ROUTE, Icons.Filled.ContentPaste, R.string.clipboard),
     DrawerDestination(Routes.RECYCLE, Icons.Filled.Delete, R.string.recycle_bin),

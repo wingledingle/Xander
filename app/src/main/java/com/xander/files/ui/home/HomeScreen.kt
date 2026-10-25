@@ -69,7 +69,7 @@ import androidx.compose.material.icons.filled.Cloud
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun HomeScreen(onOpen: (FsPath) -> Unit, onSearch: () -> Unit, onMenu: () -> Unit = {}, onRoute: (String) -> Unit = {}, vm: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(onOpen: (FsPath) -> Unit, onOpenFile: (com.xander.files.domain.fs.FileEntry) -> Unit = {}, onSearch: () -> Unit, onMenu: () -> Unit = {}, onRoute: (String) -> Unit = {}, vm: HomeViewModel = hiltViewModel()) {
     val volumes by vm.volumeList.collectAsStateWithLifecycle()
     val shizuku by vm.shizukuState.collectAsStateWithLifecycle()
     val rootMode by vm.rootMode.collectAsStateWithLifecycle()
@@ -99,7 +99,7 @@ fun HomeScreen(onOpen: (FsPath) -> Unit, onSearch: () -> Unit, onMenu: () -> Uni
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             CategoryGrid(stats, appCount, onOpen = { onRoute(Routes.library(it)) }, onApps = { onRoute(Routes.APPS) })
-            RecentStrip(recent, recentDays, vm::setRecentDays, onOpen = { e -> e.path.parent?.let(onOpen) }, onMore = { onRoute(Routes.library(com.xander.files.data.index.LibraryKind.RECENT)) })
+            RecentStrip(recent, recentDays, vm::setRecentDays, onOpen = onOpenFile, onMore = { onRoute(Routes.library(com.xander.files.data.index.LibraryKind.RECENT)) })
 
             Text(stringResource(R.string.quick_access), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
             val p = vm.primaryRoot
