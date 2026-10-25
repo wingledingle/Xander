@@ -249,4 +249,17 @@
     <string name="host_key_unknown">Trust this server?</string>
     <string name="host_key_changed">Warning: server key changed</string>
     <string name="trust">Trust</string>
+    <string name="add_account">Add account</string>
+    <string name="no_cloud_accounts">No cloud accounts</string>
+    <string name="no_cloud_hint">Add Google Drive, Dropbox, OneDrive, Box, Yandex Disk, MEGA or Nextcloud. You can add several accounts per service.</string>
+    <string name="remove_account">Remove account</string>
+    <string name="server_url">Server address</string>
+    <string name="nextcloud_hint">Sign in with the browser, or enter a user name and an app password.</string>
+    <string name="email">Email</string>
+    <string name="app_password">App password</string>
+    <string name="sign_in_browser">Browser</string>
+    <string name="sign_in">Sign in</string>
+    <string name="sign_in_again">Sign in again</string>
+    <string name="share_link">Copy share link</string>
+    <string name="link_copied">Link copied</string>
 </resources>

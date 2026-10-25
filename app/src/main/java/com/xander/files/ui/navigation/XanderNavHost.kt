@@ -110,6 +110,10 @@ fun XanderNavHost(
                     onExit = { nav.popBackStack() },
                     onSearch = { nav.navigate(Routes.search(it)) },
                     onOpenClipboard = { nav.navigate(Routes.clipboard(it)) },
+                    onReauth = { p ->
+                        if (p.scheme == FsPath.SCHEME_CLOUD) nav.navigate(Routes.CLOUD)
+                        else nav.navigate(Routes.connection(p.authority, null, null, null))
+                    },
                 )
             }
             composable(Routes.SEARCH, arguments = listOf(navArgument("root") { type = NavType.StringType; defaultValue = "" })) {
@@ -135,6 +139,7 @@ fun XanderNavHost(
             composable(Routes.CONNECTION, arguments = listOf("id", "type", "host", "port").map { n -> navArgument(n) { type = NavType.StringType; defaultValue = "" } }) {
                 com.xander.files.ui.network.ConnectionEditScreen(onBack = { nav.popBackStack() }, onConnected = { root -> nav.popBackStack(); nav.openFolder(root) })
             }
+            composable(Routes.CLOUD) { com.xander.files.ui.cloud.CloudScreen(onBack = { nav.popBackStack() }, onBrowse = nav::openFolder) }
             composable(Routes.HISTORY) { HistoryScreen(onBack = { nav.popBackStack() }, onOpen = nav::openFolder) }
         }
     }

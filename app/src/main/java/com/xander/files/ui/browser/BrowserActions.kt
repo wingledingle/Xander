@@ -51,6 +51,7 @@ fun entryActions(
     entries: List<FileEntry>, vm: BrowserViewModel, writable: Boolean,
     onRename: (FileEntry) -> Unit, onProperties: (List<FileEntry>) -> Unit, onCopyPath: () -> Unit,
     onPick: (PickPurpose) -> Unit = {}, onCompress: () -> Unit = {}, onEncrypt: () -> Unit = {}, onDecrypt: () -> Unit = {},
+    onShareLink: (() -> Unit)? = null,
 ): List<SheetAction> {
     val single = entries.singleOrNull()
     val anyHidden = entries.any { it.isHidden }
@@ -73,6 +74,7 @@ fun entryActions(
         if (single != null && writable) add(SheetAction(Icons.Filled.DriveFileRenameOutline, stringResource(R.string.rename)) { onRename(single) })
         if (writable) add(SheetAction(Icons.Filled.Delete, stringResource(R.string.delete)) { vm.requestDelete(entries) })
         if (entries.any { !it.isDirectory }) add(SheetAction(Icons.Filled.Share, stringResource(R.string.share)) { vm.share(entries) })
+        if (onShareLink != null) add(SheetAction(Icons.Filled.Link, stringResource(R.string.share_link)) { onShareLink() })
         if (single != null && !single.isDirectory) add(SheetAction(Icons.AutoMirrored.Filled.OpenInNew, stringResource(R.string.open_with)) { vm.openWith(single) })
         if (single != null && single.category in setOf(FileCategory.IMAGE, FileCategory.AUDIO))
             add(SheetAction(Icons.Filled.Wallpaper, stringResource(R.string.set_as)) { vm.setAs(single) })

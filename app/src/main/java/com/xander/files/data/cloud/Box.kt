@@ -76,7 +76,8 @@ class Box(http: OkHttpClient, tokens: TokenSource) : HttpCloudDrive(http, tokens
     }
 
     override suspend fun openInput(path: FsPath, offset: Long): InputStream {
-        val r = call({ url("$api/files/${idOf(path)}/content"); if (offset > 0) header("Range", "bytes=$offset-") }, path)
+        val fid = idOf(path)
+        val r = call({ url("$api/files/$fid/content"); if (offset > 0) header("Range", "bytes=$offset-") }, path)
         val s = r.body!!.byteStream()
         if (offset > 0 && r.code == 200) s.skip(offset)
         return ClosingInputStream(s) { r.close() }
@@ -138,7 +139,8 @@ class Box(http: OkHttpClient, tokens: TokenSource) : HttpCloudDrive(http, tokens
 
     override suspend fun mkdir(parent: FsPath, name: String): FsPath {
         val p = parent.child(name)
-        val j = call({ url("$api/folders"); post(jsonBody(buildJsonObject { put("name", name); put("parent", buildJsonObject { put("id", idOf(parent)) }) }.toString())) }, p).json()
+        val pid = idOf(parent)
+        val j = call({ url("$api/folders"); post(jsonBody(buildJsonObject { put("name", name); put("parent", buildJsonObject { put("id", pid) }) }.toString())) }, p).json()
         ids[p.path] = j.str("id")!!; types[j.str("id")!!] = "folder"
         return p
     }
@@ -157,13 +159,15 @@ class Box(http: OkHttpClient, tokens: TokenSource) : HttpCloudDrive(http, tokens
 
     override suspend fun move(src: FsPath, dstParent: FsPath, name: String): FsPath? {
         val id = idOf(src)
-        call({ url("$api/${kind(id)}s/$id"); put(jsonBody(buildJsonObject { put("name", name); put("parent", buildJsonObject { put("id", idOf(dstParent)) }) }.toString())) }, src).close()
+        val dst = idOf(dstParent)
+        call({ url("$api/${kind(id)}s/$id"); put(jsonBody(buildJsonObject { put("name", name); put("parent", buildJsonObject { put("id", dst) }) }.toString())) }, src).close()
         invalidate(); return dstParent.child(name)
     }
 
     override suspend fun copy(src: FsPath, dstParent: FsPath, name: String): FsPath? {
         val id = idOf(src)
-        call({ url("$api/${kind(id)}s/$id/copy"); post(jsonBody(buildJsonObject { put("name", name); put("parent", buildJsonObject { put("id", idOf(dstParent)) }) }.toString())) }, src).close()
+        val dst = idOf(dstParent)
+        call({ url("$api/${kind(id)}s/$id/copy"); post(jsonBody(buildJsonObject { put("name", name); put("parent", buildJsonObject { put("id", dst) }) }.toString())) }, src).close()
         return dstParent.child(name)
     }
 

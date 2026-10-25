@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Lan
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
@@ -38,6 +40,11 @@ import com.xander.files.domain.fs.FsPath
 
 /** Static destinations listed in the drawer. Feature screens register here as they ship. */
 data class DrawerDestination(val route: String, val icon: ImageVector, val label: Int)
+
+val drawerNetwork = listOf(
+    DrawerDestination(Routes.NETWORK, Icons.Filled.Lan, R.string.network),
+    DrawerDestination(Routes.CLOUD, Icons.Filled.Cloud, R.string.cloud),
+)
 
 val drawerTools = listOf(
     DrawerDestination(Routes.TRANSFERS, Icons.Filled.SwapVert, R.string.transfers),
@@ -73,6 +80,8 @@ fun AppDrawer(
                 bookmarks.forEach { b -> Item(if (b.isFolder) Icons.Filled.Folder else Icons.Filled.Star, b.title) { onOpenPath(FsPath.parse(b.path)) } }
                 Item(Icons.Filled.Star, stringResource(R.string.manage_favorites)) { onRoute(Routes.BOOKMARKS) }
             }
+            Section(R.string.network)
+            drawerNetwork.forEach { d -> Item(d.icon, stringResource(d.label)) { onRoute(d.route) } }
             extraSections.forEach { (title, items) ->
                 Section(title)
                 items.forEach { d -> Item(d.icon, stringResource(d.label)) { onRoute(d.route) } }

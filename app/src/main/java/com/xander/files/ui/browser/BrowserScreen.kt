@@ -129,6 +129,7 @@ fun BrowserScreen(
     onExit: () -> Unit,
     onSearch: (FsPath) -> Unit,
     onOpenClipboard: (FsPath) -> Unit = {},
+    onReauth: (FsPath) -> Unit = {},
     vm: BrowserViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -269,6 +270,18 @@ fun BrowserScreen(
                             }) { Text(stringResource(R.string.grant_access)) }
                         }
                     }
+                    state.error is BrowserError.Auth -> {
+                        val e = state.error as BrowserError.Auth
+                        EmptyState(Icons.Filled.Lock, stringResource(R.string.sign_in_again)) {
+                            Button(onClick = { onReauth(e.path) }) { Text(stringResource(R.string.sign_in_again)) }
+                        }
+                    }
+                    state.error is BrowserError.HostKey -> {
+                        val e = state.error as BrowserError.HostKey
+                        EmptyState(Icons.Filled.Lock, stringResource(if (e.changed) R.string.host_key_changed else R.string.host_key_unknown), e.fingerprint) {
+                            Button(onClick = { vm.trustHostKey(e.connectionId, e.fingerprint) }) { Text(stringResource(R.string.trust)) }
+                        }
+                    }
                     state.error is BrowserError.Password -> {
                         val e = state.error as BrowserError.Password
                         EmptyState(Icons.Filled.Lock, stringResource(if (e.wrong) R.string.wrong_password else R.string.archive_password)) {
@@ -315,7 +328,8 @@ fun BrowserScreen(
             actions = entryActions(d.entries, vm, state.writable, onRename = { dialog = Dialog.Rename(it) }, onProperties = { dialog = Dialog.Properties(it) },
                 onCopyPath = { copyToClipboard(context, d.entries.joinToString("\n") { it.path.toString().removePrefix("file://") }) },
                 onPick = { dialog = Dialog.Pick(it, d.entries) }, onCompress = { dialog = Dialog.Compress(d.entries) },
-                onEncrypt = { dialog = Dialog.Encrypt(d.entries) }, onDecrypt = { dialog = Dialog.Decrypt(d.entries) }),
+                onEncrypt = { dialog = Dialog.Encrypt(d.entries) }, onDecrypt = { dialog = Dialog.Decrypt(d.entries) },
+                onShareLink = if (vm.canShareLink() && d.entries.size == 1) ({ vm.shareLink(d.entries.first()) { link -> copyToClipboard(context, link) } }) else null),
             onDismiss = { if (dialog is Dialog.Actions) dialog = null }
         )
         Dialog.EditPath -> TextInputDialog(stringResource(R.string.edit_path), state.path.toString().removePrefix("file://"), selectBaseName = false,

@@ -57,6 +57,8 @@ sealed interface BrowserError {
     data class SafGrant(val path: FsPath, val volumeUuid: String?) : BrowserError
     data class Message(val text: String, val retryable: Boolean) : BrowserError
     data class Password(val archive: FsPath, val wrong: Boolean) : BrowserError
+    data class Auth(val path: FsPath) : BrowserError
+    data class HostKey(val connectionId: String, val fingerprint: String, val changed: Boolean) : BrowserError
 }
 
 sealed interface BrowserEvent {
@@ -97,6 +99,7 @@ class BrowserViewModel @Inject constructor(
     private val installer: com.xander.files.data.apps.ApkInstaller,
     private val archivePasswords: com.xander.files.data.archive.ArchivePasswords,
     private val archives: com.xander.files.data.archive.ArchiveFileSystemProvider,
+    private val sftp: com.xander.files.data.net.sftp.SftpFileSystemProvider,
 ) : ViewModel() {
 
     val clipItems = clipboard.items.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -154,6 +157,10 @@ class BrowserViewModel @Inject constructor(
                 raw.update { it.copy(entries = emptyList(), loading = false, error = BrowserError.Restricted(path), title = title) }
             } catch (e: SafGrantRequiredException) {
                 raw.update { it.copy(loading = false, error = BrowserError.SafGrant(path, e.volumeUuid), title = title) }
+            } catch (e: com.xander.files.data.net.sftp.HostKeyUnknownException) {
+                raw.update { it.copy(entries = emptyList(), loading = false, error = BrowserError.HostKey(e.connectionId, e.fingerprint, e.changed), title = title) }
+            } catch (e: FsException.AuthRequired) {
+                raw.update { it.copy(entries = emptyList(), loading = false, error = BrowserError.Auth(path), title = title) }
             } catch (e: FsException.PasswordRequired) {
                 raw.update { it.copy(entries = emptyList(), loading = false, error = BrowserError.Password(e.path, false), title = title) }
             } catch (e: FsException.WrongPassword) {
@@ -250,6 +257,17 @@ class BrowserViewModel @Inject constructor(
 
     fun decrypt(entries: List<FileEntry>, password: String, deleteOriginal: Boolean) = enqueue(
         TransferType.DECRYPT, entries.map { it.path }, null, "Decrypting ${entries.size} item(s)", TransferOptions(password = password, deleteOriginal = deleteOriginal))
+
+    fun trustHostKey(id: String, fp: String) = viewModelScope.launch { sftp.trustHostKey(id, fp); refresh() }
+
+    fun canShareLink(): Boolean = runCatching { Capability.SHARE_LINK in registry.provider(raw.value.path).capabilities(raw.value.path) }.getOrDefault(false)
+
+    fun shareLink(entry: FileEntry, onLink: (String) -> Unit) = viewModelScope.launch {
+        try {
+            val link = registry.provider(entry.path).shareLink(entry.path)
+            if (link != null) onLink(link) else _events.send(BrowserEvent.Toast("Sharing is not available for this item"))
+        } catch (e: Exception) { _events.send(BrowserEvent.Toast(FsException.wrap(e).message ?: "Sharing failed")) }
+    }
 
     fun viewAsZip(entry: FileEntry) = navigate(FsPath.archive(entry.path))
 

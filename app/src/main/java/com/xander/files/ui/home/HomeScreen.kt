@@ -62,6 +62,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.filled.Lan
+import androidx.compose.material.icons.filled.Cloud
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -103,6 +105,8 @@ fun HomeScreen(onOpen: (FsPath) -> Unit, onSearch: () -> Unit, onMenu: () -> Uni
                 Shortcut(Icons.Filled.Star, stringResource(R.string.favorites)) { onRoute(Routes.BOOKMARKS) }
                 Shortcut(Icons.Filled.ContentPaste, stringResource(R.string.clipboard)) { onRoute(Routes.CLIPBOARD_ROUTE) }
                 Shortcut(Icons.Filled.SwapVert, stringResource(R.string.transfers)) { onRoute(Routes.TRANSFERS) }
+                Shortcut(Icons.Filled.Lan, stringResource(R.string.network)) { onRoute(Routes.NETWORK) }
+                Shortcut(Icons.Filled.Cloud, stringResource(R.string.cloud)) { onRoute(Routes.CLOUD) }
                 Shortcut(Icons.Filled.Download, stringResource(R.string.downloads)) { onOpen(FsPath.local("$p/Download")) }
                 Shortcut(Icons.Filled.PhotoCamera, "DCIM") { onOpen(FsPath.local("$p/DCIM")) }
                 Shortcut(Icons.Filled.FolderSpecial, "Android/data") { onOpen(FsPath.local("$p/Android/data")) }
