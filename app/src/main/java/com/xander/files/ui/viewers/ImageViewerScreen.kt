@@ -143,15 +143,7 @@ fun ImageViewerScreen(onBack: () -> Unit, castButton: @Composable () -> Unit = {
     val scope = rememberCoroutineScope()
     val current = images.getOrNull(pager.currentPage)
 
-    // Keyed on the toggle only: currentPage flips mid-swipe, and restarting here would cancel the animation halfway.
-    LaunchedEffect(slideshow) {
-        while (slideshow) {
-            delay(3000)
-            if (pager.isScrollInProgress) continue
-            val next = pager.settledPage + 1
-            if (next <= images.lastIndex) pager.animateScrollToPage(next, animationSpec = androidx.compose.animation.core.tween(600)) else slideshow = false
-        }
-    }
+    SlideshowEffect(pager, images.size, slideshow) { slideshow = false }
     // Keep the screen on while the slideshow runs.
     val view = androidx.compose.ui.platform.LocalView.current
     androidx.compose.runtime.DisposableEffect(slideshow) { view.keepScreenOn = slideshow; onDispose { view.keepScreenOn = false } }
@@ -194,4 +186,20 @@ fun ImageViewerScreen(onBack: () -> Unit, castButton: @Composable () -> Unit = {
             if (images.size <= 1) onBack()
             Toast.makeText(ctx, R.string.deleted, Toast.LENGTH_SHORT).show()
         })
+}
+
+/**
+ * Advances [pager] every [intervalMs] while [running]. Keyed on [running] only: currentPage flips halfway through
+ * a swipe, and restarting the effect there would cancel the animation mid-way (the old "stops between images" bug).
+ */
+@Composable
+fun SlideshowEffect(pager: androidx.compose.foundation.pager.PagerState, count: Int, running: Boolean, intervalMs: Long = 3000, onEnd: () -> Unit) {
+    LaunchedEffect(running) {
+        while (running) {
+            delay(intervalMs)
+            if (pager.isScrollInProgress) continue
+            val next = pager.settledPage + 1
+            if (next < count) pager.animateScrollToPage(next, animationSpec = androidx.compose.animation.core.tween(600)) else { onEnd(); break }
+        }
+    }
 }

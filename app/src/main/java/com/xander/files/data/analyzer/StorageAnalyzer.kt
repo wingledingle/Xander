@@ -142,7 +142,7 @@ class StorageAnalyzer @Inject constructor(
             emptyFolders = empty.sortedBy { it.path.path },
             junk = junk.distinctBy { it.entry.path }.sortedByDescending { it.size },
             oldApks = oldApks(apks),
-            archiveCopies = if (root.isLocal) runCatching { archiveCopies(bySize.values.flatten(), sizes) }.getOrDefault(emptyList()) else emptyList(),
+            archiveCopies = if (root.isLocal) runCatching { ArchiveCopyFinder.find(bySize.values.flatten(), sizes) { i, n, name -> _progress.value = AnalyzerProgress("archives", i, n.toLong(), name) } }.getOrDefault(emptyList()) else emptyList(),
         )
         _progress.value = null
         last = result
@@ -212,44 +212,6 @@ class StorageAnalyzer @Inject constructor(
         return out.sortedByDescending { it.wasted }
     }
 
-    /**
-     * Finds ZIP/7z archives that were already extracted: the archive's files (relative path + size) are present under
-     * a folder named after the archive, under its single top-level folder, or directly beside it ("extract here").
-     */
-    private suspend fun archiveCopies(all: List<FileEntry>, folderSizes: Map<FsPath, Long>): List<ArchiveCopy> {
-        val present = HashMap<String, Long>(all.size * 2)
-        all.forEach { if (!it.isDirectory) present[it.path.path] = it.size }
-        val archives = all.filter { !it.isDirectory && it.extension in setOf("zip", "7z", "cbz", "jar") && it.size > 0 }
-        val out = ArrayList<ArchiveCopy>()
-        for ((i, a) in archives.withIndex()) {
-            coroutineContext.ensureActive()
-            if (i % 10 == 0) _progress.value = AnalyzerProgress("archives", i, archives.size.toLong(), a.name)
-            val entries = runCatching { archiveListing(java.io.File(a.path.path)) }.getOrNull()?.filter { it.second > 0 } ?: continue
-            if (entries.isEmpty()) continue
-            val parent = a.path.parent ?: continue
-            val tops = entries.map { it.first.substringBefore('/') }.toSet()
-            val candidates = buildList {
-                add(parent.child(a.name.substringBeforeLast('.')) to "")
-                if (tops.size == 1 && entries.all { it.first.contains('/') }) { val t = tops.first(); add(parent.child(t) to "$t/"); add(parent.child(a.name.substringBeforeLast('.')).child(t) to "$t/") }
-                add(parent to "")
-            }.distinct()
-            for ((dir, strip) in candidates) {
-                val matched = entries.count { (name, size) -> present["${dir.path.trimEnd('/')}/${name.removePrefix(strip)}"] == size }
-                if (matched >= 1 && matched >= entries.size * 0.9) {
-                    val bytes = if (dir == parent) entries.sumOf { it.second } else folderSizes[dir] ?: entries.sumOf { it.second }
-                    out += ArchiveCopy(a, dir, bytes, matched, entries.size); break
-                }
-            }
-        }
-        return out.sortedByDescending { it.wasted }
-    }
-
-    /** (relative path, uncompressed size) of every file entry, read from the archive's directory. */
-    private fun archiveListing(f: java.io.File): List<Pair<String, Long>> = when (f.extension.lowercase()) {
-        "7z" -> org.apache.commons.compress.archivers.sevenz.SevenZFile.builder().setFile(f).get().use { z -> z.entries.filter { !it.isDirectory }.map { it.name.replace('\\', '/') to it.size } }
-        else -> java.util.zip.ZipFile(f).use { z -> z.entries().asSequence().filter { !it.isDirectory }.map { it.name.trimStart('/') to it.size }.toList() }
-    }
-
     private suspend fun hash(provider: com.xander.files.domain.fs.FileSystemProvider, path: FsPath, limit: Long): String {
         val md = MessageDigest.getInstance("SHA-1")
         provider.openInput(path).use { s ->
@@ -279,4 +241,46 @@ class StorageAnalyzer @Inject constructor(
         }
         return out
     }
+}
+
+/** Detects archives whose contents are already present unpacked on disk. */
+object ArchiveCopyFinder {
+    /**
+     * Finds ZIP/7z archives that were already extracted: the archive's files (relative path + size) are present under
+     * a folder named after the archive, under its single top-level folder, or directly beside it ("extract here").
+     */
+    suspend fun find(all: List<FileEntry>, folderSizes: Map<FsPath, Long>, progress: (Int, Int, String) -> Unit = { _, _, _ -> }): List<ArchiveCopy> {
+        val present = HashMap<String, Long>(all.size * 2)
+        all.forEach { if (!it.isDirectory) present[it.path.path] = it.size }
+        val archives = all.filter { !it.isDirectory && it.extension in setOf("zip", "7z", "cbz", "jar") && it.size > 0 }
+        val out = ArrayList<ArchiveCopy>()
+        for ((i, a) in archives.withIndex()) {
+            coroutineContext.ensureActive()
+            if (i % 10 == 0) progress(i, archives.size, a.name)
+            val entries = runCatching { archiveListing(java.io.File(a.path.path)) }.getOrNull()?.filter { it.second > 0 } ?: continue
+            if (entries.isEmpty()) continue
+            val parent = a.path.parent ?: continue
+            val tops = entries.map { it.first.substringBefore('/') }.toSet()
+            val candidates = buildList {
+                add(parent.child(a.name.substringBeforeLast('.')) to "")
+                if (tops.size == 1 && entries.all { it.first.contains('/') }) { val t = tops.first(); add(parent.child(t) to "$t/"); add(parent.child(a.name.substringBeforeLast('.')).child(t) to "$t/") }
+                add(parent to "")
+            }.distinct()
+            for ((dir, strip) in candidates) {
+                val matched = entries.count { (name, size) -> present["${dir.path.trimEnd('/')}/${name.removePrefix(strip)}"] == size }
+                if (matched >= 1 && matched >= entries.size * 0.9) {
+                    val bytes = if (dir == parent) entries.sumOf { it.second } else folderSizes[dir] ?: entries.sumOf { it.second }
+                    out += ArchiveCopy(a, dir, bytes, matched, entries.size); break
+                }
+            }
+        }
+        return out.sortedByDescending { it.wasted }
+    }
+
+    /** (relative path, uncompressed size) of every file entry, read from the archive's directory. */
+    fun archiveListing(f: java.io.File): List<Pair<String, Long>> = when (f.extension.lowercase()) {
+        "7z" -> org.apache.commons.compress.archivers.sevenz.SevenZFile.builder().setFile(f).get().use { z -> z.entries.filter { !it.isDirectory }.map { it.name.replace('\\', '/') to it.size } }
+        else -> java.util.zip.ZipFile(f).use { z -> z.entries().asSequence().filter { !it.isDirectory }.map { it.name.trimStart('/') to it.size }.toList() }
+    }
+
 }
