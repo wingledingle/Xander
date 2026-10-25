@@ -66,6 +66,9 @@
 
         <receiver android:name=".data.apps.InstallResultReceiver" android:exported="false" />
 
+        <meta-data
+            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
+            android:value="com.xander.files.data.cast.CastOptionsProvider" />
         <service
             android:name=".data.server.ServerService"
             android:exported="false"

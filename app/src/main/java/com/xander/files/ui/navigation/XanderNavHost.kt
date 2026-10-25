@@ -169,15 +169,15 @@ fun XanderNavHost(
             composable(Routes.ANALYZER) { com.xander.files.ui.analyzer.AnalyzerScreen(onBack = { nav.popBackStack() }, onOpenFolder = nav::openFolder) }
             composable(Routes.HISTORY) { HistoryScreen(onBack = { nav.popBackStack() }, onOpen = openPath) }
             val pathArg = listOf(navArgument("path") { type = NavType.StringType })
-            composable("image?path={path}", pathArg) { com.xander.files.ui.viewers.ImageViewerScreen(onBack = { nav.popBackStack() }) }
-            composable("video?path={path}", pathArg) { com.xander.files.ui.viewers.VideoPlayerScreen(onBack = { nav.popBackStack() }) }
+            composable("image?path={path}", pathArg) { com.xander.files.ui.viewers.ImageViewerScreen(onBack = { nav.popBackStack() }, castButton = { com.xander.files.ui.cast.CastButton(shell.cast) }, onCast = { shell.cast.cast(it) }) }
+            composable("video?path={path}", pathArg) { com.xander.files.ui.viewers.VideoPlayerScreen(onBack = { nav.popBackStack() }, castButton = { com.xander.files.ui.cast.CastButton(shell.cast) }) }
             composable("pdf?path={path}", pathArg) { com.xander.files.ui.viewers.PdfViewerScreen(onBack = { nav.popBackStack() }) }
             composable("office?path={path}", pathArg) { com.xander.files.ui.viewers.OfficeViewerScreen(onBack = { nav.popBackStack() }) }
             composable("book?path={path}", pathArg) { com.xander.files.ui.viewers.BookReaderScreen(onBack = { nav.popBackStack() }) }
             composable("editor?path={path}", pathArg) { com.xander.files.ui.editor.TextEditorScreen(onBack = { nav.popBackStack() }) }
             composable(Routes.SERVERS) { com.xander.files.ui.server.ServerScreen(onBack = { nav.popBackStack() }) }
             composable(Routes.MUSIC) { com.xander.files.ui.music.MusicScreen(onBack = { nav.popBackStack() }, onNowPlaying = { nav.navigate(Routes.NOW_PLAYING) { launchSingleTop = true } }) }
-            composable(Routes.NOW_PLAYING) { com.xander.files.ui.music.NowPlayingScreen(onBack = { nav.popBackStack() }) }
+            composable(Routes.NOW_PLAYING) { com.xander.files.ui.music.NowPlayingScreen(onBack = { nav.popBackStack() }, castButton = { com.xander.files.ui.cast.CastButton(shell.cast) }) }
         }
     }
 

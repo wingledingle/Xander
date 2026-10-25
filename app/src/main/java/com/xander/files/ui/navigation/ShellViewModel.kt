@@ -26,6 +26,8 @@ class ShellViewModel @Inject constructor(
     val conflicts: ConflictBroker,
     val launcher: com.xander.files.data.open.ViewerLauncher,
     private val registry: com.xander.files.domain.fs.FileSystemRegistry,
+    val cast: com.xander.files.data.cast.CastManager,
+    private val music: com.xander.files.data.music.MusicController,
 ) : ViewModel() {
     private val _volumes = MutableStateFlow<List<VolumeInfo>>(emptyList())
     val volumes: StateFlow<List<VolumeInfo>> = _volumes
@@ -44,6 +46,16 @@ class ShellViewModel @Inject constructor(
     }
 
     init {
+        // Music that is playing locally moves to the Cast device when a session connects.
+        viewModelScope.launch {
+            cast.device.collect { d ->
+                val st = music.state.value
+                if (d != null && st.isPlaying) {
+                    val items = st.queue.mapNotNull { it.mediaId.takeIf { id -> id.contains("://") } }.map { com.xander.files.domain.fs.FileEntry(com.xander.files.domain.fs.FsPath.parse(it), false) }
+                    if (cast.castQueue(items, st.index, st.positionMs)) music.toggle()
+                }
+            }
+        }
         viewModelScope.launch(Dispatchers.IO) { storage.changes().collect { _volumes.value = storage.volumes() } }
     }
 }

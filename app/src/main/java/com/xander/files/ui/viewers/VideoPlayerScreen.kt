@@ -88,6 +88,7 @@ class VideoPlayerViewModel @Inject constructor(
     @ApplicationContext context: Context,
     private val registry: FileSystemRegistry,
     private val media: MediaLibraryHelper,
+    val cast: com.xander.files.data.cast.CastManager,
 ) : ViewModel() {
     val start: FsPath = FsPath.parse(saved.get<String>("path")!!)
     val player: ExoPlayer = ExoPlayer.Builder(context)
@@ -118,6 +119,17 @@ class VideoPlayerViewModel @Inject constructor(
             player.playWhenReady = true
         }
         viewModelScope.launch { while (true) { delay(5000); savePosition() } }
+        // When a Cast session connects, hand the current video (with its subtitles) to the TV and pause here.
+        viewModelScope.launch { cast.device.collect { if (it != null) castCurrent() } }
+    }
+
+    fun castCurrent() {
+        val p = player.currentMediaItem?.localConfiguration?.uri?.let(FsUri::parse) ?: return
+        val e = playlist.value.firstOrNull { it.path == p } ?: FileEntry(p, false)
+        viewModelScope.launch {
+            if (cast.cast(e, player.currentPosition.coerceAtLeast(0), media.subtitlesFor(p))) player.pause()
+            else error.value = "Cast needs the phone on Wi-Fi"
+        }
     }
 
     private suspend fun item(e: FileEntry): MediaItem {

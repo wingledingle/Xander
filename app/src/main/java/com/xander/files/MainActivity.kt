@@ -25,10 +25,12 @@ class MainActivity : AppCompatActivity() {
     @Inject lateinit var settingsRepo: SettingsRepository
     @Inject lateinit var appLock: com.xander.files.data.lock.AppLock
     @Inject lateinit var billing: com.xander.files.data.billing.BillingRepository
+    @Inject lateinit var cast: com.xander.files.data.cast.CastManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        cast.init()
         val initial = intent.getStringExtra(EXTRA_PATH)?.let(FsPath::parse)
         setContent {
             val settings by settingsRepo.settings.collectAsStateWithLifecycle(AppSettings())

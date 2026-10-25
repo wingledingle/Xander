@@ -88,3 +88,10 @@ class ServersTest {
         assertEquals(null, mem.read("/share/docs/up1.txt"))
     }
 }
+
+class MediaStreamServerTest {
+    @Test fun srtConvertsToVtt() {
+        val vtt = com.xander.files.data.cast.MediaStreamServer.srtToVtt("﻿1\r\n00:00:01,500 --> 00:00:03,250\r\nHi\r\n")
+        assertEquals("WEBVTT\n\n1\n00:00:01.500 --> 00:00:03.250\nHi\n", vtt)
+    }
+}
