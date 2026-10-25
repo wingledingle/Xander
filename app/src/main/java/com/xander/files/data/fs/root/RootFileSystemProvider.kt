@@ -146,12 +146,15 @@ class RootFileSystemProvider @Inject constructor() : PosixFileSystemProvider {
         // `find` in the root shell is much faster than walking via stat calls.
         val args = StringBuilder("find ${q(root.path)} -mindepth 1")
         if (!query.recursive) args.append(" -maxdepth 1")
+        // Skip pseudo file systems and the shared-storage backing dirs (searched through the normal volumes).
+        args.append(" \\( " + PRUNE.joinToString(" -o ") { "-path ${q(it)}" } + " \\) -prune -o")
         if (query.text.isNotBlank()) {
             val pat = if (query.text.contains('*') || query.text.contains('?')) query.text else "*${query.text}*"
             args.append(" -iname ${q(pat)}")
         }
         if (!query.includeFolders) args.append(" -type f")
         args.append(" -exec stat -c $statFmt {} + 2>/dev/null")
+        // `-prune -o` needs an explicit action on the right-hand side, which -exec provides.
         val out = object : com.topjohnwu.superuser.CallbackList<String>() {
             override fun onAddElement(e: String) {
                 parseStat(e, null)?.let { if (query.matches(it)) trySend(it) }
@@ -207,5 +210,6 @@ class RootFileSystemProvider @Inject constructor() : PosixFileSystemProvider {
 
     companion object {
         fun q(s: String) = "'" + s.replace("'", "'\\''") + "'"
+        val PRUNE = listOf("/proc", "/sys", "/dev", "/data/media", "/storage", "/mnt", "/sdcard", "/acct", "/config")
     }
 }

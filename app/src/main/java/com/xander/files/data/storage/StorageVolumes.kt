@@ -84,6 +84,12 @@ class StorageVolumes @Inject constructor(@ApplicationContext private val context
                 out += VolumeInfo(uuid, "SD card", VolumeKind.SD_CARD, FsPath.local(root), root, uuid, false, true, tt, ff)
             }
         }
+        // Always expose primary shared storage, even if StorageManager reports nothing (some OEM builds, emulators).
+        if (out.none { it.isPrimary }) {
+            val primary = Environment.getExternalStorageDirectory().absolutePath
+            val (t, f) = space(primary)
+            out.add(0, VolumeInfo("primary", "Internal storage", VolumeKind.INTERNAL, FsPath.local(primary), primary, null, true, false, t, f))
+        }
         return out
     }
 
@@ -126,7 +132,7 @@ class StorageVolumes @Inject constructor(@ApplicationContext private val context
     fun needsSafForWrite(path: String): Boolean {
         val v = volumeFor(path) ?: return false
         if (!v.isRemovable) return false
-        if (Build.VERSION.SDK_INT >= 30 && Environment.isExternalStorageManager()) return false
+        if (Build.VERSION.SDK_INT >= 30 && runCatching { Environment.isExternalStorageManager() }.getOrDefault(false)) return false
         return true
     }
 }
