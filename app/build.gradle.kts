@@ -29,7 +29,6 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
 
-        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${cfg("xander.googleWebClientId")}\"")
         buildConfigField("String", "DROPBOX_APP_KEY", "\"${cfg("xander.dropboxAppKey")}\"")
         buildConfigField("String", "ONEDRIVE_CLIENT_ID", "\"${cfg("xander.onedriveClientId")}\"")
         buildConfigField("String", "BOX_CLIENT_ID", "\"${cfg("xander.boxClientId")}\"")
