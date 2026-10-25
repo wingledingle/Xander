@@ -17,6 +17,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.xander.files.data.index.FileIndexer
+import com.xander.files.data.index.LibraryKind
+import com.xander.files.data.index.LibraryRepository
+import com.xander.files.domain.fs.FileEntry
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -24,7 +28,23 @@ class HomeViewModel @Inject constructor(
     val shizuku: ShizukuFileSystemProvider,
     private val root: RootFileSystemProvider,
     private val settings: SettingsRepository,
+    private val library: LibraryRepository,
+    indexer: FileIndexer,
 ) : ViewModel() {
+
+    val stats = library.stats.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val fileCount = library.fileCount.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+    val indexStatus = indexer.status
+    private val _appCount = MutableStateFlow(0)
+    val appCount: StateFlow<Int> = _appCount
+    val recentDays = MutableStateFlow(7)
+    private val _recent = MutableStateFlow<List<FileEntry>>(emptyList())
+    val recent: StateFlow<List<FileEntry>> = _recent
+
+    fun setRecentDays(d: Int) { recentDays.value = d; loadRecent() }
+    private fun loadRecent() = viewModelScope.launch {
+        _recent.value = library.files(LibraryKind.RECENT, recentDays.value).filter { !it.isHidden }.take(60)
+    }
 
     private val _volumes = MutableStateFlow<List<VolumeInfo>>(emptyList())
     val volumeList: StateFlow<List<VolumeInfo>> = _volumes
@@ -37,7 +57,11 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) { volumes.changes().collect { _volumes.value = volumes.volumes() } }
     }
 
-    fun refresh() = viewModelScope.launch(Dispatchers.IO) { _volumes.value = volumes.volumes(); shizuku.refresh() }
+    fun refresh() = viewModelScope.launch(Dispatchers.IO) {
+        _volumes.value = volumes.volumes(); shizuku.refresh()
+        _appCount.value = library.appCount()
+        loadRecent()
+    }
 
     fun requestShizuku() = viewModelScope.launch { shizuku.requestPermission() }
 

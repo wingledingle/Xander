@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "77d882d4b5f80d547555f2464f1748e6",
+    "identityHash": "a78cc552ae0a3d753875979dc8c5253b",
     "entities": [
       {
         "tableName": "saf_roots",
@@ -571,7 +571,7 @@
       },
       {
         "tableName": "file_index",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`path` TEXT NOT NULL, `name` TEXT NOT NULL, `parent` TEXT NOT NULL, `size` INTEGER NOT NULL, `modified` INTEGER NOT NULL, `category` TEXT NOT NULL, `isDirectory` INTEGER NOT NULL, `volume` TEXT NOT NULL, PRIMARY KEY(`path`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`path` TEXT NOT NULL, `name` TEXT NOT NULL, `parent` TEXT NOT NULL, `size` INTEGER NOT NULL, `modified` INTEGER NOT NULL, `category` TEXT NOT NULL, `isDirectory` INTEGER NOT NULL, `volume` TEXT NOT NULL, `seen` INTEGER NOT NULL, PRIMARY KEY(`path`))",
         "fields": [
           {
             "fieldPath": "path",
@@ -619,6 +619,12 @@
             "fieldPath": "volume",
             "columnName": "volume",
             "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seen",
+            "columnName": "seen",
+            "affinity": "INTEGER",
             "notNull": true
           }
         ],
@@ -950,7 +956,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '77d882d4b5f80d547555f2464f1748e6')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a78cc552ae0a3d753875979dc8c5253b')"
     ]
   }
 }

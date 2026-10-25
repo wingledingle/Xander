@@ -106,6 +106,12 @@ data class CategoryStat(val category: String, val count: Int, val size: Long)
 interface FileIndexDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertAll(list: List<FileIndexEntity>)
     @Query("DELETE FROM file_index WHERE volume = :volume") suspend fun clearVolume(volume: String)
+    @Query("DELETE FROM file_index WHERE volume = :volume AND seen < :stamp") suspend fun pruneStale(volume: String, stamp: Long)
+    @Query("SELECT COALESCE(SUM(size),0) FROM file_index WHERE isDirectory = 0 AND size >= :minSize") fun observeLargeSize(minSize: Long): Flow<Long>
+    @Query("SELECT COUNT(*) FROM file_index WHERE isDirectory = 0 AND size >= :minSize") fun observeLargeCount(minSize: Long): Flow<Int>
+    @Query("SELECT COUNT(*) FROM file_index WHERE isDirectory = 0 AND parent LIKE :downloadDir || '%'") fun observeDownloadCount(downloadDir: String): Flow<Int>
+    @Query("SELECT COALESCE(SUM(size),0) FROM file_index WHERE isDirectory = 0 AND parent LIKE :downloadDir || '%'") fun observeDownloadSize(downloadDir: String): Flow<Long>
+    @Query("SELECT * FROM file_index WHERE isDirectory = 0 AND parent LIKE :dir || '%' ORDER BY modified DESC") suspend fun under(dir: String): List<FileIndexEntity>
     @Query("DELETE FROM file_index WHERE path = :path OR path LIKE :path || '/%'") suspend fun deleteTree(path: String)
     @Query("SELECT category, COUNT(*) AS count, COALESCE(SUM(size),0) AS size FROM file_index WHERE isDirectory = 0 GROUP BY category")
     fun observeCategoryStats(): Flow<List<CategoryStat>>

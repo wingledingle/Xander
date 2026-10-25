@@ -158,3 +158,17 @@ class FileEntryFetcher(private val entry: FileEntry, private val options: Option
 class FileEntryKeyer : coil3.key.Keyer<FileEntry> {
     override fun key(data: FileEntry, options: Options) = "${data.path}|${data.lastModified}|${data.size}"
 }
+
+/** Coil model for an installed app's launcher icon. */
+data class AppIconModel(val packageName: String)
+
+class AppIconFetcher(private val model: AppIconModel, private val context: android.content.Context) : Fetcher {
+    override suspend fun fetch(): FetchResult? = withContext(Dispatchers.IO) {
+        val d = runCatching { context.packageManager.getApplicationIcon(model.packageName) }.getOrNull() ?: return@withContext null
+        ImageFetchResult(d.toBitmap(144, 144).asImage(), isSampled = false, dataSource = DataSource.DISK)
+    }
+
+    class Factory(private val context: android.content.Context) : Fetcher.Factory<AppIconModel> {
+        override fun create(data: AppIconModel, options: Options, imageLoader: ImageLoader): Fetcher = AppIconFetcher(data, context)
+    }
+}

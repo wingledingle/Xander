@@ -40,6 +40,9 @@ object Routes {
     const val CLIPBOARD_ROUTE = "clipboard"
     const val BOOKMARKS = "bookmarks"
     const val HISTORY = "history"
+    const val LIBRARY = "library/{kind}"
+    const val APPS = "apps"
+    fun library(kind: com.xander.files.data.index.LibraryKind) = "library/${kind.name}"
     fun browser(p: FsPath) = "browser?path=${Uri.encode(p.toString())}"
     fun search(root: FsPath?) = "search?root=${Uri.encode(root?.toString() ?: "")}"
     fun clipboard(target: FsPath?) = "clipboard?target=${Uri.encode(target?.toString() ?: "")}"
@@ -79,7 +82,11 @@ fun XanderNavHost(
     ) {
         NavHost(nav, startDestination = if (hasAccess) Routes.HOME else Routes.ONBOARDING) {
             composable(Routes.ONBOARDING) {
-                OnboardingScreen(onGranted = { nav.navigate(Routes.HOME) { popUpTo(Routes.ONBOARDING) { inclusive = true } } })
+                val app = androidx.compose.ui.platform.LocalContext.current.applicationContext as com.xander.files.XanderApp
+                OnboardingScreen(onGranted = {
+                    app.startIndexing()
+                    nav.navigate(Routes.HOME) { popUpTo(Routes.ONBOARDING) { inclusive = true } }
+                })
             }
             composable(Routes.HOME) {
                 HomeScreen(
@@ -112,6 +119,10 @@ fun XanderNavHost(
             composable(Routes.BOOKMARKS) {
                 BookmarksScreen(onBack = { nav.popBackStack() }, onOpen = { p, folder -> if (folder) nav.openFolder(p) else p.parent?.let(nav::openFolder) })
             }
+            composable(Routes.LIBRARY) {
+                com.xander.files.ui.library.LibraryScreen(onBack = { nav.popBackStack() }, onOpenFolder = nav::openFolder)
+            }
+            composable(Routes.APPS) { com.xander.files.ui.apps.AppsScreen(onBack = { nav.popBackStack() }) }
             composable(Routes.HISTORY) { HistoryScreen(onBack = { nav.popBackStack() }, onOpen = nav::openFolder) }
         }
     }

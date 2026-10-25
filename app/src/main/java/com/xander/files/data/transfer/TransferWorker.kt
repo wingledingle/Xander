@@ -37,6 +37,7 @@ class TransferWorker @AssistedInject constructor(
     private val dao: TransferDao,
     private val manager: TransferManager,
     private val operations: Map<TransferType, @JvmSuppressWildcards TransferOperation>,
+    private val indexer: com.xander.files.data.index.FileIndexer,
 ) : CoroutineWorker(appContext, params) {
 
     private val nm = NotificationManagerCompat.from(appContext)
@@ -78,6 +79,7 @@ class TransferWorker @AssistedInject constructor(
             ctx.flush()
             dao.get(job.id)?.let { dao.upsert(latest.copy(state = TransferState.DONE.name, doneBytes = latest.totalBytes, speedBps = 0, currentName = null)) }
             notifyFinished(job.title, null)
+            updateIndex(type, sources, dest)
         } catch (e: Throwable) {
             val fe = FsException.wrap(e)
             if (fe is FsException.Cancelled || ctx.cancelled) {
@@ -88,6 +90,16 @@ class TransferWorker @AssistedInject constructor(
             }
         } finally {
             manager.running.remove(job.id)
+        }
+    }
+
+    /** Keeps the search/category index in step with what the job changed. */
+    private suspend fun updateIndex(type: TransferType, sources: List<FsPath>, dest: FsPath?) = runCatching {
+        when (type) {
+            TransferType.DELETE, TransferType.RECYCLE -> sources.forEach { indexer.onDeleted(it) }
+            TransferType.MOVE -> { sources.forEach { indexer.onDeleted(it) }; dest?.let { d -> sources.forEach { indexer.onCreated(d.child(it.name)) } } }
+            TransferType.COPY -> dest?.let { d -> sources.forEach { indexer.onCreated(d.child(it.name)) } }
+            else -> dest?.let { indexer.onCreated(it) }
         }
     }
 

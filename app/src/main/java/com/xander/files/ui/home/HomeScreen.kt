@@ -69,6 +69,12 @@ fun HomeScreen(onOpen: (FsPath) -> Unit, onSearch: () -> Unit, onMenu: () -> Uni
     val volumes by vm.volumeList.collectAsStateWithLifecycle()
     val shizuku by vm.shizukuState.collectAsStateWithLifecycle()
     val rootMode by vm.rootMode.collectAsStateWithLifecycle()
+    val stats by vm.stats.collectAsStateWithLifecycle()
+    val fileCount by vm.fileCount.collectAsStateWithLifecycle()
+    val appCount by vm.appCount.collectAsStateWithLifecycle()
+    val recent by vm.recent.collectAsStateWithLifecycle()
+    val recentDays by vm.recentDays.collectAsStateWithLifecycle()
+    val index by vm.indexStatus.collectAsStateWithLifecycle()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     DisposableEffect(lifecycle) {
         val o = LifecycleEventObserver { _, e -> if (e == Lifecycle.Event.ON_RESUME) vm.refresh() }
@@ -83,6 +89,12 @@ fun HomeScreen(onOpen: (FsPath) -> Unit, onSearch: () -> Unit, onMenu: () -> Uni
     }) { pad ->
         Column(Modifier.padding(pad).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             volumes.forEach { v -> VolumeCard(v) { onOpen(v.root) } }
+            Text(
+                stringResource(R.string.files_and_apps, fileCount, appCount) + if (index.running) " · " + stringResource(R.string.indexing) else "",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            CategoryGrid(stats, appCount, onOpen = { onRoute(Routes.library(it)) }, onApps = { onRoute(Routes.APPS) })
+            RecentStrip(recent, recentDays, vm::setRecentDays, onOpen = { e -> e.path.parent?.let(onOpen) }, onMore = { onRoute(Routes.library(com.xander.files.data.index.LibraryKind.RECENT)) })
 
             Text(stringResource(R.string.quick_access), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
             val p = vm.primaryRoot

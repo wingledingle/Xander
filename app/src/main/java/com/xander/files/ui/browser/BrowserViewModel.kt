@@ -88,6 +88,7 @@ class BrowserViewModel @Inject constructor(
     private val transfers: TransferManager,
     private val actions: FileActions,
     private val bookmarks: BookmarkRepository,
+    private val installer: com.xander.files.data.apps.ApkInstaller,
 ) : ViewModel() {
 
     val clipItems = clipboard.items.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -186,11 +187,17 @@ class BrowserViewModel @Inject constructor(
     fun open(entry: FileEntry) {
         if (raw.value.selecting) { toggle(entry); return }
         if (entry.isDirectory) { navigate(entry.path); return }
+        if (entry.extension in setOf("apk", "apks", "xapk", "apkm")) { install(entry); return }
         viewModelScope.launch {
             bookmarks.recordOpened(entry)
             try { val i = opener.openExternal(entry); _events.send(BrowserEvent.Launch(if (i.component != null) i else Intent.createChooser(i, entry.name))) }
             catch (e: Exception) { _events.send(BrowserEvent.Toast(FsException.wrap(e).message ?: "Cannot open")) }
         }
+    }
+
+    fun install(entry: FileEntry) = viewModelScope.launch {
+        if (!installer.canInstall()) { _events.send(BrowserEvent.Launch(installer.permissionIntent())); _events.send(BrowserEvent.Toast("Allow installs, then tap the file again")); return@launch }
+        try { installer.install(entry.path) } catch (e: Exception) { _events.send(BrowserEvent.Toast(FsException.wrap(e).message ?: "Install failed")) }
     }
 
     fun toggle(entry: FileEntry) = raw.update {

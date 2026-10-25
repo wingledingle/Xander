@@ -8,6 +8,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
@@ -43,6 +44,7 @@ val drawerTools = listOf(
     DrawerDestination(Routes.CLIPBOARD_ROUTE, Icons.Filled.ContentPaste, R.string.clipboard),
     DrawerDestination(Routes.RECYCLE, Icons.Filled.Delete, R.string.recycle_bin),
     DrawerDestination(Routes.HISTORY, Icons.Filled.History, R.string.history),
+    DrawerDestination(Routes.APPS, Icons.Filled.Apps, R.string.app_manager),
 )
 
 @Composable

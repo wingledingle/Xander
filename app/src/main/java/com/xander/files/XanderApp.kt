@@ -14,6 +14,12 @@ import com.xander.files.data.thumbs.FileEntryKeyer
 import com.xander.files.data.thumbs.ThumbnailService
 import com.xander.files.data.transfer.TransferWorker
 import dagger.hilt.android.HiltAndroidApp
+import com.xander.files.data.index.FileIndexer
+import com.xander.files.data.index.MaintenanceWorker
+import com.xander.files.data.storage.StorageAccess
+import com.xander.files.di.AppScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -21,6 +27,8 @@ class XanderApp : Application(), SingletonImageLoader.Factory, Configuration.Pro
 
     @Inject lateinit var thumbnails: ThumbnailService
     @Inject lateinit var workerFactory: HiltWorkerFactory
+    @Inject lateinit var indexer: FileIndexer
+    @Inject @AppScope lateinit var appScope: CoroutineScope
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
@@ -30,6 +38,13 @@ class XanderApp : Application(), SingletonImageLoader.Factory, Configuration.Pro
         Shell.enableVerboseLogging = BuildConfig.DEBUG
         Shell.setDefaultBuilder(Shell.Builder.create().setFlags(Shell.FLAG_MOUNT_MASTER).setTimeout(10))
         TransferWorker.ensureChannel(this)
+        MaintenanceWorker.schedule(this)
+        startIndexing()
+    }
+
+    /** Indexes storage in the background once storage access exists (called again after onboarding). */
+    fun startIndexing() {
+        if (StorageAccess.hasFullAccess(this)) appScope.launch { runCatching { indexer.indexAll(full = true) } }
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader =
@@ -37,6 +52,7 @@ class XanderApp : Application(), SingletonImageLoader.Factory, Configuration.Pro
             .components {
                 add(FileEntryKeyer())
                 add(FileEntryFetcher.Factory(thumbnails))
+                add(com.xander.files.data.thumbs.AppIconFetcher.Factory(this@XanderApp))
             }
             .memoryCache { MemoryCache.Builder().maxSizePercent(context, 0.2).build() }
             .crossfade(true)

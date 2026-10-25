@@ -121,6 +121,8 @@ data class FileIndexEntity(
     val category: String,
     val isDirectory: Boolean,
     val volume: String,
+    /** Run stamp of the indexing pass that last saw this row; stale rows are pruned after a full pass. */
+    val seen: Long = 0,
 )
 
 @Entity(tableName = "media_positions")

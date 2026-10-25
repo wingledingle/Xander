@@ -37,6 +37,7 @@ class SearchRepository @Inject constructor(
     private val shizuku: ShizukuFileSystemProvider,
     private val root: RootFileSystemProvider,
     private val settings: SettingsRepository,
+    private val library: com.xander.files.data.index.LibraryRepository,
 ) {
     suspend fun coverage(): SearchCoverage {
         val rootOn = settings.settings.first().rootMode && root.isAvailable()
@@ -52,6 +53,18 @@ class SearchRepository @Inject constructor(
         }
         val rootOn = settings.settings.first().rootMode && root.isAvailable()
         val primary = volumes.primaryRoot
+
+        // 0. Instant answers from the index (verified to still exist); the live walk below fills in the rest.
+        if (query.text.isNotBlank() && !query.text.contains('*') && !query.text.contains('?')) {
+            launch(Dispatchers.IO) {
+                runCatching {
+                    library.searchIndex(query.text.trim(), query.categories.singleOrNull(), query.minSize ?: 0, query.maxSize ?: Long.MAX_VALUE,
+                        query.modifiedAfter ?: 0, query.modifiedBefore ?: Long.MAX_VALUE, "")
+                }.getOrDefault(emptyList()).forEach { e ->
+                    if (java.io.File(e.path.path).exists() && query.matches(e)) send(e)
+                }
+            }
+        }
         val restricted = if (Build.VERSION.SDK_INT >= 30) listOf("$primary/Android/data", "$primary/Android/obb") else emptyList()
 
         // 1. All mounted volumes, walked with the local provider, skipping restricted subtrees (searched separately).

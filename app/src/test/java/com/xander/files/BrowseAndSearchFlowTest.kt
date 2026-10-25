@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.printToString
@@ -35,6 +36,7 @@ class BrowseAndSearchFlowTest {
         File(root, "Documents/Projects").mkdirs()
         File(root, "Documents/Projects/needle-report.txt").writeText("hello")
         File(root, "Download").mkdirs()
+        File(root, "DCIM").mkdirs()
     }
 
     /** Robolectric's paused looper does not advance time by itself; step it while background I/O completes. */
@@ -52,15 +54,15 @@ class BrowseAndSearchFlowTest {
 
     @Test fun browseIntoFolderAndFindFileGlobally() {
         waitForText("Quick access")
-        rule.onAllNodesWithText("Downloads").onFirst().performClick()
+        rule.onAllNodesWithText("DCIM").onFirst().performScrollTo().performClick()
         waitForText("This folder is empty")
         rule.onNodeWithContentDescription("Search").performClick()
         rule.waitForIdle()
         rule.onNode(hasSetTextAction()).performTextInput("needle")
-        // Opened from a folder, search is scoped to it first: nothing in Download.
+        // Opened from a folder, search is scoped to it first: nothing in DCIM.
         waitForText("No matching files")
         // Switch the scope chip to everywhere: the file under Documents/Projects is found.
-        rule.onAllNodesWithText("Download", useUnmergedTree = true).onFirst().performClick()
+        rule.onAllNodesWithText("DCIM", useUnmergedTree = true).onFirst().performClick()
         waitForText("needle-report.txt")
     }
 }
