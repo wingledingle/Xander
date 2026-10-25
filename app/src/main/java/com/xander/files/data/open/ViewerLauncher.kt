@@ -65,6 +65,9 @@ class ViewerLauncher @Inject constructor(
         }
     }
 
+    /** Lets view models without navigation callbacks open another screen. */
+    suspend fun navigate(route: String) = channel.send(OpenRequest.Route(route))
+
     suspend fun openExternal(entry: FileEntry) = try { channel.send(external(entry)) } catch (e: Exception) {
         channel.send(OpenRequest.Error(FsException.wrap(e).message ?: "Cannot open"))
     }

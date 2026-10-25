@@ -103,6 +103,7 @@ class BrowserViewModel @Inject constructor(
     private val sftp: com.xander.files.data.net.sftp.SftpFileSystemProvider,
     private val folderPrefs: com.xander.files.data.db.FolderPrefDao,
     private val launcher: com.xander.files.data.open.ViewerLauncher,
+    private val bluetooth: com.xander.files.data.bluetooth.BluetoothRepository,
 ) : ViewModel() {
 
     val clipItems = clipboard.items.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -406,6 +407,10 @@ class BrowserViewModel @Inject constructor(
     }
 
     fun share(entries: List<FileEntry>) = launchIntent { actions.shareIntent(entries) }
+    fun sendBluetooth(entries: List<FileEntry>) = viewModelScope.launch {
+        bluetooth.pendingSend.value = entries.filter { !it.isDirectory }
+        launcher.navigate("bluetooth")
+    }
     fun openWith(entry: FileEntry) = launchIntent { Intent.createChooser(opener.viewIntent(entry, "*/*").setType(entry.mimeType ?: "*/*").setData(opener.shareableUri(entry.path)), entry.name) }
     fun setAs(entry: FileEntry) = launchIntent { actions.setAsIntent(entry) }
     fun duplicate(entry: FileEntry) = op { actions.duplicate(entry); clearSelection() }

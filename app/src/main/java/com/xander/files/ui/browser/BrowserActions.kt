@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -79,6 +80,7 @@ fun entryActions(
         if (single != null && writable) add(SheetAction(Icons.Filled.DriveFileRenameOutline, stringResource(R.string.rename)) { onRename(single) })
         if (writable) add(SheetAction(Icons.Filled.Delete, stringResource(R.string.delete)) { vm.requestDelete(entries) })
         if (entries.any { !it.isDirectory }) add(SheetAction(Icons.Filled.Share, stringResource(R.string.share)) { vm.share(entries) })
+        if (entries.any { !it.isDirectory }) add(SheetAction(Icons.Filled.Bluetooth, stringResource(R.string.send_bluetooth)) { vm.sendBluetooth(entries) })
         if (onShareLink != null) add(SheetAction(Icons.Filled.Link, stringResource(R.string.share_link)) { onShareLink() })
         if (single != null && !single.isDirectory) add(SheetAction(Icons.AutoMirrored.Filled.OpenInNew, stringResource(R.string.open_with)) { vm.openWith(single) })
         if (single != null && !single.isDirectory && single.extension == "txt") add(SheetAction(Icons.AutoMirrored.Filled.MenuBook, stringResource(R.string.read_as_book)) { vm.openAs(single, com.xander.files.data.open.ViewerKind.BOOK) })
