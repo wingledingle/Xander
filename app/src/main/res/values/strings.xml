@@ -485,4 +485,48 @@
     <string name="ejected">Safe to remove</string>
     <string name="eject_in_settings">Tap Eject next to the drive in Storage settings</string>
     <string name="usb_connected">%s connected</string>
+    <string name="tv_companion">TV companion</string>
+    <string name="tv_companion_running">Phones running Xander can manage this TV</string>
+    <string name="tv_management">TV management</string>
+    <string name="tv_found">TVs on this network</string>
+    <string name="tv_paired">Paired TVs</string>
+    <string name="tv_none_found">Searching… Install Xander Files for TV on your Android TV, open it, and keep both on the same Wi-Fi.</string>
+    <string name="tv_pair">Pair</string>
+    <string name="tv_pair_title">Pair with %s</string>
+    <string name="tv_pair_code">Enter the 6-digit code shown on the TV</string>
+    <string name="tv_add_by_ip">Add by IP address</string>
+    <string name="tv_ip">TV IP address</string>
+    <string name="tv_forget">Forget</string>
+    <string name="tv_files">Files</string>
+    <string name="tv_apps">Apps</string>
+    <string name="tv_remote">Remote</string>
+    <string name="tv_install_apk">Install APK</string>
+    <string name="tv_launch">Open</string>
+    <string name="tv_uninstall">Uninstall</string>
+    <string name="tv_backup_apk">Save APK to phone</string>
+    <string name="tv_saved_to">Saved to %s</string>
+    <string name="tv_uninstall_confirm">Confirm the uninstall on the TV screen</string>
+    <string name="tv_install_started">Confirm the install on the TV screen</string>
+    <string name="tv_offline">Cannot reach the TV. Check that it is on and on the same network.</string>
+    <string name="tv_type_text">Type on TV</string>
+    <string name="tv_send">Send</string>
+    <string name="tv_system_apps">Show system apps</string>
+    <string name="tv_remote_disabled">Enable “Xander remote control” in the TV\'s Settings → Accessibility to use the remote.</string>
+    <string name="tv_host_title">Manage this TV from your phone</string>
+    <string name="tv_host_steps">1. Install Xander Files on your phone.
+2. Connect the phone to the same Wi-Fi.
+3. Open Xander → TV management and pick this TV.
+4. Enter this code:</string>
+    <string name="tv_host_addr">Address: %s</string>
+    <string name="tv_host_paired">%d phone(s) paired</string>
+    <string name="tv_host_revoke">Unpair all phones</string>
+    <string name="tv_host_new_code">New code</string>
+    <string name="tv_host_remote">Remote control service</string>
+    <string name="tv_host_remote_on">On</string>
+    <string name="tv_host_remote_off">Off – tap to open Accessibility settings</string>
+    <string name="tv_remote_service_desc">Lets a paired phone running Xander send remote-control keys and text to this TV. Xander does not read or collect screen content.</string>
+    <string name="tv_remote_service_label">Xander remote control</string>
+    <string name="send_to_tv">Send to TV</string>
+    <string name="install_on_tv">Install on TV</string>
+    <string name="tv_pick">Choose a TV</string>
 </resources>

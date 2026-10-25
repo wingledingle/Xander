@@ -67,6 +67,7 @@ abstract class ProviderModule {
     @Binds @IntoSet abstract fun nfs(p: com.xander.files.data.net.nfs.NfsFileSystemProvider): FileSystemProvider
     @Binds @IntoSet abstract fun http(p: com.xander.files.data.net.http.HttpBrowseProvider): FileSystemProvider
     @Binds @IntoSet abstract fun cloud(p: com.xander.files.data.cloud.CloudFileSystemProvider): FileSystemProvider
+    @Binds @IntoSet abstract fun tv(p: com.xander.files.data.tv.TvFileSystemProvider): FileSystemProvider
     @Binds abstract fun secretCipher(c: KeystoreSecretCipher): SecretCipher
 }
 

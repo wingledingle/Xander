@@ -173,6 +173,7 @@ interface DefaultAppDao {
 interface TvDeviceDao {
     @Query("SELECT * FROM tv_devices ORDER BY name") fun observeAll(): Flow<List<TvDeviceEntity>>
     @Query("SELECT * FROM tv_devices WHERE id = :id") suspend fun get(id: String): TvDeviceEntity?
+    @Query("SELECT * FROM tv_devices") suspend fun observeAllOnce(): List<TvDeviceEntity>
     @Upsert suspend fun upsert(e: TvDeviceEntity)
     @Query("DELETE FROM tv_devices WHERE id = :id") suspend fun delete(id: String)
 }
