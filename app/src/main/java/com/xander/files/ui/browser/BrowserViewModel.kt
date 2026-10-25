@@ -321,6 +321,21 @@ class BrowserViewModel @Inject constructor(
         } catch (e: Exception) { _events.send(BrowserEvent.Toast(FsException.wrap(e).message ?: "Sharing failed")) }
     }
 
+    val isRoot: Boolean get() = raw.value.path.scheme == FsPath.SCHEME_ROOT
+    fun supportsSymlinks(): Boolean = runCatching { registry.provider(raw.value.path) is com.xander.files.domain.fs.PosixFileSystemProvider }.getOrDefault(false)
+
+    fun createSymlink(name: String, target: String) = op {
+        val p = registry.provider(raw.value.path) as com.xander.files.domain.fs.PosixFileSystemProvider
+        p.symlink(target, raw.value.path.child(name))
+    }
+
+    /** Root explorer: remount the partition holding the current folder read-write or read-only. */
+    fun remount(readWrite: Boolean) = viewModelScope.launch {
+        val ok = root.remount(raw.value.path.path, readWrite)
+        _events.send(BrowserEvent.Toast(if (ok) (if (readWrite) "Mounted read-write" else "Mounted read-only") else "Remount failed"))
+        refresh()
+    }
+
     fun viewAsZip(entry: FileEntry) = navigate(FsPath.archive(entry.path))
 
     fun install(entry: FileEntry) = viewModelScope.launch {

@@ -113,6 +113,7 @@ import com.xander.files.domain.fs.FileCategory
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.rememberCoroutineScope
@@ -134,6 +135,7 @@ private sealed interface Dialog {
     data class BatchRename(val entries: List<FileEntry>) : Dialog
     data class Drop(val paths: List<FsPath>) : Dialog
     data class Preview(val entry: FileEntry) : Dialog
+    data object Symlink : Dialog
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -248,6 +250,10 @@ fun BrowserPane(
                                     onClick = { menu = false; vm.bookmarkCurrent() })
                                 DropdownMenuItem(text = { Text(stringResource(R.string.clipboard)) }, leadingIcon = { Icon(Icons.Filled.ContentPaste, null) },
                                     onClick = { menu = false; onOpenClipboard(state.path) })
+                                if (vm.isRoot) {
+                                    DropdownMenuItem(text = { Text(stringResource(R.string.remount_rw)) }, onClick = { menu = false; vm.remount(true) })
+                                    DropdownMenuItem(text = { Text(stringResource(R.string.remount_ro)) }, onClick = { menu = false; vm.remount(false) })
+                                }
                                 DropdownMenuItem(text = { Text(stringResource(R.string.properties)) }, leadingIcon = { Icon(Icons.Filled.Info, null) },
                                     onClick = { menu = false; scope.launch { vm.currentFolderEntry()?.let { dialog = Dialog.Properties(listOf(it)) } } })
                             }
@@ -268,6 +274,8 @@ fun BrowserPane(
                         onClick = { fabMenu = false; dialog = Dialog.NewFolder })
                     DropdownMenuItem(text = { Text(stringResource(R.string.new_file)) }, leadingIcon = { Icon(Icons.Filled.NoteAdd, null) },
                         onClick = { fabMenu = false; dialog = Dialog.NewFile })
+                    if (vm.supportsSymlinks()) DropdownMenuItem(text = { Text(stringResource(R.string.new_symlink)) }, leadingIcon = { Icon(Icons.Filled.Link, null) },
+                        onClick = { fabMenu = false; dialog = Dialog.Symlink })
                 }
             }
         }
@@ -399,6 +407,7 @@ fun BrowserPane(
         is Dialog.Decrypt -> PasswordDialog(stringResource(R.string.decrypt_title), showDeleteOriginal = true, onDismiss = { dialog = null }) { pwd, del ->
             dialog = null; vm.decrypt(d.entries, pwd, del)
         }
+        Dialog.Symlink -> SymlinkDialog(onDismiss = { dialog = null }) { name, target -> dialog = null; vm.createSymlink(name, target) }
         is Dialog.BatchRename -> BatchRenameDialog(d.entries, state.entries.map { it.name }.toSet(), onDismiss = { dialog = null }) { pairs -> dialog = null; vm.batchRename(pairs) }
         is Dialog.Drop -> AlertDialog(
             onDismissRequest = { dialog = null },

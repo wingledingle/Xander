@@ -374,4 +374,9 @@
     <string name="junk_empty">Empty file</string>
     <string name="junk_lost">Recovered fragment (LOST.DIR)</string>
     <string name="junk_residual">Leftover data of an uninstalled app</string>
+    <string name="remount_rw">Mount read-write</string>
+    <string name="remount_ro">Mount read-only</string>
+    <string name="new_symlink">New symbolic link</string>
+    <string name="link_name">Link name</string>
+    <string name="link_target">Target path</string>
 </resources>
