@@ -29,6 +29,7 @@ import com.xander.files.data.settings.SettingsRepository
 import com.xander.files.data.settings.SortBy
 import com.xander.files.data.settings.ViewMode
 import com.xander.files.data.storage.StorageVolumes
+import com.xander.files.domain.fs.FileCategory
 import com.xander.files.domain.fs.FileEntry
 import com.xander.files.domain.fs.FileSystemRegistry
 import com.xander.files.domain.fs.FsException
@@ -104,6 +105,8 @@ class BrowserViewModel @Inject constructor(
     private val folderPrefs: com.xander.files.data.db.FolderPrefDao,
     private val launcher: com.xander.files.data.open.ViewerLauncher,
     private val bluetooth: com.xander.files.data.bluetooth.BluetoothRepository,
+    private val nsfw: com.xander.files.data.nsfw.NsfwRepository,
+    private val nsfwScorer: com.xander.files.data.nsfw.NsfwScorer,
 ) : ViewModel() {
 
     val clipItems = clipboard.items.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -407,6 +410,15 @@ class BrowserViewModel @Inject constructor(
     }
 
     fun share(entries: List<FileEntry>) = launchIntent { actions.shareIntent(entries) }
+
+    /** Result of "Check for adult content": file name to class probabilities (null scores = could not read). */
+    val nsfwCheck = MutableStateFlow<Pair<String, com.xander.files.data.nsfw.NsfwScores?>?>(null)
+    fun checkNsfw(entry: FileEntry) = viewModelScope.launch {
+        nsfwCheck.value = entry.name to null
+        val f = runCatching { opener.materialize(entry.path) }.getOrNull()
+        val r = f?.let { runCatching { nsfw.check(it, entry.category == FileCategory.VIDEO, nsfwScorer) }.getOrNull() }
+        nsfwCheck.value = if (r == null) { _events.send(BrowserEvent.Toast("Could not read this file")); null } else entry.name to r
+    }
     fun sendBluetooth(entries: List<FileEntry>) = viewModelScope.launch {
         bluetooth.pendingSend.value = entries.filter { !it.isDirectory }
         launcher.navigate("bluetooth")

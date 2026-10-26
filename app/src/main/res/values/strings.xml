@@ -549,4 +549,15 @@
     <string name="an_extracted_match">%1$d of %2$d files match</string>
     <string name="adult_drawn">Include drawn adult content (hentai)</string>
     <string name="adult_drawn_summary">Off by default: ordinary comics and manga can score high</string>
+    <string name="an_all_files">All files</string>
+    <string name="an_unreadable">Unreadable</string>
+    <string name="an_all_capped">Showing the first %d files</string>
+    <string name="an_unreadable_none">Every folder could be read.</string>
+    <string name="an_unreadable_hint">These folders could not be read, so their files are not counted. Android/data and Android/obb need Shizuku or root (see Home); system folders need root.</string>
+    <string name="adult_check">Check for adult content</string>
+    <string name="nsfw_porn">Porn</string>
+    <string name="nsfw_hentai">Hentai</string>
+    <string name="nsfw_sexy">Sexy</string>
+    <string name="nsfw_drawings">Drawing</string>
+    <string name="nsfw_neutral">Neutral</string>
 </resources>

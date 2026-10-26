@@ -48,6 +48,16 @@ class NsfwRepository @Inject constructor(
 
     fun observeScanned() = dao.observeScanned()
 
+    suspend fun scoresFor(paths: Collection<String>): Map<String, NsfwScoreEntity> = paths.mapNotNull { dao.get(it) }.associateBy { it.path }
+
+    /** Scores one file right now (and stores it), for "Check this file". */
+    suspend fun check(file: File, video: Boolean, scorer: NsfwScorer): NsfwScores? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+        val r = if (video) scorer.video(file) else scorer.image(file)
+        r?.also { dao.upsert(NsfwScoreEntity(file.path, file.length(), file.lastModified(), it.drawings, it.hentai, it.neutral, it.porn, it.sexy)) }
+    }
+
+    fun isAdult(e: NsfwScoreEntity, thresholdPct: Int, drawn: Boolean) = e.porn * 100 >= thresholdPct || (drawn && e.hentai * 100 >= thresholdPct)
+
     suspend fun flaggedPaths(): List<String> {
         val s = settings.settings.first()
         return if (s.nsfwEnabled) dao.flagged(s.nsfwThreshold / 100f, s.nsfwDrawn) else emptyList()
@@ -92,7 +102,7 @@ class NsfwScanWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val index: FileIndexDao,
     private val dao: NsfwDao,
-    private val classifier: NsfwClassifier,
+    private val scorer: NsfwScorer,
     private val settings: SettingsRepository,
 ) : CoroutineWorker(context, params) {
 
@@ -122,24 +132,35 @@ class NsfwScanWorker @AssistedInject constructor(
             val f = File(m.path)
             if (!f.canRead()) continue
             if (!all) dao.get(m.path)?.let { if (it.size == m.size && it.modified == m.modified) continue }
-            val r = runCatching { if (m.category == "IMAGE") image(f) else video(f) }.getOrNull() ?: continue
+            val r = runCatching { if (m.category == "IMAGE") scorer.image(f) else scorer.video(f) }.getOrNull() ?: continue
             dao.upsert(NsfwScoreEntity(m.path, m.size, m.modified, r.drawings, r.hentai, r.neutral, r.porn, r.sexy))
         }
         return Result.success()
     }
 
-    private fun image(f: File): NsfwScores? {
+    companion object {
+        const val CHANNEL = "adult_scan"
+        const val NOTIF = 4401
+    }
+}
+
+/** Turns an image file or a video (sampled frames) into class probabilities. */
+@Singleton
+class NsfwScorer @Inject constructor(private val classifier: NsfwClassifier) {
+    fun image(f: File): NsfwScores? {
         val o = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeFile(f.path, o)
         if (o.outWidth < 64 || o.outHeight < 64) return null // icons, emoji, UI assets
         var sample = 1
-        while (o.outWidth / (sample * 2) >= NsfwClassifier.SIZE && o.outHeight / (sample * 2) >= NsfwClassifier.SIZE) sample *= 2
+        // Only pre-shrink very large images: the model was trained on a single nearest-neighbour resize from the
+        // original, and an extra 2× decode step first visibly changes scores on line art (measured on Android).
+        while (o.outWidth / (sample * 2) >= NsfwClassifier.SIZE * 4 && o.outHeight / (sample * 2) >= NsfwClassifier.SIZE * 4) sample *= 2
         val b = BitmapFactory.decodeFile(f.path, BitmapFactory.Options().apply { inSampleSize = sample }) ?: return null
         return try { if (NsfwClassifier.isFlat(b)) BLANK else classifier.classify(b) } finally { b.recycle() }
     }
 
     /** A video counts as its most explicit sampled frame (flat frames skipped). */
-    private fun video(f: File): NsfwScores? {
+    fun video(f: File): NsfwScores? {
         val r = MediaMetadataRetriever()
         return try {
             r.setDataSource(f.path)
@@ -161,8 +182,6 @@ class NsfwScanWorker @AssistedInject constructor(
 
     companion object {
         const val FRAMES = 8
-        const val CHANNEL = "adult_scan"
-        const val NOTIF = 4401
-        private val BLANK = NsfwScores(0f, 0f, 1f, 0f, 0f)
+        val BLANK = NsfwScores(0f, 0f, 1f, 0f, 0f)
     }
 }

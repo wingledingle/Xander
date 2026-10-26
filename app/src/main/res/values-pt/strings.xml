@@ -540,6 +540,17 @@
     <string name="an_extracted_match">%1$d de %2$d arquivos coincidem</string>
     <string name="adult_drawn">Incluir conteúdo adulto desenhado (hentai)</string>
     <string name="adult_drawn_summary">Desativado por padrão: quadrinhos e mangás comuns podem ter pontuação alta</string>
+    <string name="an_all_files">Todos os arquivos</string>
+    <string name="an_unreadable">Ilegíveis</string>
+    <string name="an_all_capped">Mostrando os primeiros %d arquivos</string>
+    <string name="an_unreadable_none">Todas as pastas puderam ser lidas.</string>
+    <string name="an_unreadable_hint">Estas pastas não puderam ser lidas, então seus arquivos não foram contados. Android/data e Android/obb precisam de Shizuku ou root (veja Início); pastas do sistema precisam de root.</string>
+    <string name="adult_check">Verificar conteúdo adulto</string>
+    <string name="nsfw_porn">Pornô</string>
+    <string name="nsfw_hentai">Hentai</string>
+    <string name="nsfw_sexy">Sexy</string>
+    <string name="nsfw_drawings">Desenho</string>
+    <string name="nsfw_neutral">Neutro</string>
     <plurals name="delete_confirm">
         <item quantity="one">Excluir %d item?</item>
         <item quantity="many">Excluir %d itens?</item>

@@ -540,6 +540,17 @@
     <string name="an_extracted_match">يطابق %1$d من %2$d ملف</string>
     <string name="adult_drawn">تضمين المحتوى المرسوم للبالغين (هنتاي)</string>
     <string name="adult_drawn_summary">متوقف افتراضيًا: قد تحصل القصص المصورة والمانغا العادية على درجات عالية</string>
+    <string name="an_all_files">كل الملفات</string>
+    <string name="an_unreadable">غير مقروءة</string>
+    <string name="an_all_capped">يتم عرض أول %d ملف</string>
+    <string name="an_unreadable_none">تمت قراءة كل المجلدات.</string>
+    <string name="an_unreadable_hint">تعذّرت قراءة هذه المجلدات، لذا لم تُحتسب ملفاتها. يحتاج Android/data وAndroid/obb إلى Shizuku أو الروت (راجع الرئيسية)، وتحتاج مجلدات النظام إلى الروت.</string>
+    <string name="adult_check">فحص المحتوى المخصص للبالغين</string>
+    <string name="nsfw_porn">إباحي</string>
+    <string name="nsfw_hentai">هنتاي</string>
+    <string name="nsfw_sexy">مثير</string>
+    <string name="nsfw_drawings">رسم</string>
+    <string name="nsfw_neutral">عادي</string>
     <plurals name="delete_confirm">
         <item quantity="zero">حذف %d عنصر؟</item>
         <item quantity="one">حذف عنصر واحد (%d)؟</item>

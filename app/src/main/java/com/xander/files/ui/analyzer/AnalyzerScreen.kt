@@ -14,6 +14,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.map
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
@@ -75,8 +81,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 enum class AnalyzerTab(val label: Int) {
-    OVERVIEW(R.string.an_overview), LARGE(R.string.an_large_files), FOLDERS(R.string.an_folders), DUPLICATES(R.string.an_duplicates),
-    JUNK(R.string.an_junk), EMPTY(R.string.an_empty_folders), APKS(R.string.an_old_apks), RECENT(R.string.an_recent),
+    OVERVIEW(R.string.an_overview), ALL(R.string.an_all_files), LARGE(R.string.an_large_files), FOLDERS(R.string.an_folders), DUPLICATES(R.string.an_duplicates),
+    JUNK(R.string.an_junk), EMPTY(R.string.an_empty_folders), APKS(R.string.an_old_apks), RECENT(R.string.an_recent), UNREADABLE(R.string.an_unreadable),
 }
 
 @HiltViewModel
@@ -86,6 +92,7 @@ class AnalyzerViewModel @Inject constructor(
     private val transfers: TransferManager,
     private val settings: SettingsRepository,
 ) : ViewModel() {
+    val rootMode = settings.settings.map { it.rootMode }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val result = MutableStateFlow(analyzer.last)
     val progress = analyzer.progress
     val running = MutableStateFlow(false)
@@ -159,6 +166,11 @@ fun AnalyzerScreen(onBack: () -> Unit, onOpenFolder: (FsPath) -> Unit, vm: Analy
         Column(Modifier.padding(pad).fillMaxSize()) {
             Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 volumes.forEach { v -> FilterChip(root == v.root, { vm.setRoot(v.root) }, label = { Text(v.label) }) }
+                // Whole device (/system, /data, …) needs root.
+                if (vm.rootMode.collectAsStateWithLifecycle().value) {
+                    val dev = FsPath(FsPath.SCHEME_ROOT, "", "/")
+                    FilterChip(root == dev, { vm.setRoot(dev) }, label = { Text(stringResource(R.string.root_folder)) })
+                }
             }
             if (running) {
                 LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 8.dp))
@@ -175,6 +187,8 @@ fun AnalyzerScreen(onBack: () -> Unit, onOpenFolder: (FsPath) -> Unit, vm: Analy
             }
             when (tab) {
                 AnalyzerTab.OVERVIEW -> Overview(res)
+                AnalyzerTab.ALL -> AllFiles(res, sel, vm, onOpenFolder)
+                AnalyzerTab.UNREADABLE -> Unreadable(res, onOpenFolder)
                 AnalyzerTab.LARGE -> FileList(res.largest, sel, vm, onOpenFolder)
                 AnalyzerTab.FOLDERS -> FolderTree(res, vm, onOpenFolder)
                 AnalyzerTab.RECENT -> FileList(res.recent, sel, vm, onOpenFolder)
@@ -254,6 +268,51 @@ private fun FileList(items: List<FileEntry>, sel: Set<FsPath>, vm: AnalyzerViewM
                     }
                     Text(Format.size(e.size), style = MaterialTheme.typography.bodySmall)
                 }
+            }
+        }
+    }
+}
+
+private enum class AllSort { SIZE, NAME, DATE, TYPE }
+
+@Composable
+private fun AllFiles(r: AnalysisResult, sel: Set<FsPath>, vm: AnalyzerViewModel, onOpenFolder: (FsPath) -> Unit) {
+    var query by remember { mutableStateOf("") }
+    var sort by remember { mutableStateOf(AllSort.SIZE) }
+    var cat by remember { mutableStateOf<FileCategory?>(null) }
+    val cats = remember(r) { r.allFiles.map { it.category }.distinct().sortedBy { it.ordinal } }
+    val items = remember(r, query, sort, cat) {
+        val q = query.trim().lowercase()
+        r.allFiles.asSequence()
+            .filter { cat == null || it.category == cat }
+            .filter { q.isEmpty() || it.name.lowercase().contains(q) || it.path.path.lowercase().contains(q) }
+            .let { s -> when (sort) {
+                AllSort.SIZE -> s.sortedByDescending { it.size }; AllSort.NAME -> s.sortedBy { it.name.lowercase() }
+                AllSort.DATE -> s.sortedByDescending { it.lastModified }; AllSort.TYPE -> s.sortedWith(compareBy({ it.extension }, { it.name.lowercase() }))
+            } }.toList()
+    }
+    Column {
+        OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), singleLine = true,
+            placeholder = { Text(stringResource(R.string.search)) })
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            AllSort.entries.forEach { s -> FilterChip(sort == s, { sort = s }, label = { Text(stringResource(when (s) { AllSort.SIZE -> R.string.sort_size; AllSort.NAME -> R.string.sort_name; AllSort.DATE -> R.string.sort_date; AllSort.TYPE -> R.string.sort_type })) }) }
+            cats.forEach { c -> FilterChip(cat == c, { cat = if (cat == c) null else c }, label = { Text(c.name.lowercase().replaceFirstChar { it.uppercase() }) }) }
+        }
+        if (r.allFiles.size >= com.xander.files.data.analyzer.StorageAnalyzer.MAX_ALL)
+            Text(stringResource(R.string.an_all_capped, r.allFiles.size), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 16.dp))
+        FileList(items, sel, vm, onOpenFolder)
+    }
+}
+
+@Composable
+private fun Unreadable(r: AnalysisResult, onOpenFolder: (FsPath) -> Unit) {
+    if (r.unreadable.isEmpty()) { Text(stringResource(R.string.an_unreadable_none), Modifier.padding(24.dp)); return }
+    LazyColumn(Modifier.fillMaxSize()) {
+        item { Text(stringResource(R.string.an_unreadable_hint), Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall) }
+        items(r.unreadable, key = { it.first.toString() }) { (p, why) ->
+            Column(Modifier.fillMaxWidth().clickable { onOpenFolder(p) }.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Text(p.path, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.MiddleEllipsis)
+                Text(why, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
             }
         }
     }

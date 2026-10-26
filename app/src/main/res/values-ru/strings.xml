@@ -540,6 +540,17 @@
     <string name="an_extracted_match">Совпадает файлов: %1$d из %2$d</string>
     <string name="adult_drawn">Включать рисованный контент 18+ (хентай)</string>
     <string name="adult_drawn_summary">По умолчанию выключено: обычные комиксы и манга могут получать высокий балл</string>
+    <string name="an_all_files">Все файлы</string>
+    <string name="an_unreadable">Недоступные</string>
+    <string name="an_all_capped">Показаны первые %d файлов</string>
+    <string name="an_unreadable_none">Все папки удалось прочитать.</string>
+    <string name="an_unreadable_hint">Эти папки не удалось прочитать, их файлы не учтены. Для Android/data и Android/obb нужен Shizuku или root (см. Главную); для системных папок нужен root.</string>
+    <string name="adult_check">Проверить на контент 18+</string>
+    <string name="nsfw_porn">Порно</string>
+    <string name="nsfw_hentai">Хентай</string>
+    <string name="nsfw_sexy">Откровенное</string>
+    <string name="nsfw_drawings">Рисунок</string>
+    <string name="nsfw_neutral">Обычное</string>
     <plurals name="delete_confirm">
         <item quantity="one">Удалить %d элемент?</item>
         <item quantity="few">Удалить %d элемента?</item>

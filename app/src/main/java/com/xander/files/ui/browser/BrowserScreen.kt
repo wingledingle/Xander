@@ -160,6 +160,8 @@ fun BrowserPane(
     val settings by vm.viewSettings.collectAsStateWithLifecycle()
     LaunchedEffect(state.title, state.path) { onTitle(state.title.ifEmpty { state.path.name.ifEmpty { "/" } }) }
     val clips by vm.clipItems.collectAsStateWithLifecycle()
+    val nsfwCheck by vm.nsfwCheck.collectAsStateWithLifecycle()
+    nsfwCheck?.let { (name, sc) -> com.xander.files.ui.nsfw.NsfwCheckDialog(name, sc) { vm.nsfwCheck.value = null } }
     val context = LocalContext.current
     var dialog by remember { mutableStateOf<Dialog?>(null) }
     var menu by remember { mutableStateOf(false) }

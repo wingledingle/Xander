@@ -94,7 +94,8 @@ class LibraryViewModel @Inject constructor(
     private val opener: FileOpener,
     private val bookmarks: BookmarkRepository,
     private val launcher: com.xander.files.data.open.ViewerLauncher,
-    settings: SettingsRepository,
+    private val nsfw: com.xander.files.data.nsfw.NsfwRepository,
+    private val settingsRepo: SettingsRepository,
 ) : ViewModel() {
     val kind: LibraryKind = LibraryKind.valueOf(saved.get<String>("kind") ?: LibraryKind.IMAGES.name)
     val items = MutableStateFlow<List<FileEntry>>(emptyList())
@@ -102,15 +103,21 @@ class LibraryViewModel @Inject constructor(
     val selection = MutableStateFlow<Set<FsPath>>(emptySet())
     val sort = MutableStateFlow(if (kind == LibraryKind.LARGE) LibSort.SIZE else LibSort.DATE)
     val grid = MutableStateFlow(kind == LibraryKind.IMAGES || kind == LibraryKind.VIDEOS)
-    val settings = settings.settings.stateIn(viewModelScope, SharingStarted.Eagerly, com.xander.files.data.settings.AppSettings())
+    val settings = settingsRepo.settings.stateIn(viewModelScope, SharingStarted.Eagerly, com.xander.files.data.settings.AppSettings())
     val events = Channel<Any>(Channel.BUFFERED)
     private var raw: List<FileEntry> = emptyList()
 
     init { load() }
 
+    /** Adult list only: per-file class probabilities, shown under each row. */
+    val scores = MutableStateFlow<Map<String, com.xander.files.data.db.NsfwScoreEntity>>(emptyMap())
+
+    fun setAdultThreshold(pct: Int) = viewModelScope.launch { settingsRepo.update { it.copy(nsfwThreshold = pct) }; load() }
+
     fun load() = viewModelScope.launch {
         loading.value = true
         raw = repo.files(kind).filter { java.io.File(it.path.path).exists() }
+        if (kind == LibraryKind.ADULT) scores.value = nsfw.scoresFor(raw.map { it.path.path })
         apply(); loading.value = false
     }
 
@@ -213,7 +220,16 @@ fun LibraryScreen(onBack: () -> Unit, onOpenFolder: (FsPath) -> Unit, vm: Librar
             }
         )
     }) { pad ->
-        PullToRefreshBox(isRefreshing = loading && items.isNotEmpty(), onRefresh = vm::refresh, modifier = Modifier.padding(pad).fillMaxSize()) {
+        val scores by vm.scores.collectAsStateWithLifecycle()
+    Column(Modifier.padding(pad).fillMaxSize()) {
+    if (vm.kind == LibraryKind.ADULT) {
+        var t by remember(settings.nsfwThreshold) { mutableStateOf(settings.nsfwThreshold.toFloat()) }
+        Column(Modifier.padding(horizontal = 16.dp)) {
+            Text(stringResource(R.string.adult_threshold, t.toInt()), style = MaterialTheme.typography.labelLarge)
+            androidx.compose.material3.Slider(t, { t = it }, valueRange = 30f..95f, onValueChangeFinished = { vm.setAdultThreshold(t.toInt()) })
+        }
+    }
+    PullToRefreshBox(isRefreshing = loading && items.isNotEmpty(), onRefresh = vm::refresh, modifier = Modifier.fillMaxSize()) {
             when {
                 loading && items.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 items.isEmpty() -> EmptyState(Icons.Filled.SearchOff, stringResource(R.string.library_empty))
@@ -225,10 +241,15 @@ fun LibraryScreen(onBack: () -> Unit, onOpenFolder: (FsPath) -> Unit, vm: Librar
                 else -> LazyColumn(Modifier.fillMaxSize()) {
                     items(items, key = { it.path.toString() }) { e ->
                         FileListRow(e, e.path in sel, settings.showExtensions, settings.thumbnails, onClick = { vm.open(e) }, onLongClick = { vm.toggle(e) })
+                        scores[e.path.path]?.let { sc ->
+                            Text(com.xander.files.ui.nsfw.scoreLine(sc.porn, sc.hentai, sc.sexy, sc.drawings), style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 72.dp, bottom = 6.dp))
+                        }
                     }
                 }
             }
         }
+    }
     }
     if (deleting) DeleteDialog(vm.selected(), settings.recycleBinEnabled, onDismiss = { deleting = false }) { deleting = false; vm.delete(it) }
     props?.let { PropertiesDialog(it, onDismiss = { props = null }) }

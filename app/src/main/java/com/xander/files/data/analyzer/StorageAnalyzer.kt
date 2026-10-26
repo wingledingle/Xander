@@ -50,6 +50,10 @@ data class AnalysisResult(
     val junk: List<JunkItem>,
     val oldApks: List<OldApk>,
     val archiveCopies: List<ArchiveCopy> = emptyList(),
+    /** Every file found (capped at [StorageAnalyzer.MAX_ALL] to bound memory). */
+    val allFiles: List<FileEntry> = emptyList(),
+    /** Folders that could not be listed (permission, restricted Android/data, I/O errors). */
+    val unreadable: List<Pair<FsPath, String>> = emptyList(),
     val finishedAt: Long = System.currentTimeMillis(),
 ) {
     fun largestFolders(n: Int = 100) = folderTree.values.filter { it.path != root }.sortedByDescending { it.size }.take(n)
@@ -64,6 +68,8 @@ class StorageAnalyzer @Inject constructor(
     private val registry: FileSystemRegistry,
     private val volumes: StorageVolumes,
 ) {
+    companion object { const val MAX_ALL = 500_000 }
+
     private val _progress = MutableStateFlow<AnalyzerProgress?>(null)
     val progress: StateFlow<AnalyzerProgress?> = _progress
     @Volatile var last: AnalysisResult? = null
@@ -88,7 +94,10 @@ class StorageAnalyzer @Inject constructor(
         // Iterative post-order walk so folder sizes roll up to parents.
         data class Frame(val dir: FsPath, val children: List<FileEntry>)
         val stack = ArrayDeque<Frame>()
-        fun listOf(p: FsPath): List<FileEntry> = runCatching { kotlinx.coroutines.runBlocking { provider.list(p) } }.getOrDefault(emptyList())
+        val all = ArrayList<FileEntry>()
+        val unreadable = ArrayList<Pair<FsPath, String>>()
+        fun listOf(p: FsPath): List<FileEntry> = try { kotlinx.coroutines.runBlocking { provider.list(p) } }
+            catch (e: Exception) { unreadable += p to (com.xander.files.domain.fs.FsException.wrap(e).message ?: "Cannot read"); emptyList() }
         stack.add(Frame(root, listOf(root)))
         val visitedChildren = HashSet<FsPath>()
         while (stack.isNotEmpty()) {
@@ -103,6 +112,7 @@ class StorageAnalyzer @Inject constructor(
                         subdirs += c.path
                     } else {
                         files++; dirFiles++; dirSize += c.size; total += c.size
+                        if (all.size < MAX_ALL) all += c
                         val cat = c.category
                         cats.getOrPut(cat) { LongArray(2) }.let { it[0]++; it[1] += c.size }
                         largest.add(c); if (largest.size > 200) largest.poll()
@@ -142,6 +152,8 @@ class StorageAnalyzer @Inject constructor(
             emptyFolders = empty.sortedBy { it.path.path },
             junk = junk.distinctBy { it.entry.path }.sortedByDescending { it.size },
             oldApks = oldApks(apks),
+            allFiles = all,
+            unreadable = unreadable,
             archiveCopies = if (root.isLocal) runCatching { ArchiveCopyFinder.find(bySize.values.flatten(), sizes) { i, n, name -> _progress.value = AnalyzerProgress("archives", i, n.toLong(), name) } }.getOrDefault(emptyList()) else emptyList(),
         )
         _progress.value = null

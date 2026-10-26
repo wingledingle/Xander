@@ -540,6 +540,17 @@
     <string name="an_extracted_match">%1$d fichiers sur %2$d identiques</string>
     <string name="adult_drawn">Inclure le contenu adulte dessiné (hentai)</string>
     <string name="adult_drawn_summary">Désactivé par défaut : les BD et mangas ordinaires peuvent obtenir un score élevé</string>
+    <string name="an_all_files">Tous les fichiers</string>
+    <string name="an_unreadable">Illisibles</string>
+    <string name="an_all_capped">Affichage des %d premiers fichiers</string>
+    <string name="an_unreadable_none">Tous les dossiers ont pu être lus.</string>
+    <string name="an_unreadable_hint">Ces dossiers n’ont pas pu être lus, leurs fichiers ne sont donc pas comptés. Android/data et Android/obb nécessitent Shizuku ou le root (voir Accueil) ; les dossiers système nécessitent le root.</string>
+    <string name="adult_check">Vérifier le contenu pour adultes</string>
+    <string name="nsfw_porn">Porno</string>
+    <string name="nsfw_hentai">Hentai</string>
+    <string name="nsfw_sexy">Sexy</string>
+    <string name="nsfw_drawings">Dessin</string>
+    <string name="nsfw_neutral">Neutre</string>
     <plurals name="delete_confirm">
         <item quantity="one">Supprimer %d élément ?</item>
         <item quantity="many">Supprimer %d éléments ?</item>

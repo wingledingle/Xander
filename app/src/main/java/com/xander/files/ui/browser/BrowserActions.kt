@@ -81,6 +81,8 @@ fun entryActions(
         if (writable) add(SheetAction(Icons.Filled.Delete, stringResource(R.string.delete)) { vm.requestDelete(entries) })
         if (entries.any { !it.isDirectory }) add(SheetAction(Icons.Filled.Share, stringResource(R.string.share)) { vm.share(entries) })
         if (entries.any { !it.isDirectory }) add(SheetAction(Icons.Filled.Bluetooth, stringResource(R.string.send_bluetooth)) { vm.sendBluetooth(entries) })
+        if (single != null && single.category in setOf(com.xander.files.domain.fs.FileCategory.IMAGE, com.xander.files.domain.fs.FileCategory.VIDEO))
+            add(SheetAction(Icons.Filled.VisibilityOff, stringResource(R.string.adult_check)) { vm.checkNsfw(single) })
         if (onShareLink != null) add(SheetAction(Icons.Filled.Link, stringResource(R.string.share_link)) { onShareLink() })
         if (single != null && !single.isDirectory) add(SheetAction(Icons.AutoMirrored.Filled.OpenInNew, stringResource(R.string.open_with)) { vm.openWith(single) })
         if (single != null && !single.isDirectory && single.extension == "txt") add(SheetAction(Icons.AutoMirrored.Filled.MenuBook, stringResource(R.string.read_as_book)) { vm.openAs(single, com.xander.files.data.open.ViewerKind.BOOK) })
