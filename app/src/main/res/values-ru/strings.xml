@@ -551,6 +551,13 @@
     <string name="nsfw_sexy">Откровенное</string>
     <string name="nsfw_drawings">Рисунок</string>
     <string name="nsfw_neutral">Обычное</string>
+    <string name="an_failed">Ошибка сканирования: %s</string>
+    <string name="an_used_breakdown">Занято: %s</string>
+    <string name="an_part_files">Найдено файлов (%d)</string>
+    <string name="an_part_apps">Приложения и их данные</string>
+    <string name="an_part_apps_unknown">Приложения и их данные: разрешите доступ к статистике использования</string>
+    <string name="an_part_rest">Система, закрытые папки и прочее</string>
+    <string name="an_blocked">Папок заблокировано и не учтено: %d (например, Android/data). Откройте доступ и пересканируйте:</string>
     <plurals name="delete_confirm">
         <item quantity="one">Удалить %d элемент?</item>
         <item quantity="few">Удалить %d элемента?</item>

@@ -551,6 +551,13 @@
     <string name="nsfw_sexy">Sexy</string>
     <string name="nsfw_drawings">Disegno</string>
     <string name="nsfw_neutral">Neutro</string>
+    <string name="an_failed">Scansione non riuscita: %s</string>
+    <string name="an_used_breakdown">Spazio usato: %s</string>
+    <string name="an_part_files">File trovati (%d)</string>
+    <string name="an_part_apps">App e dati delle app</string>
+    <string name="an_part_apps_unknown">App e dati delle app: consenti l’accesso all’utilizzo per misurarli</string>
+    <string name="an_part_rest">Sistema, cartelle bloccate e altro</string>
+    <string name="an_blocked">%d cartelle erano bloccate e non conteggiate (es. Android/data). Sbloccale e ripeti la scansione:</string>
     <plurals name="delete_confirm">
         <item quantity="one">Eliminare %d elemento?</item>
         <item quantity="many">Eliminare %d elementi?</item>

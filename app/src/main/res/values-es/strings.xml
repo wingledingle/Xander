@@ -551,6 +551,13 @@
     <string name="nsfw_sexy">Sexy</string>
     <string name="nsfw_drawings">Dibujo</string>
     <string name="nsfw_neutral">Neutral</string>
+    <string name="an_failed">Error en el análisis: %s</string>
+    <string name="an_used_breakdown">Espacio usado: %s</string>
+    <string name="an_part_files">Archivos encontrados (%d)</string>
+    <string name="an_part_apps">Apps y datos de apps</string>
+    <string name="an_part_apps_unknown">Apps y datos de apps: permite el acceso de uso para medirlos</string>
+    <string name="an_part_rest">Sistema, carpetas bloqueadas y otros</string>
+    <string name="an_blocked">%d carpetas estaban bloqueadas y no se contaron (p. ej. Android/data). Desbloquéalas y vuelve a analizar:</string>
     <plurals name="delete_confirm">
         <item quantity="one">¿Eliminar %d elemento?</item>
         <item quantity="many">¿Eliminar %d elementos?</item>
