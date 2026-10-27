@@ -524,7 +524,7 @@
     <string name="adult_detect">Bilder und Videos für Erwachsene erkennen</string>
     <string name="adult_detect_summary">Läuft mit einem Modell auf dem Gerät (kein Upload) und listet Treffer unter „Erwachsene“ auf dem Startbildschirm</string>
     <string name="adult_threshold">Empfindlichkeit: %d%%</string>
-    <string name="adult_threshold_hint">Niedriger findet mehr, markiert aber mehr harmlose Fotos. Bei 70 % wurde keines unserer harmlosen Testfotos markiert.</string>
+    <string name="adult_threshold_hint">Niedriger findet mehr, markiert aber mehr harmlose Fotos.</string>
     <string name="adult_scanning">Wird gescannt… %1$d von %2$d</string>
     <string name="adult_scanned">%d Dateien geprüft</string>
     <string name="adult_videos">Videos einbeziehen</string>

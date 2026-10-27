@@ -192,14 +192,26 @@ fun SettingsScreen(onBack: () -> Unit, onPremium: () -> Unit, onLicenses: () -> 
                     Text(stringResource(R.string.adult_threshold, s.nsfwThreshold))
                     Slider(s.nsfwThreshold.toFloat(), { v -> vm.update { it.copy(nsfwThreshold = v.toInt()) } }, valueRange = com.xander.files.data.nsfw.NSFW_THRESHOLD_MIN.toFloat()..95f)
                     Text(stringResource(R.string.adult_threshold_hint), style = MaterialTheme.typography.bodySmall)
+                    val waiting = running == null && work.any { it.state == androidx.work.WorkInfo.State.ENQUEUED }
                     Text(running?.progress?.let { p -> stringResource(R.string.adult_scanning, p.getInt("done", 0), p.getInt("total", 0)) }
-                        ?: stringResource(R.string.adult_scanned, scanned), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
+                        ?: (stringResource(R.string.adult_scanned, scanned) + if (waiting) " · " + stringResource(R.string.adult_waiting) else ""),
+                        style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
                 }
+                Toggle(stringResource(R.string.adult_nude), s.nsfwNude, stringResource(R.string.adult_nude_summary)) { v -> vm.update { it.copy(nsfwNude = v) } }
                 Toggle(stringResource(R.string.adult_drawn), s.nsfwDrawn, stringResource(R.string.adult_drawn_summary)) { v -> vm.update { it.copy(nsfwDrawn = v) } }
                 Toggle(stringResource(R.string.adult_videos), s.nsfwVideos) { v -> vm.update { it.copy(nsfwVideos = v) } }
                 Toggle(stringResource(R.string.adult_charging), s.nsfwChargingOnly) { v -> vm.update { it.copy(nsfwChargingOnly = v) } }
                 Item(stringResource(R.string.adult_rescan), stringResource(R.string.adult_rescan_summary)) { vm.nsfwScan(true) }
                 Item(stringResource(R.string.adult_clear), "") { vm.nsfwClear() }
+                var scanLog by remember { mutableStateOf<String?>(null) }
+                Item(stringResource(R.string.adult_log), stringResource(R.string.adult_log_summary)) {
+                    scope.launch { scanLog = withContext(Dispatchers.IO) { com.xander.files.modules.ModuleLog.file(ctx, "adult")?.takeIf { it.exists() }?.readLines()?.takeLast(40)?.joinToString("\n") } ?: "" }
+                }
+                scanLog?.let { text ->
+                    AlertDialog(onDismissRequest = { scanLog = null }, title = { Text(stringResource(R.string.adult_log)) },
+                        text = { Text(text.ifBlank { stringResource(R.string.adult_log_empty) }, style = MaterialTheme.typography.bodySmall, modifier = Modifier.verticalScroll(rememberScrollState())) },
+                        confirmButton = { TextButton(onClick = { scanLog = null }) { Text(stringResource(R.string.ok)) } })
+                }
             }
 
             Section(R.string.security)

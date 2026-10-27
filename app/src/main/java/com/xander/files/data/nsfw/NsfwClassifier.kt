@@ -43,7 +43,7 @@ class NsfwClassifier @Inject constructor(@ApplicationContext private val context
 
         /** Same as the model's predict.py: nearest-neighbour resize to 224×224, RGB / 255, NHWC. */
         fun fill(buf: ByteBuffer, src: Bitmap) {
-            val b0 = if (src.config == Bitmap.Config.HARDWARE) src.copy(Bitmap.Config.ARGB_8888, false) else src
+            val b0 = if (android.os.Build.VERSION.SDK_INT >= 26 && src.config == Bitmap.Config.HARDWARE) src.copy(Bitmap.Config.ARGB_8888, false) else src
             val b = if (b0.width == SIZE && b0.height == SIZE) b0 else Bitmap.createScaledBitmap(b0, SIZE, SIZE, false)
             val px = IntArray(SIZE * SIZE); b.getPixels(px, 0, SIZE, 0, 0, SIZE, SIZE)
             buf.rewind()

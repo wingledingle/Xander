@@ -524,7 +524,7 @@
     <string name="adult_detect">Распознавать изображения и видео 18+</string>
     <string name="adult_detect_summary">Работает на устройстве (ничего не загружается) и показывает найденное в разделе «18+» на главном экране</string>
     <string name="adult_threshold">Порог чувствительности: %d%%</string>
-    <string name="adult_threshold_hint">Ниже — больше находок, но и больше ложных срабатываний. При 70% ни одно из наших безобидных тестовых фото не было отмечено.</string>
+    <string name="adult_threshold_hint">Ниже — больше находок, но и больше ложных срабатываний.</string>
     <string name="adult_scanning">Сканирование… %1$d из %2$d</string>
     <string name="adult_scanned">Проверено файлов: %d</string>
     <string name="adult_videos">Включая видео</string>

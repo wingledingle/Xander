@@ -43,7 +43,7 @@ class NsfwRepository @Inject constructor(
 ) {
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observeFlagged(): Flow<CountSize> = settings.settings.flatMapLatest { s ->
-        if (s.nsfwEnabled) dao.observeFlagged(s.nsfwThreshold / 100f, s.nsfwDrawn) else flowOf(CountSize(0, 0))
+        if (s.nsfwEnabled) dao.observeFlagged(s.nsfwThreshold / 100f, s.nsfwDrawn, s.nsfwNude) else flowOf(CountSize(0, 0))
     }
 
     fun observeScanned() = dao.observeScanned()
@@ -59,11 +59,13 @@ class NsfwRepository @Inject constructor(
         r?.also { dao.upsert(NsfwScoreEntity(file.path, file.length(), file.lastModified(), it.drawings, it.hentai, it.neutral, it.porn, it.sexy)) }
     }
 
-    fun isAdult(e: NsfwScoreEntity, thresholdPct: Int, drawn: Boolean) = e.porn * 100 >= thresholdPct || (drawn && e.hentai * 100 >= thresholdPct)
+    // The model files nude photos under "sexy" and explicit sex under "porn"; counting only porn missed nudes.
+    fun isAdult(e: NsfwScoreEntity, thresholdPct: Int, drawn: Boolean, nude: Boolean = true) =
+        (e.porn + if (nude) e.sexy else 0f) * 100 >= thresholdPct || (drawn && e.hentai * 100 >= thresholdPct)
 
     suspend fun flaggedPaths(): List<String> {
         val s = settings.settings.first()
-        return if (s.nsfwEnabled) dao.flagged(s.nsfwThreshold / 100f, s.nsfwDrawn) else emptyList()
+        return if (s.nsfwEnabled) dao.flagged(s.nsfwThreshold / 100f, s.nsfwDrawn, s.nsfwNude) else emptyList()
     }
 
     suspend fun scan(rescanAll: Boolean = false) {
@@ -148,7 +150,8 @@ class NsfwScanWorker @AssistedInject constructor(
             dao.upsert(NsfwScoreEntity(m.path, m.size, m.modified, r.drawings, r.hentai, r.neutral, r.porn, r.sexy))
             scored++
         }
-        log("scan done: $scored scored, $failed errors, ${media.size - scored - failed} skipped (unchanged, unreadable or too small)")
+        val flagged = dao.flagged(s.nsfwThreshold / 100f, s.nsfwDrawn, s.nsfwNude).size
+        log("scan done: $scored scored, $failed errors, ${media.size - scored - failed} skipped (unchanged, unreadable or too small); $flagged flagged at ${s.nsfwThreshold}%")
         return Result.success()
     }
 
@@ -186,7 +189,7 @@ class NsfwScorer @Inject constructor(private val classifier: NsfwClassifier) {
                 try {
                     if (NsfwClassifier.isFlat(b)) continue
                     val sc = classifier.classify(b)
-                    if (best == null || maxOf(sc.porn, sc.hentai) > maxOf(best.porn, best.hentai)) best = sc
+                    if (best == null || maxOf(sc.porn + sc.sexy, sc.hentai) > maxOf(best.porn + best.sexy, best.hentai)) best = sc
                 } finally { b.recycle() }
                 if (best != null && best.porn > 0.95f) break
             }

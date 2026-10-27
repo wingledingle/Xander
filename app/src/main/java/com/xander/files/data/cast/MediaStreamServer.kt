@@ -73,7 +73,7 @@ class MediaStreamServer @Inject constructor(private val registry: FileSystemRegi
     companion object {
         private val timing = Regex("(\\d{1,2}:\\d{2}:\\d{2}),(\\d{3})")
         fun srtToVtt(srt: String): String {
-            val body = srt.removePrefix("﻿").replace("\r\n", "\n")
+            val body = srt.removePrefix("\uFEFF").replace("\r\n", "\n")
             if (body.trimStart().startsWith("WEBVTT")) return body
             return "WEBVTT\n\n" + body.replace(timing, "$1.$2")
         }

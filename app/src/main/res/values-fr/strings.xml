@@ -524,7 +524,7 @@
     <string name="adult_detect">Détecter les images et vidéos pour adultes</string>
     <string name="adult_detect_summary">Utilise un modèle sur l’appareil (aucun envoi) et liste les résultats sous Adulte sur l’écran d’accueil</string>
     <string name="adult_threshold">Seuil de sensibilité : %d%%</string>
-    <string name="adult_threshold_hint">Plus bas trouve davantage mais signale plus de photos anodines. À 70 %, aucune de nos photos de test anodines n’a été signalée.</string>
+    <string name="adult_threshold_hint">Plus bas trouve davantage mais signale plus de photos anodines.</string>
     <string name="adult_scanning">Analyse… %1$d sur %2$d</string>
     <string name="adult_scanned">%d fichiers vérifiés</string>
     <string name="adult_videos">Inclure les vidéos</string>

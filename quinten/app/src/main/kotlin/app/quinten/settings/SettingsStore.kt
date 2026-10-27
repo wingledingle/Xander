@@ -20,8 +20,9 @@ import kotlinx.coroutines.flow.map
 
 // A corrupt settings file (e.g. power loss while writing) is replaced with defaults instead of
 // crashing every launch.
+// Named apart from Xander's "settings": two DataStores on one file in one process is an error.
 private val Context.dataStore by preferencesDataStore(
-    "settings",
+    "quinten_settings",
     corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
 )
 

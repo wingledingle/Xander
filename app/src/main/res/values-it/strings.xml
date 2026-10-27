@@ -524,7 +524,7 @@
     <string name="adult_detect">Rileva immagini e video per adulti</string>
     <string name="adult_detect_summary">Usa un modello sul dispositivo (nessun caricamento) ed elenca i risultati in Adulti nella schermata Home</string>
     <string name="adult_threshold">Soglia di sensibilità: %d%%</string>
-    <string name="adult_threshold_hint">Più bassa trova di più ma segnala più foto innocue. Al 70% nessuna delle nostre foto di prova innocue è stata segnalata.</string>
+    <string name="adult_threshold_hint">Più bassa trova di più ma segnala più foto innocue.</string>
     <string name="adult_scanning">Scansione… %1$d di %2$d</string>
     <string name="adult_scanned">%d file controllati</string>
     <string name="adult_videos">Includi video</string>

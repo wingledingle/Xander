@@ -56,6 +56,8 @@ data class AppSettings(
     val nsfwEnabled: Boolean = false,
     val nsfwThreshold: Int = 70,
     val nsfwDrawn: Boolean = false,
+    /** Count the model's "sexy" class (nude photos) towards the score, not only "porn" (explicit sex). */
+    val nsfwNude: Boolean = true,
     val nsfwVideos: Boolean = true,
     val nsfwChargingOnly: Boolean = false,
 )
@@ -102,6 +104,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         val nsfw = booleanPreferencesKey("nsfw")
         val nsfwThreshold = intPreferencesKey("nsfw_threshold2")
         val nsfwDrawn = booleanPreferencesKey("nsfw_drawn")
+        val nsfwNude = booleanPreferencesKey("nsfw_nude")
         val nsfwVideos = booleanPreferencesKey("nsfw_videos")
         val nsfwCharging = booleanPreferencesKey("nsfw_charging")
     }
@@ -146,6 +149,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         nsfwEnabled = p[K.nsfw] ?: false,
         nsfwThreshold = p[K.nsfwThreshold] ?: 70,
         nsfwDrawn = p[K.nsfwDrawn] ?: false,
+        nsfwNude = p[K.nsfwNude] ?: true,
         nsfwVideos = p[K.nsfwVideos] ?: true,
         nsfwChargingOnly = p[K.nsfwCharging] ?: false,
     )
@@ -164,7 +168,7 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             p[K.builtIn] = n.builtInViewers; p[K.srvPort] = n.serverPort; p[K.httpPort] = n.httpServerPort
             p[K.srvAnon] = n.serverAnonymous; p[K.srvUser] = n.serverUser; p[K.srvPass] = n.serverPassword
             p[K.srvRoot] = n.serverRoot; p[K.srvCharset] = n.serverCharset; p[K.srvRo] = n.serverReadOnly
-            p[K.nsfw] = n.nsfwEnabled; p[K.nsfwThreshold] = n.nsfwThreshold; p[K.nsfwDrawn] = n.nsfwDrawn; p[K.nsfwVideos] = n.nsfwVideos; p[K.nsfwCharging] = n.nsfwChargingOnly
+            p[K.nsfw] = n.nsfwEnabled; p[K.nsfwThreshold] = n.nsfwThreshold; p[K.nsfwDrawn] = n.nsfwDrawn; p[K.nsfwNude] = n.nsfwNude; p[K.nsfwVideos] = n.nsfwVideos; p[K.nsfwCharging] = n.nsfwChargingOnly
         }
     }
 }

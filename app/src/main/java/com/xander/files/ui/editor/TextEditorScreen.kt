@@ -161,7 +161,7 @@ fun TextEditorScreen(onBack: () -> Unit, vm: TextEditorViewModel = hiltViewModel
     val dirty by vm.dirty.collectAsStateWithLifecycle()
     val saving by vm.saving.collectAsStateWithLifecycle()
     val ctx = LocalContext.current
-    val dark = isSystemInDarkTheme() || MaterialTheme.colorScheme.background.toArgb().let { AColor.luminance(it) < 0.3f }
+    val dark = isSystemInDarkTheme() || MaterialTheme.colorScheme.background.toArgb().let { androidx.core.graphics.ColorUtils.calculateLuminance(it) < 0.3 }
     var editor by remember { mutableStateOf<CodeEditText?>(null) }
     var wrap by remember { mutableStateOf(false) }
     var lines by remember { mutableStateOf(true) }

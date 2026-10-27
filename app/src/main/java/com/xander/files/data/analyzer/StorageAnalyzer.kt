@@ -78,7 +78,7 @@ class StorageAnalyzer @Inject constructor(
     suspend fun analyze(root: FsPath): AnalysisResult = withContext(Dispatchers.IO) {
         val provider = registry.provider(root)
         val cats = HashMap<FileCategory, LongArray>()
-        val largest = PriorityQueue<FileEntry>(compareBy { it.size })
+        val largest = PriorityQueue<FileEntry>(11, compareBy { it.size }) // (Comparator) alone is Android 7+
         val recent = ArrayList<FileEntry>()
         val since = System.currentTimeMillis() - 7 * 86_400_000L
         val bySize = HashMap<Long, MutableList<FileEntry>>()

@@ -63,7 +63,8 @@ class XanderApp : Application(), SingletonImageLoader.Factory, Configuration.Pro
                 add(com.xander.files.data.thumbs.AppIconFetcher.Factory(this@XanderApp))
                 add(com.xander.files.data.thumbs.FullImageKeyer())
                 add(com.xander.files.data.thumbs.FullImageFetcher.Factory(registry))
-                add(coil3.gif.AnimatedImageDecoder.Factory())
+                // AnimatedImageDecoder uses ImageDecoder (Android 9+); older phones use the GIF-only decoder.
+                if (android.os.Build.VERSION.SDK_INT >= 28) add(coil3.gif.AnimatedImageDecoder.Factory()) else add(coil3.gif.GifDecoder.Factory())
             }
             .memoryCache { MemoryCache.Builder().maxSizePercent(context, 0.2).build() }
             .crossfade(true)
