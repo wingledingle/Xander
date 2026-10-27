@@ -1,0 +1,11 @@
+{
+  "name": "xander-web-modules",
+  "private": true,
+  "type": "module",
+  "description": "Web modules bundled into the Xander APK (assets/modules). No dependencies.",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "serve": "node serve.js",
+    "proof": "node proof.js"
+  }
+}

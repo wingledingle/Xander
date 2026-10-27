@@ -38,10 +38,14 @@ export function detectOnsets(data, sampleRate, { sensitivity = 0.5, minGap = 0.0
     for (let i = f * hop, end = i + hop; i < end; i++) e += data[i] * data[i];
     env[f] = Math.sqrt(e / hop);
   }
-  // Novelty = positive change in log energy; adaptive threshold = local mean + k·deviation.
+  // Smooth over ~20 ms, then novelty = rise in log energy over the last ~30 ms. Comparing against a window
+  // (not just the previous frame) ignores the wobble inside a decaying note that a frame-to-frame test sees.
+  const sm = new Float32Array(frames);
+  for (let f = 0; f < frames; f++) { let a = 0, n = 0; for (let j = Math.max(0, f - 3); j <= f; j++) { a += env[j]; n++; } sm[f] = a / n; }
+  const lg = sm.map((v) => Math.log10(v + 1e-4)), back = 6;
   const nov = new Float32Array(frames);
-  for (let f = 1; f < frames; f++) nov[f] = Math.max(0, Math.log10(env[f] + 1e-4) - Math.log10(env[f - 1] + 1e-4));
-  const win = 20, k = 2.5 - 2.2 * clamp(sensitivity, 0, 1), floor = 0.002 + 0.02 * (1 - sensitivity);
+  for (let f = 1; f < frames; f++) { let lo = lg[f - 1]; for (let j = Math.max(0, f - back); j < f; j++) lo = Math.min(lo, lg[j]); nov[f] = Math.max(0, lg[f] - lo); }
+  const win = 40, k = 2.5 - 2.2 * clamp(sensitivity, 0, 1), rise = 0.35 - 0.3 * clamp(sensitivity, 0, 1), floor = 0.002 + 0.02 * (1 - sensitivity);
   const gap = Math.max(1, Math.round((minGap * sampleRate) / hop));
   const hitsOut = [];
   let last = -gap;
@@ -49,8 +53,8 @@ export function detectOnsets(data, sampleRate, { sensitivity = 0.5, minGap = 0.0
     let sum = 0, sq = 0, n = 0;
     for (let j = Math.max(1, f - win); j < Math.min(frames, f + win); j++) { sum += nov[j]; sq += nov[j] * nov[j]; n++; }
     const mean = sum / n, sd = Math.sqrt(Math.max(0, sq / n - mean * mean));
-    if (nov[f] > mean + k * sd && nov[f] >= nov[f - 1] && nov[f] >= nov[f + 1] && env[f] > floor && f - last >= gap) {
-      hitsOut.push(Math.max(0, (f - 1) * hop));
+    if (nov[f] > mean + k * sd && nov[f] > rise && nov[f] >= nov[f - 1] && nov[f] >= nov[f + 1] && sm[f] > floor && f - last >= gap) {
+      hitsOut.push(Math.max(0, (f - 3) * hop)); // minus the smoothing lag
       last = f;
     }
   }

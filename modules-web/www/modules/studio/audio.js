@@ -142,7 +142,7 @@ export function createEngine(ctx) {
     apply(s) {
       song = s;
       const t = ctx.currentTime, on = audible(s), ids = new Set([...s.tracks.map((x) => x.id), 'synth']);
-      for (const [id, st] of strips) if (!ids.has(id)) { st.disconnect(); strips.delete(id); }
+      for (const [id, st] of strips) if (!ids.has(id) && !id.startsWith('aux:')) { st.disconnect(); strips.delete(id); }
       for (const tr of s.tracks) strip(tr.id).set(tr, on.has(tr.id));
       strip('synth').set(s.synth, on.has('synth'));
       const m = s.master;
@@ -168,6 +168,8 @@ export function createEngine(ctx) {
         if (smp) addVoice(id, playSample(ctx, out, smp.buffer, t, { ...smp.settings, vel, pitch: (smp.settings?.pitch || 0) + tr.pitch, decay: tr.decay }));
       }
     },
+    // Extra strip outside the song (the Video deck's audio FX). Returns its input node.
+    aux(id, p) { const st = strip(`aux:${id}`); st.set(p, true); return st.input; },
     note(freq, t, vel = 1) {
       const v = synthVoice(ctx, strip('synth').input, song.synth, freq, t, vel, lastFreq);
       lastFreq = freq;

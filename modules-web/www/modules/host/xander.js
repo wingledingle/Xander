@@ -60,6 +60,8 @@ export const host = {
     for (let o = 0; o < blob.size; o += CHUNK) A.saveChunk(sid, toBase64(new Uint8Array(await blob.slice(o, o + CHUNK).arrayBuffer())));
     return call((id) => A.saveEnd(id, sid));
   },
+  /** Opens a file by its file-manager path (e.g. a sample's source video). Resolves to a file object or null. */
+  async openPath(path) { return A ? JSON.parse(A.openPath(String(path)) || 'null') : null; },
   toast(msg) { if (A) A.toast(String(msg)); },
   keepScreenOn(on) { A?.keepScreenOn(!!on); },
   exit() { if (A) A.exit(); else history.back(); },
