@@ -73,6 +73,10 @@ export const host = {
   },
   /** Opens a file by its file-manager path (e.g. a sample's source video). Resolves to a file object or null. */
   async openPath(path) { return A ? JSON.parse(A.openPath(String(path)) || 'null') : null; },
+  /** Video or audio files from Xander's storage index (newest first): [{ path, name, size, modified }]. App only. */
+  mediaIndex: A?.mediaIndex ? (kind) => JSON.parse(A.mediaIndex(kind) || '[]') : null,
+  /** Renders a span of the open native video with its FX to an MP4 (app only). Resolves to { path }. */
+  exportVideo(name, startSec, endSec) { return A?.videoExport ? call((id) => A.videoExport(id, String(name), startSec, endSec)) : Promise.reject(new Error('Not available')); },
   /** Adds a line to the module's log file on the phone (Android/data/<app>/files/logs/<id>.log). */
   log(msg) { if (A?.log) A.log(String(msg)); else console.info(msg); },
   toast(msg) { if (A) A.toast(String(msg)); },

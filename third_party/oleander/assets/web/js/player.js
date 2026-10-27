@@ -95,6 +95,7 @@ export class Player extends EventTarget {
     this.audio.clear();
     this.layout();
     this.last = performance.now();
+    this.looping = true;
     requestAnimationFrame(this.loop);
   }
 
@@ -151,7 +152,10 @@ export class Player extends EventTarget {
     if (p === this.paused) return;
     if (p) this.persist(false);
     this.paused = p;
-    if (!p) { this.playStart = performance.now(); this.last = performance.now(); this.audio.start(); }
+    if (!p) {
+      this.playStart = performance.now(); this.last = performance.now(); this.audio.start();
+      if (this.running && !this.looping) { this.looping = true; requestAnimationFrame(this.loop); }
+    }
     if (!silent) this.osd(p ? 'Paused' : 'Resumed');
     this.dispatchEvent(new Event('state'));
   }
@@ -196,11 +200,12 @@ export class Player extends EventTarget {
   }
 
   loop(now) {
-    if (!this.running) return;
+    if (!this.running) { this.looping = false; return; }
+    // Battery: no frame callbacks at all while paused; setPaused(false) starts the loop again.
+    if (this.paused) { this.updateStats(now); this.looping = false; return; }
     requestAnimationFrame(this.loop);
     const dt = Math.min(250, now - this.last);
     this.last = now;
-    if (this.paused) { this.updateStats(now); return; }
 
     this.linkPump();
     if (this.linkHold()) return; // waiting for linked peers
@@ -250,7 +255,8 @@ export class Player extends EventTarget {
       // Automatic frame skip: if emulation alone exceeds the frame budget, the
       // next presentation is dropped (emulation keeps full speed).
       if (fixedSkip === 'auto' && emuMs > 16 && this.autoSkip < 3) { this.autoSkip = (this.autoSkip || 0) + 1; }
-      else { this.autoSkip = 0; this.present(); }
+      // Battery saver shows every other frame (30 fps); emulation itself stays at full speed.
+      else { this.autoSkip = 0; if (!settings.global.powerSaver || (this.presentN = (this.presentN || 0) + 1) % 2 === 0) this.present(); }
     }
     if (now - this.lastPersist > 5000) {
       this.lastPersist = now;

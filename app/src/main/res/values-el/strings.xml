@@ -566,4 +566,15 @@
         <item quantity="one">%d αποτέλεσμα</item>
         <item quantity="other">%d αποτελέσματα</item>
     </plurals>
+    <string name="adult_waiting">σε αναμονή (χαμηλή μπαταρία ή ενεργό «μόνο κατά τη φόρτιση»)</string>
+    <string name="adult_log">Αποτελέσματα τελευταίας σάρωσης</string>
+    <string name="adult_log_summary">Τι έκανε η σάρωση: αρχεία που ελέγχθηκαν, επισημάνθηκαν και σφάλματα</string>
+    <string name="adult_log_empty">Δεν έχει γίνει ακόμη σάρωση</string>
+    <string name="adult_nude">Συμπερίληψη γυμνών φωτογραφιών</string>
+    <string name="adult_nude_summary">Μετρά και τη βαθμολογία γυμνού/προκλητικού του μοντέλου, όχι μόνο το ρητό περιεχόμενο. Ανενεργό: μόνο ρητές εικόνες</string>
+    <string name="modules">Studio και εφαρμογές</string>
+    <string name="open_in">Άνοιγμα σε %1$s</string>
+    <string name="module_studio_summary">Sequencer, synth, sampler, κόφτης βίντεο και μίκτης</string>
+    <string name="module_oleander_summary">Εξομοιωτής Game Boy Advance</string>
+    <string name="module_quinten_summary">Ηλεκτρονικά βιβλία, PDF, κόμικ και σαρώσεις με αναδιάταξη, OCR και ανάγνωση φωναχτά</string>
 </resources>

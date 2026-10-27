@@ -33,6 +33,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         cast.init()
         if (BuildConfig.IS_TV_BUILD) tvCompanion.start()
+        // Android 13+: transfer progress and adult-scan notifications need this; ask once storage access is set up.
+        if (android.os.Build.VERSION.SDK_INT >= 33 && savedInstanceState == null && StorageAccess.hasFullAccess(this) &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED)
+            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 33)
         // Load the WebView engine once the app is idle, so the first Studio open doesn't pay its start-up.
         android.os.Looper.myQueue().addIdleHandler { window.decorView.postDelayed({ runCatching { android.webkit.WebSettings.getDefaultUserAgent(this) } }, 2500); false }
         val initial = intent.getStringExtra(EXTRA_PATH)?.let(FsPath::parse)

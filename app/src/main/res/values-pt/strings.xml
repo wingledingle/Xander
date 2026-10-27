@@ -568,4 +568,15 @@
         <item quantity="many">%d resultados</item>
         <item quantity="other">%d resultados</item>
     </plurals>
+    <string name="adult_waiting">aguardando (bateria fraca ou «só carregando» ativo)</string>
+    <string name="adult_log">Resultados da última verificação</string>
+    <string name="adult_log_summary">O que a verificação fez: arquivos verificados, marcados e erros</string>
+    <string name="adult_log_empty">Nenhuma verificação ainda</string>
+    <string name="adult_nude">Incluir fotos de nudez</string>
+    <string name="adult_nude_summary">Conta também a pontuação de nudez/sugestivo do modelo, não só conteúdo explícito. Desligado: só imagens explícitas</string>
+    <string name="modules">Studio e apps</string>
+    <string name="open_in">Abrir no %1$s</string>
+    <string name="module_studio_summary">Sequenciador, sintetizador, sampler, cortador de vídeo e mixer</string>
+    <string name="module_oleander_summary">Emulador de Game Boy Advance</string>
+    <string name="module_quinten_summary">E-books, PDFs, quadrinhos e digitalizações com refluxo, OCR e leitura em voz alta</string>
 </resources>

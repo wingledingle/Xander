@@ -139,6 +139,7 @@ ksp {
 dependencies {
     coreLibraryDesugaring(libs.desugar)
     implementation(project(":quinten:app")) // Quinten e-reader module
+    implementation(project(":quinten:android:data")) // ExternalBookIndex: Quinten reads Xander's file index
     // Installs the baseline profiles (ours in src/main/baseline-prof.txt, plus Compose's) on sideloaded APKs too.
     implementation(libs.profileinstaller)
 
@@ -185,6 +186,8 @@ dependencies {
     implementation(libs.media3.session)
     implementation(libs.media3.datasource)
     implementation(libs.media3.cast)
+    implementation(libs.media3.effect)
+    implementation(libs.media3.transformer)
     implementation(libs.cast.framework)
     implementation(libs.mediarouter)
 

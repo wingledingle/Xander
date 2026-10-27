@@ -568,4 +568,15 @@
         <item quantity="many">%d résultats</item>
         <item quantity="other">%d résultats</item>
     </plurals>
+    <string name="adult_waiting">en attente (batterie faible, ou « en charge uniquement » activé)</string>
+    <string name="adult_log">Résultats de la dernière analyse</string>
+    <string name="adult_log_summary">Ce que l’analyse a fait : fichiers vérifiés, signalés et erreurs</string>
+    <string name="adult_log_empty">Aucune analyse pour l’instant</string>
+    <string name="adult_nude">Inclure les photos de nu</string>
+    <string name="adult_nude_summary">Compte aussi le score nu/suggestif du modèle, pas seulement le contenu explicite. Désactivé : images explicites seulement</string>
+    <string name="modules">Studio et applis</string>
+    <string name="open_in">Ouvrir dans %1$s</string>
+    <string name="module_studio_summary">Séquenceur, synthé, sampler, découpeur vidéo et table de mixage</string>
+    <string name="module_oleander_summary">Émulateur Game Boy Advance</string>
+    <string name="module_quinten_summary">Livres numériques, PDF, BD et scans avec remise en page, OCR et lecture à voix haute</string>
 </resources>

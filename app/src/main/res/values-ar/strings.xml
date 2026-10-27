@@ -574,4 +574,15 @@
         <item quantity="many">%d نتيجة</item>
         <item quantity="other">%d نتيجة</item>
     </plurals>
+    <string name="adult_waiting">بانتظار البدء (البطارية منخفضة أو خيار «أثناء الشحن فقط» مفعّل)</string>
+    <string name="adult_log">نتائج آخر فحص</string>
+    <string name="adult_log_summary">ما قام به الفحص: الملفات المفحوصة والمعلَّمة والأخطاء</string>
+    <string name="adult_log_empty">لم يُجرَ أي فحص بعد</string>
+    <string name="adult_nude">تضمين الصور العارية</string>
+    <string name="adult_nude_summary">يحتسب أيضًا درجة العُري/الإيحاء في النموذج، وليس المحتوى الصريح فقط. عند الإيقاف: الصور الصريحة فقط</string>
+    <string name="modules">الاستوديو والتطبيقات</string>
+    <string name="open_in">فتح في %1$s</string>
+    <string name="module_studio_summary">مُسلسِل إيقاعات ومُركِّب صوت ومُقتطِع عيّنات وقاطع فيديو ومازج</string>
+    <string name="module_oleander_summary">محاكي Game Boy Advance</string>
+    <string name="module_quinten_summary">كتب إلكترونية وملفات PDF وقصص مصوّرة ومسوحات مع إعادة التدفق والتعرّف الضوئي والقراءة بصوت عالٍ</string>
 </resources>

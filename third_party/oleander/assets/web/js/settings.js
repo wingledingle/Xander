@@ -34,9 +34,19 @@ export const HOTKEYS = {
   frameAdvance: { label: 'Frame advance (paused)', key: 'Period' },
 };
 
+// Themes: [id, name]. Each one restyles the whole handheld (materials, buttons, screen bezel), see css/themes.css.
+export const THEMES = [
+  ['indigo', 'Indigo (classic)'], ['atomic', 'Atomic purple (see-through)'], ['glacier', 'Glacier (frosted ice)'],
+  ['pearl', 'Pearl white'], ['black', 'Onyx black'], ['oled', 'Pure black (battery friendly)'], ['spice', 'Spice orange'],
+  ['retro', 'Brick green (old LCD)'], ['famicom', 'Cream & crimson'], ['neon', 'Arcade neon'], ['walnut', 'Walnut & brass'],
+  ['carbon', 'Carbon fibre'], ['sakura', 'Sakura pink'], ['sunset', 'Vapor sunset'], ['camo', 'Field camo'],
+];
+
 export const DEFAULTS = {
   theme: 'indigo',
-  bootAnimation: true,
+  bootAnimation: 'first', // 'first' (first launch only), 'always', 'never'
+  powerSaver: false,
+  touchScale: 1,
   handheldFrame: 'auto',
   uiSounds: true,
   accent: '',
@@ -115,6 +125,8 @@ class Settings extends EventTarget {
     // Themes were renamed with the handheld redesign.
     const renamed = { dark: 'indigo', gba: 'indigo', light: 'glacier', oled: 'black' };
     if (renamed[this.global.theme]) this.global.theme = renamed[this.global.theme];
+    // The boot animation used to be on/off and played on every start.
+    if (typeof this.global.bootAnimation === 'boolean') this.global.bootAnimation = this.global.bootAnimation ? 'first' : 'never';
     this.applyTheme();
   }
 
@@ -126,7 +138,7 @@ class Settings extends EventTarget {
   async set(key, value) {
     this.global[key] = value;
     await setSetting('all', this.global);
-    if (key === 'theme' || key === 'accent') this.applyTheme();
+    if (key === 'theme' || key === 'accent' || key === 'powerSaver') this.applyTheme();
     this.dispatchEvent(new CustomEvent('change', { detail: { key, value } }));
   }
 
@@ -164,6 +176,7 @@ class Settings extends EventTarget {
 
   applyTheme() {
     document.documentElement.dataset.theme = this.global.theme;
+    document.body?.classList.toggle('saver', !!this.global.powerSaver);
     if (this.global.accent) document.documentElement.style.setProperty('--accent', this.global.accent);
     else document.documentElement.style.removeProperty('--accent');
   }
@@ -223,13 +236,15 @@ const SCHEMA = {
   ],
   Interface: [
     ['scrapeCovers', 'Download cover art and game names (libretro-thumbnails)', 'check'],
-    ['theme', 'Shell colour', 'select', [['indigo', 'Indigo'], ['glacier', 'Glacier'], ['black', 'Black'], ['spice', 'Spice orange'], ['retro', 'Retro green']]],
-    ['handheldFrame', 'Handheld frame around the screen', 'select', [['auto', 'With touch controls'], ['always', 'Always'], ['never', 'Never']]],
-    ['bootAnimation', 'Boot animation', 'check'],
+    ['theme', 'Theme', 'select', THEMES.map(([v, l]) => [v, l])],
+    ['handheldFrame', 'Screen frame', 'select', [['auto', 'Handheld frame with touch controls'], ['always', 'Handheld frame always'], ['edge', 'No bezel: screen edge to edge'], ['never', 'Plain (no frame)']]],
+    ['powerSaver', 'Battery saver (30 fps picture, no visual effects; game speed unchanged)', 'check'],
+    ['bootAnimation', 'Boot animation and chime', 'select', [['first', 'First launch only'], ['always', 'Every launch'], ['never', 'Never']]],
     ['uiSounds', 'Menu sounds', 'check'],
     ['accent', 'Accent colour (blank = theme)', 'color'],
     ['touchControls', 'Touch controls', 'select', [['auto', 'On touch devices'], ['always', 'Always'], ['never', 'Never']]],
     ['touchOpacity', 'Touch control opacity', 'range', [0.05, 1, 0.05]],
+    ['touchScale', 'Touch control size', 'range', [0.7, 1.4, 0.05]],
     ['haptics', 'Vibration feedback', 'check'],
     ['turboRate', 'Turbo rate (presses / second)', 'range', [2, 30, 1]],
   ],

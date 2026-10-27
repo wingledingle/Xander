@@ -566,4 +566,15 @@
         <item quantity="one">%d Ergebnis</item>
         <item quantity="other">%d Ergebnisse</item>
     </plurals>
+    <string name="adult_waiting">Start ausstehend (Akku schwach oder „nur beim Laden“ ist an)</string>
+    <string name="adult_log">Letzte Scan-Ergebnisse</string>
+    <string name="adult_log_summary">Was der Scan getan hat: geprüfte und markierte Dateien sowie Fehler</string>
+    <string name="adult_log_empty">Noch kein Scan gelaufen</string>
+    <string name="adult_nude">Nacktfotos einbeziehen</string>
+    <string name="adult_nude_summary">Zählt auch die Nackt-/Anzüglich-Bewertung des Modells, nicht nur explizite Inhalte. Aus: nur explizite Bilder</string>
+    <string name="modules">Studio &amp; Apps</string>
+    <string name="open_in">In %1$s öffnen</string>
+    <string name="module_studio_summary">Beat-Sequencer, Synth, Sampler, Video-Chopper und Mixer</string>
+    <string name="module_oleander_summary">Game-Boy-Advance-Emulator</string>
+    <string name="module_quinten_summary">E-Books, PDFs, Comics und Scans mit Umbruch, Texterkennung und Vorlesen</string>
 </resources>

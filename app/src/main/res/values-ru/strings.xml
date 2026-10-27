@@ -570,4 +570,15 @@
         <item quantity="many">%d результатов</item>
         <item quantity="other">%d результата</item>
     </plurals>
+    <string name="adult_waiting">ожидает запуска (низкий заряд или включено «только при зарядке»)</string>
+    <string name="adult_log">Результаты последней проверки</string>
+    <string name="adult_log_summary">Что сделала проверка: проверено, отмечено файлов и ошибки</string>
+    <string name="adult_log_empty">Проверка ещё не запускалась</string>
+    <string name="adult_nude">Учитывать фото с обнажёнкой</string>
+    <string name="adult_nude_summary">Учитывает и оценку «обнажённое/откровенное», а не только явный контент. Выкл.: только явные изображения</string>
+    <string name="modules">Студия и приложения</string>
+    <string name="open_in">Открыть в %1$s</string>
+    <string name="module_studio_summary">Секвенсор, синтезатор, сэмплер, нарезка видео и микшер</string>
+    <string name="module_oleander_summary">Эмулятор Game Boy Advance</string>
+    <string name="module_quinten_summary">Книги, PDF, комиксы и сканы с переформатированием, OCR и чтением вслух</string>
 </resources>

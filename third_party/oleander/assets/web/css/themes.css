@@ -1,0 +1,169 @@
+/* Oleander themes (Xander additions). Each theme restyles the handheld as a whole: plastic or material of the
+ * shell (colours plus a --texture layer), face buttons, D-pad, START/SELECT, screen bezel and menus. Indigo is the
+ * default in app.css. Also here: the bezel-less "edge" layout and the battery saver. */
+
+/* ---------- Frosted / see-through ---------- */
+:root[data-theme="atomic"] {
+  --shell: #6b4fa8; --shell-hi: #a58ae0; --shell-lo: #3a2468; --bg: #1b1030; --panel: #2a1a4a; --panel-2: #36225e;
+  --text: #f3ecff; --muted: #c2b0e8; --border: #6b4fa8; --accent: #c6ff6e; --accent-text: #1b2a00;
+  --btn: #3d2f58; --btn-hi: #7b68a6; --btn-text: #efe6ff; --dpad: #2a2238; --dpad-hi: #4c4064;
+  --bezel: rgba(20, 12, 40, .82); --bezel-hi: rgba(60, 40, 100, .82); --rect-a: #8a7bb0; --rect-b: #54477a;
+  /* Smoky clear plastic: you can "see" the board through it. */
+  --texture:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, transparent 1px 22px),
+    radial-gradient(40% 30% at 70% 70%, rgba(198,255,110,.10), transparent 70%),
+    linear-gradient(115deg, rgba(255,255,255,.18), transparent 35%);
+}
+:root[data-theme="atomic"] .tbtn:not(.dpad):not(.menu-btn) { background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.45), rgba(110,90,160,.55) 55%, rgba(40,25,70,.75)); backdrop-filter: blur(2px); }
+
+:root[data-theme="glacier"] {
+  --shell: #9fb6d9; --shell-hi: #e3edfb; --shell-lo: #5f7aa6; --bg: #e8eef8; --panel: #ffffff; --panel-2: #e3eaf6;
+  --text: #1c2536; --muted: #5b6b86; --border: #b7c5dd; --btn: #6f7fa3; --btn-hi: #b9c6e2; --btn-text: #fff; --accent: #2d6cdf; --accent-text: #fff;
+  --bezel: #2b3447; --bezel-hi: #3d4860; --dpad: #4c5873; --dpad-hi: #7584a3; --rect-a: #9aa8c6; --rect-b: #6c7b9c;
+  --texture: linear-gradient(160deg, rgba(255,255,255,.55), transparent 30%), radial-gradient(60% 40% at 20% 90%, rgba(255,255,255,.25), transparent 70%);
+  color-scheme: light;
+}
+:root[data-theme="glacier"] .tbtn:not(.dpad):not(.menu-btn) { background: radial-gradient(circle at 35% 30%, #fff, #c9d6ee 45%, #7f93ba); color: #2b3a5c; }
+
+/* ---------- Gloss and matte ---------- */
+:root[data-theme="pearl"] {
+  --shell: #ecebe7; --shell-hi: #ffffff; --shell-lo: #b9b6ae; --bg: #f5f4f0; --panel: #ffffff; --panel-2: #f0eee8;
+  --text: #24221e; --muted: #77736a; --border: #d4d0c6; --accent: #d1344f; --accent-text: #fff;
+  --btn: #c9314a; --btn-hi: #ff7a8d; --btn-text: #fff; --dpad: #3a3936; --dpad-hi: #5d5c58;
+  --bezel: #1d1d20; --bezel-hi: #34343a; --rect-a: #bdbab2; --rect-b: #8f8c84; --rect-text: #2a2824;
+  --texture: linear-gradient(170deg, rgba(255,255,255,.9), rgba(255,255,255,0) 28%), radial-gradient(80% 50% at 50% 110%, rgba(0,0,0,.08), transparent 70%);
+  color-scheme: light;
+}
+:root[data-theme="black"] {
+  --shell: #2a2a2f; --shell-hi: #47474f; --shell-lo: #141417; --bg: #0b0b0d; --panel: #18181c; --panel-2: #222228;
+  --text: #eee; --muted: #9a9aa6; --border: #34343c; --btn: #34343c; --btn-hi: #5a5a66; --btn-text: #ddd; --accent: #ffd36e;
+  --dpad: #1a1a1e; --dpad-hi: #3a3a42; --rect-a: #55555f; --rect-b: #33333b;
+  /* Soft-touch matte: fine grain instead of gloss. */
+  --texture: repeating-radial-gradient(circle at 30% 30%, rgba(255,255,255,.025) 0 1px, transparent 1px 3px);
+}
+/* True black with outlined controls: on OLED screens black pixels are off, so this one also saves battery. */
+:root[data-theme="oled"] {
+  --shell: #000; --shell-hi: #000; --shell-lo: #000; --bg: #000; --panel: #0a0a0a; --panel-2: #111; --text: #e6e6e6; --muted: #8a8a8a;
+  --border: #2a2a2a; --btn: #000; --btn-hi: #000; --btn-text: #bdbdbd; --dpad: #000; --dpad-hi: #000; --bezel: #000; --bezel-hi: #000;
+  --screen-off: #000; --rect-a: #000; --rect-b: #000; --rect-text: #9a9a9a; --accent: #9ad0ff; --accent-text: #000; --led: #3a8f3a;
+}
+:root[data-theme="oled"] body { background: #000; }
+:root[data-theme="oled"] .tbtn { box-shadow: none !important; border: 2px solid #3a3a3a; background: transparent !important; }
+:root[data-theme="oled"] .tbtn.dpad::before, :root[data-theme="oled"] .tbtn.dpad::after { background: #000; border: 2px solid #3a3a3a; box-shadow: none; }
+:root[data-theme="oled"] .tbtn.dpad { background: transparent; }
+:root[data-theme="oled"] body.handheld .bezel { box-shadow: none; }
+
+/* ---------- Colour shells ---------- */
+:root[data-theme="spice"] {
+  --shell: #e0731f; --shell-hi: #ffad66; --shell-lo: #a54d0f; --bg: #2b1606; --panel: #3a1f0b; --panel-2: #4b2a10;
+  --text: #fff3e6; --muted: #e5b98f; --border: #8a4a1a; --btn: #f2f2f2; --btn-hi: #ffffff; --btn-text: #a54d0f; --accent: #ffe066;
+  --dpad: #3a2a20; --dpad-hi: #5c4434; --rect-a: #6b3410; --rect-b: #4a220a; --rect-text: #ffe3c4;
+  --texture: linear-gradient(170deg, rgba(255,255,255,.28), transparent 30%);
+}
+:root[data-theme="spice"] .tbtn:not(.dpad):not(.menu-btn):not(.rect):not(.shoulder-btn) { background: radial-gradient(circle at 35% 30%, #fff, #e8e8e8 60%, #b9b9b9); }
+
+/* Old green LCD handheld: putty-grey brick, magenta buttons, and the game picture tinted like the old screen. */
+:root[data-theme="retro"] {
+  --shell: #c8c4bc; --shell-hi: #e4e1da; --shell-lo: #8f8b84; --bg: #d9d6cf; --panel: #ece9e3; --panel-2: #e0ddd6;
+  --text: #22201c; --muted: #5d5a54; --border: #a9a59d; --btn: #9a2257; --btn-hi: #d0518c; --btn-text: #fff; --accent: #3a3a8a; --accent-text: #fff;
+  --dpad: #2b2a2c; --dpad-hi: #4a494c; --bezel: #5f6168; --bezel-hi: #73757d; --screen-off: #8a9a5b; --rect-a: #8f8b84; --rect-b: #6b6862;
+  --bezel-text: #d9d7e8; --bezel-brand: #2a2a7a; color-scheme: light;
+  --texture: linear-gradient(170deg, rgba(255,255,255,.35), transparent 25%);
+}
+:root[data-theme="retro"] body.handheld .screens canvas { filter: sepia(.55) hue-rotate(40deg) saturate(1.4) contrast(1.05); }
+:root[data-theme="retro"] .tbtn.rect { transform: translate(-50%, -50%) rotate(-25deg); }
+:root[data-theme="retro"] .tbtn.rect.pressed { transform: translate(-50%, calc(-50% + 2px)) rotate(-25deg); }
+
+/* Cream body, crimson trim and gold labels (80s home-console colours). */
+:root[data-theme="famicom"] {
+  --shell: #e8dfcc; --shell-hi: #f8f2e4; --shell-lo: #b3a68b; --bg: #2a1210; --panel: #3a1815; --panel-2: #4a201c;
+  --text: #fff4e4; --muted: #e0c8a8; --border: #8b2a23; --btn: #b3241c; --btn-hi: #ea5a4e; --btn-text: #fff1d6; --accent: #d9a441; --accent-text: #2a1500;
+  --dpad: #2a2522; --dpad-hi: #4a423c; --bezel: #7a1c16; --bezel-hi: #9a2a22; --bezel-text: #f2d18a; --bezel-brand: #f2d18a;
+  --rect-a: #3a3330; --rect-b: #1f1b19; --rect-text: #f2d18a;
+  --texture: linear-gradient(0deg, transparent 0 62%, rgba(139, 42, 35, .85) 62% 66%, transparent 66%), linear-gradient(170deg, rgba(255,255,255,.3), transparent 30%);
+}
+:root[data-theme="famicom"] .tbtn .lbl { color: #8b2a23; font-weight: 800; }
+
+/* Arcade neon: dark cabinet, glowing outlined controls. */
+:root[data-theme="neon"] {
+  --shell: #0d0b1e; --shell-hi: #1d1840; --shell-lo: #05040c; --bg: #07060f; --panel: #120f28; --panel-2: #1a1638;
+  --text: #f0f6ff; --muted: #8fa3d9; --border: #ff2bd6; --btn: #120f28; --btn-hi: #1d1840; --btn-text: #29f3ff; --accent: #29f3ff; --accent-text: #00141a;
+  --dpad: #120f28; --dpad-hi: #120f28; --bezel: #05040c; --bezel-hi: #0d0b1e; --bezel-text: #ff2bd6; --bezel-brand: #29f3ff; --led: #29f3ff;
+  --rect-a: #120f28; --rect-b: #120f28; --rect-text: #ff2bd6;
+  --texture: repeating-linear-gradient(0deg, rgba(41,243,255,.06) 0 1px, transparent 1px 34px), repeating-linear-gradient(90deg, rgba(255,43,214,.05) 0 1px, transparent 1px 34px);
+}
+:root[data-theme="neon"] .tbtn { box-shadow: 0 0 10px rgba(41,243,255,.55), inset 0 0 8px rgba(41,243,255,.35); border: 2px solid #29f3ff; text-shadow: 0 0 6px #29f3ff; }
+:root[data-theme="neon"] .tbtn.rect, :root[data-theme="neon"] .tbtn.shoulder-btn { border-color: #ff2bd6; box-shadow: 0 0 10px rgba(255,43,214,.55); color: #ff2bd6; text-shadow: 0 0 6px #ff2bd6; }
+:root[data-theme="neon"] .tbtn.dpad { border: none; box-shadow: none; }
+:root[data-theme="neon"] .tbtn.dpad::before, :root[data-theme="neon"] .tbtn.dpad::after { background: #120f28; border: 2px solid #29f3ff; box-shadow: 0 0 10px rgba(41,243,255,.5); }
+:root[data-theme="neon"] body.handheld .bezel { box-shadow: 0 0 0 2px #ff2bd6, 0 0 18px rgba(255,43,214,.45); }
+
+/* Walnut body with brass buttons. */
+:root[data-theme="walnut"] {
+  --shell: #6b4426; --shell-hi: #8e5f3a; --shell-lo: #3d2412; --bg: #1e140c; --panel: #2c1d12; --panel-2: #382518;
+  --text: #f6ead8; --muted: #cdb08a; --border: #7a5532; --btn: #b08a3e; --btn-hi: #f0d68a; --btn-text: #3d2a08; --accent: #e8c26a; --accent-text: #2a1a00;
+  --dpad: #2a1c10; --dpad-hi: #4a3420; --bezel: #1c1410; --bezel-hi: #2e221a; --bezel-text: #c8a46a; --bezel-brand: #e8c26a;
+  --rect-a: #c9a24f; --rect-b: #8a6a2a; --rect-text: #2a1a00;
+  /* Wood grain from stacked stripes. */
+  --texture:
+    repeating-linear-gradient(92deg, rgba(0,0,0,.10) 0 2px, transparent 2px 9px, rgba(255,255,255,.04) 9px 11px, transparent 11px 23px),
+    repeating-radial-gradient(ellipse 140% 40% at 30% 60%, rgba(0,0,0,.07) 0 6px, transparent 6px 14px);
+}
+
+:root[data-theme="walnut"] .tbtn .lbl { color: #e8c26a; }
+
+:root[data-theme="carbon"] {
+  --shell: #1f2124; --shell-hi: #34373c; --shell-lo: #0e0f11; --bg: #0b0c0d; --panel: #16181a; --panel-2: #1e2124;
+  --text: #f1f1f1; --muted: #9aa0a6; --border: #3a3e44; --btn: #c4161c; --btn-hi: #ff5a5f; --btn-text: #fff; --accent: #ff3b41; --accent-text: #fff;
+  --dpad: #121315; --dpad-hi: #2c2f33; --rect-a: #3a3e44; --rect-b: #24272b;
+  /* Twill weave. */
+  --texture:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 4px, transparent 4px 8px),
+    repeating-linear-gradient(-45deg, rgba(0,0,0,.25) 0 4px, transparent 4px 8px),
+    linear-gradient(170deg, rgba(255,255,255,.12), transparent 35%);
+}
+
+:root[data-theme="sakura"] {
+  --shell: #f4b6c8; --shell-hi: #ffe0ea; --shell-lo: #c97d95; --bg: #fff3f6; --panel: #ffffff; --panel-2: #ffe8ef;
+  --text: #3a1f29; --muted: #8a5d6c; --border: #f0b5c6; --btn: #fff7ec; --btn-hi: #ffffff; --btn-text: #c45b7c; --accent: #c45b7c; --accent-text: #fff;
+  --dpad: #8a5d6c; --dpad-hi: #b58595; --bezel: #4a2a36; --bezel-hi: #5e3646; --rect-a: #e59ab0; --rect-b: #c47a92; --rect-text: #fff;
+  --texture: radial-gradient(circle at 15% 20%, rgba(255,255,255,.55) 0 3px, transparent 4px) 0 0 / 46px 46px,
+    radial-gradient(circle at 70% 60%, rgba(255,255,255,.4) 0 2px, transparent 3px) 0 0 / 38px 38px;
+  color-scheme: light;
+}
+
+/* Vapor sunset: violet-to-orange body with a horizon grid. */
+:root[data-theme="sunset"] {
+  --shell: #b0418a; --shell-hi: #ff8a5b; --shell-lo: #3a1460; --bg: #1a0b2e; --panel: #2a1248; --panel-2: #36185c;
+  --text: #fff0f6; --muted: #f0a8c8; --border: #ff6aa8; --btn: #2a1248; --btn-hi: #6a2c8a; --btn-text: #ffd36e; --accent: #ffd36e; --accent-text: #2a1200;
+  --dpad: #1a0b2e; --dpad-hi: #3a1a5a; --bezel: #12061f; --bezel-hi: #24103a; --bezel-text: #ff8ac0; --bezel-brand: #ffd36e;
+  --rect-a: #ff6aa8; --rect-b: #b0418a;
+  --texture: linear-gradient(transparent 60%, rgba(255,211,110,.14) 60%), repeating-linear-gradient(90deg, rgba(255,106,168,.18) 0 1px, transparent 1px 28px);
+}
+
+:root[data-theme="camo"] {
+  --shell: #5b6b3e; --shell-hi: #7e8f59; --shell-lo: #34401f; --bg: #1a1f10; --panel: #262d18; --panel-2: #2f3820;
+  --text: #eef2e0; --muted: #b8c49a; --border: #5b6b3e; --btn: #2c2f25; --btn-hi: #4c5240; --btn-text: #d8e0b8; --accent: #e0b84a; --accent-text: #241a00;
+  --dpad: #1f2219; --dpad-hi: #3a3f2f; --rect-a: #4c5240; --rect-b: #2c2f25;
+  --texture:
+    radial-gradient(30% 22% at 20% 30%, rgba(52,64,31,.9), transparent 70%),
+    radial-gradient(26% 20% at 70% 20%, rgba(120,104,64,.75), transparent 70%),
+    radial-gradient(34% 26% at 60% 75%, rgba(30,36,20,.85), transparent 70%),
+    radial-gradient(22% 18% at 15% 80%, rgba(120,104,64,.7), transparent 70%);
+}
+
+/* ---------- No bezel: the picture uses the whole display ---------- */
+body.edge #player-view { background: #000; }
+body.edge .shell { padding: 0; }
+body.edge .screens { gap: 0; }
+body.edge .bezel { padding: 0; background: none; box-shadow: none; border-radius: 0; }
+/* Portrait: picture full width at the very top; the controls float in the black area below it. */
+body.edge.portrait .shell { flex: 0 0 auto; }
+body.edge.portrait .screens { flex: none; width: 100%; aspect-ratio: 3 / 2; }
+
+/* ---------- Battery saver: no blur, glow, shadows or animation ---------- */
+body.saver *, body.saver *::before, body.saver *::after { backdrop-filter: none !important; animation: none !important; transition: none !important; }
+body.saver .tbtn, body.saver .tbtn.dpad::before, body.saver .tbtn.dpad::after, body.saver .bezel, body.saver .card .cart-shell { box-shadow: none !important; }
+body.saver #player-view { background: var(--shell-lo) !important; }
+body.saver .player-menu { background: rgba(0, 0, 0, .9); }

@@ -432,7 +432,11 @@ class LibraryRepository(
         val visited = HashSet<String>()
         // 1. Walk the file system (every storage volume when all-files access is granted). Android's
         //    media index is not queried as well: it covers the same roots and only cost time.
-        for (root in fileRoots) {
+        // Inside Xander, the storage volumes (extraRoots) come from Xander's file index instead of a second walk;
+        // folders the user added in Quinten are still walked.
+        val indexed = ExternalBookIndex.provider?.takeIf { extraRoots.isNotEmpty() }?.let { p -> runCatching { p(context) }.getOrNull() }?.takeIf { it.isNotEmpty() } // index not built yet: walk
+        if (indexed != null) for (f in indexed) consider(f.absolutePath, f.name, runCatching { f.length() }.getOrDefault(0L), runCatching { f.lastModified() }.getOrDefault(0L))
+        for (root in if (indexed != null) fileRoots - extraRoots.toSet() else fileRoots) {
             walkFiles(root, 0, visited, if (full) emptyMap() else dirCache, listed, { reused -> folders++; if (reused) unchanged++ }) { f ->
                 consider(f.absolutePath, f.name, runCatching { f.length() }.getOrDefault(0L), runCatching { f.lastModified() }.getOrDefault(0L))
             }

@@ -54,7 +54,10 @@ function chime() {
 /// Boot animation. Resolves when it has finished (or was skipped).
 export function bootSplash() {
   const el = document.getElementById('splash');
-  if (!settings.global.bootAnimation || !el || matchMedia('(prefers-reduced-motion: reduce)').matches) return Promise.resolve();
+  const mode = settings.global.bootAnimation;
+  let seen = false;
+  try { seen = localStorage.getItem('oleander.bootSeen') === '1'; localStorage.setItem('oleander.bootSeen', '1'); } catch {}
+  if (mode === 'never' || (mode !== 'always' && seen) || !el || matchMedia('(prefers-reduced-motion: reduce)').matches) return Promise.resolve();
   el.classList.remove('hidden');
   return new Promise((resolve) => {
     let done = false;

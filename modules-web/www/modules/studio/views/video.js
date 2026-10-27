@@ -15,6 +15,7 @@ import { h, btn, iconBtn, icon, knob, segmented, toast, prompt, sheet, confirmSh
 import { waveView } from './wave.js';
 import { decodeFile } from '../actions.js';
 import { host } from '../../host/xander.js';
+import { nativeVideo } from '../nativevideo.js';
 
 const AFX_DEFAULT = { vol: 1, pitch: 0, reverse: false, cutoff: 1, reso: 0.7, drive: 0, crush: 0, low: 0, mid: 0, high: 0, delay: 0, reverb: 0 };
 const AUDIO_WINDOW = 60; // seconds of mono audio held at once; it follows the playhead
@@ -23,7 +24,9 @@ const V = {
   file: null, chops: [], fx: defaultVideoFx(), afx: { ...AFX_DEFAULT }, inPt: null, outPt: null, selected: null, tab: 'chops',
   buffer: null, audioStart: 0, decoding: false, autoMode: 'transient', autoAmount: 0.5, stopAt: null, padVoice: null,
 };
-const video = h('video', { class: 'video-el', playsinline: true, preload: 'auto' });
+// In the app the phone's own video player draws the picture (see nativevideo.js); in a browser it's a <video>.
+const NATIVE = !!window.XanderHost?.videoAvailable?.();
+const video = NATIVE ? nativeVideo(window.XanderHost) : h('video', { class: 'video-el', playsinline: true, preload: 'auto' });
 const thumbVideo = h('video', { class: 'src-video', muted: true, preload: 'metadata', playsinline: true });
 const canvas = h('canvas', { class: 'video-canvas', width: 1280, height: 720 });
 // The WebGL renderer is created only when a shader effect is turned on (see applyFx).
@@ -51,6 +54,7 @@ export async function openVideo(file) {
   host.log(`video open: ${file.name} ${file.mime || '?'} ${file.size ?? '?'} bytes`);
   await new Promise((res, rej) => { video.onloadedmetadata = res; video.onerror = () => rej(new Error(`This video can't be played here (error ${video.error?.code ?? '?'})`)); });
   host.log(`video ready: ${video.videoWidth}x${video.videoHeight}, ${video.duration?.toFixed(1)} s`);
+  if (NATIVE) video.style.setProperty('--ar', `${video.videoWidth || 16} / ${video.videoHeight || 9}`);
   canvas.width = Math.min(960, video.videoWidth || 960); canvas.height = Math.round(canvas.width * ((video.videoHeight || 540) / (video.videoWidth || 960)));
   applyFx();
   persist();
@@ -65,6 +69,7 @@ const applyAfx = () => { if (S.engine) S.engine.aux('video', afxParams()); video
 // Plain playback is the phone's own video player with its own sound: nothing is copied per frame and the sound is
 // not rerouted (both of those froze some phones). Colour FX are a CSS filter; shader FX switch the WebGL canvas on.
 function applyFx() {
+  if (NATIVE) { canvas.hidden = true; video.setFx(V.fx); persist(); return; } // the native player runs every effect as one GPU shader
   const shader = needsShader(V.fx);
   video.style.filter = shader ? '' : cssFilter(V.fx);
   canvas.hidden = !shader;
@@ -204,6 +209,15 @@ async function saveChops(list) {
 
 async function exportClip(chop) {
   if (recording) return;
+  if (NATIVE) {
+    recording = true;
+    toast('Exporting clip…', 60000);
+    try {
+      const r = await host.exportVideo(chop.name, chop.start, chop.end);
+      toast(`Clip saved to ${r.path}`, 5000);
+    } catch (e) { toast(`Export failed: ${e.message}`, 5000); } finally { recording = null; }
+    return;
+  }
   if (!window.MediaRecorder || !canvas.captureStream) return toast('Video export is not supported on this device');
   const e = audio(), dest = e.ctx.createMediaStreamDestination();
   e.analyser.connect(dest);

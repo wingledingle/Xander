@@ -12,6 +12,7 @@ import { h, btn, iconBtn, icon, sheet, confirmSheet, toast } from '../ui.js';
 import { importAudioFiles } from '../actions.js';
 import { host } from '../../host/xander.js';
 import { renderPacks } from './packs.js';
+import { renderPhone } from './phone.js';
 import { segmented } from '../ui.js';
 
 let query = '', tag = '', voice = null, tab = 'mine';
@@ -72,7 +73,13 @@ export function editSample(r, go) {
 }
 
 export function renderLibrary(root, go) {
-  const tabs = segmented([['mine', 'My samples'], ['packs', 'Sound packs']], tab, (v) => { tab = v; renderLibrary(root, go); });
+  const tabs = segmented([['mine', 'My samples'], ['packs', 'Sound packs'], ['phone', 'On phone']], tab, (v) => { tab = v; renderLibrary(root, go); });
+  if (tab === 'phone') {
+    const body = h('div', { class: 'deck library' }, h('div', { class: 'toolbar' }, tabs), h('div', { class: 'phone-body' }));
+    root.replaceChildren(body);
+    renderPhone(body.querySelector('.phone-body'), go);
+    return;
+  }
   if (tab === 'packs') {
     const body = h('div', { class: 'deck library' }, h('div', { class: 'toolbar' }, tabs), h('div', { class: 'packs-body' }));
     root.replaceChildren(body);

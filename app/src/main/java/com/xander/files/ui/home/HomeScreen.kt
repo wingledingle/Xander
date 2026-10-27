@@ -89,6 +89,8 @@ fun HomeScreen(onOpen: (FsPath) -> Unit, onOpenFile: (com.xander.files.domain.fs
                 android.widget.Toast.makeText(ctx, R.string.eject_in_settings, android.widget.Toast.LENGTH_LONG).show()
                 runCatching { ctx.startActivity(e) }
             }
+            is String -> if (e == "ejected") android.widget.Toast.makeText(ctx, R.string.ejected, android.widget.Toast.LENGTH_SHORT).show()
+                else android.widget.Toast.makeText(ctx, e, android.widget.Toast.LENGTH_LONG).show()
             else -> android.widget.Toast.makeText(ctx, R.string.ejected, android.widget.Toast.LENGTH_SHORT).show()
         }
     }

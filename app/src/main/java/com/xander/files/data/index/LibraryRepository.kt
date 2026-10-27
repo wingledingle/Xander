@@ -61,6 +61,10 @@ class LibraryRepository @Inject constructor(
     private val gameApkCache = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
 
     /** APK files whose manifest declares them as games (cached per path + mtime). */
+    /** Zips that hold a GBA game (they open in Oleander). */
+    private suspend fun romZips(): List<FileIndexEntity> = dao.byCategory(FileCategory.ARCHIVE.name)
+        .filter { it.name.endsWith(".zip", true) && com.xander.files.modules.SharedIndex.isGbaZip(context, java.io.File(it.path)) }
+
     private fun gameApks(): List<FileIndexEntity> = kotlinx.coroutines.runBlocking { dao.byCategory(FileCategory.APK.name) }.filter { e ->
         gameApkCache.getOrPut("${e.path}|${e.modified}") {
             runCatching {
@@ -88,7 +92,7 @@ class LibraryRepository @Inject constructor(
             LibraryKind.DOWNLOADS -> dao.under(downloadDir)
             LibraryKind.RECENT -> dao.recent(System.currentTimeMillis() - recentDays * 86_400_000L)
             LibraryKind.LARGE -> dao.large(LARGE_FILE)
-            LibraryKind.GAMES -> (dao.byCategory(FileCategory.GAME.name) + dao.obbFiles() + gameApks() + gameDiscImages()).distinctBy { it.path }.sortedByDescending { it.modified }
+            LibraryKind.GAMES -> (dao.byCategory(FileCategory.GAME.name) + dao.obbFiles() + gameApks() + gameDiscImages() + romZips()).distinctBy { it.path }.sortedByDescending { it.modified }
             LibraryKind.ADULT -> nsfw.flaggedPaths().mapNotNull { dao.get(it) }
             else -> categoriesOf(kind).flatMap { dao.byCategory(it.name) }.sortedByDescending { it.modified }
         }

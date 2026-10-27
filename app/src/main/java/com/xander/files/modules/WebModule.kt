@@ -21,6 +21,10 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.key
@@ -71,6 +75,8 @@ abstract class WebModule(
     val entry: String = "index.html",
     /** Turns on the native low-latency pad engine for this module (XanderHost.pad*). */
     val lowLatencyAudio: Boolean = false,
+    /** Gives the page a native video player laid over it (XanderHost.videoCmd); see [StudioVideo]. */
+    val nativeVideo: Boolean = false,
 ) : XanderModule {
     @Composable
     override fun Content(file: FsPath?, onBack: () -> Unit) = WebModuleScreen(this, file, onBack)
@@ -85,12 +91,15 @@ object WebModuleHost {
 @HiltViewModel
 class WebModuleViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    registry: FileSystemRegistry,
+    private val registry: FileSystemRegistry,
 ) : ViewModel() {
     val files = HostFiles(context, registry)
     private val extractor = AudioExtractor(context, files)
     private var padsOrNull: LowLatencyPads? = null
     val pads: LowLatencyPads get() = padsOrNull ?: LowLatencyPads(context).also { padsOrNull = it }
+    private var videoOrNull: StudioVideo? = null
+    @get:androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    val video: StudioVideo get() = videoOrNull ?: StudioVideo(context, registry, files).also { videoOrNull = it }
     private val saves = ConcurrentHashMap<String, File>()
     private val decodeDir = File(context.cacheDir, "module-audio").apply { mkdirs(); listFiles()?.forEach { it.delete() } }
     var launchJson: String = ""
@@ -180,6 +189,7 @@ class WebModuleViewModel @Inject constructor(
 
     override fun onCleared() {
         padsOrNull?.close()
+        videoOrNull?.release()
         decodeDir.listFiles()?.forEach { it.delete() }
     }
 
@@ -241,6 +251,21 @@ class XanderHostBridge(
     @JavascriptInterface fun padLoad(id: String, rate: Int, channels: Int, b64: String) { if (module.lowLatencyAudio) vm.pads.load(id, rate, channels, WebModuleViewModel.decodePcm16(b64)) }
     @JavascriptInterface fun padTrigger(id: String, gain: Double, pan: Double) { if (module.lowLatencyAudio) vm.pads.trigger(id, gain.toFloat(), pan.toFloat()) }
     @JavascriptInterface fun padStopAll() { if (module.lowLatencyAudio) vm.pads.stopAll() }
+
+    /** Videos or audio from Xander's storage index, newest first (shared scan; no second walk of the phone). */
+    @JavascriptInterface fun mediaIndex(kind: String): String {
+        val cat = if (kind == "audio") com.xander.files.domain.fs.FileCategory.AUDIO else com.xander.files.domain.fs.FileCategory.VIDEO
+        val arr = JSONArray()
+        SharedIndex.byCategory(web.context, cat).take(5000).forEach { arr.put(JSONObject().put("path", it.path).put("name", it.name).put("size", it.size).put("modified", it.modified)) }
+        return arr.toString()
+    }
+
+    // Native video player over the page (only when the module asked for it).
+    @JavascriptInterface fun videoAvailable(): Boolean = module.nativeVideo
+    @JavascriptInterface fun videoCmd(json: String) { if (module.nativeVideo) vm.video.command(json) }
+    @JavascriptInterface fun videoExport(id: Int, name: String, startSec: Double, endSec: Double) {
+        if (module.nativeVideo) vm.video.export(name, startSec, endSec) { r, err -> if (r != null) resolve(id, r.toString()) else reject(id, err ?: "error") }
+    }
 }
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -329,5 +354,22 @@ fun WebModuleScreen(module: WebModule, file: FsPath?, onBack: () -> Unit, vm: We
         web.onResume()
         onDispose { web.keepScreenOn = false; runCatching { web.stopLoading(); web.destroy() } }
     }
-    key(generation) { AndroidView(factory = { web }, modifier = Modifier.fillMaxSize()) }
+    if (module.nativeVideo) DisposableEffect(web) {
+        vm.video.push = { json -> web.post { web.evaluateJavascript("window.__xanderVideo && __xanderVideo.state($json)", null) } }
+        onDispose { vm.video.push = {}; vm.video.rect.value = null }
+    }
+    androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
+        key(generation) { AndroidView(factory = { web }, modifier = Modifier.fillMaxSize()) }
+        if (module.nativeVideo) {
+            val r by vm.video.rect.collectAsState()
+            // The page reports the video box in CSS pixels; WebView CSS pixels are density-independent pixels.
+            r?.let { (x, y, w, h) ->
+                val d = androidx.compose.ui.platform.LocalDensity.current
+                with(d) {
+                    AndroidView(factory = { (vm.video.view.parent as? ViewGroup)?.removeView(vm.video.view); vm.video.view },
+                        modifier = Modifier.offset(x.dp, y.dp).size(w.dp, h.dp))
+                }
+            }
+        }
+    }
 }

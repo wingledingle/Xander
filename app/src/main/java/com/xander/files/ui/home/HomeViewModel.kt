@@ -77,7 +77,7 @@ class HomeViewModel @Inject constructor(
 
     fun toggleRoot() = viewModelScope.launch {
         val enable = !rootMode.value
-        if (enable && !root.requestRoot()) return@launch
+        if (enable && !root.requestRoot()) { events.send(com.xander.files.data.fs.root.RootFileSystemProvider.NOT_ROOTED); return@launch }
         settings.update { it.copy(rootMode = enable) }
     }
 }

@@ -26,6 +26,7 @@ import javax.inject.Singleton
 @Singleton
 class RootFileSystemProvider @Inject constructor() : PosixFileSystemProvider {
 
+
     override val scheme = FsPath.SCHEME_ROOT
 
     override fun capabilities(path: FsPath) = setOf(
@@ -44,7 +45,7 @@ class RootFileSystemProvider @Inject constructor() : PosixFileSystemProvider {
     suspend fun exec(cmd: String): String? = withContext(Dispatchers.IO) { sh(cmd).let { r -> if (r.isSuccess) r.out.joinToString("\n") else null } }
 
     private fun sh(cmd: String): Shell.Result {
-        if (!isAvailable()) throw FsException.PermissionDenied(null, IllegalStateException("Root not available"))
+        if (!isAvailable()) throw FsException.Generic(NOT_ROOTED)
         return Shell.cmd(cmd).exec()
     }
 
@@ -212,6 +213,9 @@ class RootFileSystemProvider @Inject constructor() : PosixFileSystemProvider {
     }
 
     companion object {
+        /** Shown instead of "permission denied" when the phone has no root (su) at all or it was refused. */
+        const val NOT_ROOTED = "Root isn't available: this phone isn't rooted (no Magisk or similar), or root was refused. " +
+            "No app can turn root on by itself. For Android/data and Android/obb, use Shizuku instead (Home screen)."
         fun q(s: String) = "'" + s.replace("'", "'\\''") + "'"
         val PRUNE = listOf("/proc", "/sys", "/dev", "/data/media", "/storage", "/mnt", "/sdcard", "/acct", "/config")
     }

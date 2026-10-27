@@ -86,6 +86,7 @@ data class BrowserState(
 @HiltViewModel
 class BrowserViewModel @Inject constructor(
     savedState: SavedStateHandle,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
     private val registry: FileSystemRegistry,
     private val settingsRepo: SettingsRepository,
     private val opener: FileOpener,
@@ -265,7 +266,16 @@ class BrowserViewModel @Inject constructor(
         if (raw.value.selecting) { toggle(entry); return }
         if (entry.isDirectory) { navigate(entry.path); return }
         if (entry.extension in setOf("apk", "apks", "xapk", "apkm")) { install(entry); return }
-        if (ArchiveFormats.isArchiveName(entry.name)) { navigate(FsPath.archive(entry.path)); return }
+        if (ArchiveFormats.isArchiveName(entry.name)) {
+            viewModelScope.launch {
+                // A zip holding a GBA game plays in Oleander on tap (it reads the ROM straight from the zip).
+                val gba = entry.extension == "zip" && entry.path.isLocal && com.xander.files.modules.OleanderModule in com.xander.files.modules.Modules.all &&
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { com.xander.files.modules.SharedIndex.isGbaZip(appContext, java.io.File(entry.path.path)) }
+                if (gba) launcher.navigate(com.xander.files.modules.Modules.route(com.xander.files.modules.OleanderModule, entry.path))
+                else navigate(FsPath.archive(entry.path))
+            }
+            return
+        }
         viewModelScope.launch {
             // Encrypted archive members need the password before any viewer can read them.
             if (entry.path.scheme == FsPath.SCHEME_ARCHIVE && archives.needsPassword(entry.path)) {
@@ -461,7 +471,7 @@ class BrowserViewModel @Inject constructor(
 
     fun useRoot() = viewModelScope.launch {
         if (root.requestRoot()) { settingsRepo.update { it.copy(rootMode = true) }; refresh() }
-        else _events.send(BrowserEvent.Toast("Root access was not granted"))
+        else _events.send(BrowserEvent.Toast(com.xander.files.data.fs.root.RootFileSystemProvider.NOT_ROOTED))
     }
 
     fun onTreeGranted(uri: Uri, kind: SafRootKind, volumePath: String?, uuid: String?) = viewModelScope.launch {

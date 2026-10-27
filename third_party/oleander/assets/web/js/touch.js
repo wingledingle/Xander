@@ -23,6 +23,9 @@ const DEFAULT_LAYOUT = {
     { id: 'AB', kind: 'button', buttons: ['A', 'B'], label: 'A+B', x: 93, y: 62, size: 9, hidden: true },
     { id: 'TurboA', kind: 'button', turbo: ['A'], label: 'TA', x: 93, y: 24, size: 10, hidden: true },
     { id: 'TurboB', kind: 'button', turbo: ['B'], label: 'TB', x: 84, y: 34, size: 10, hidden: true },
+    { id: 'QS', kind: 'button', hotkey: 'quickSave', label: 'SAVE', x: 6.5, y: 22, size: 8, shape: 'menu', hidden: true },
+    { id: 'QL', kind: 'button', hotkey: 'quickLoad', label: 'LOAD', x: 15, y: 22, size: 8, shape: 'menu', hidden: true },
+    { id: 'RW', kind: 'button', hotkey: 'rewind', label: '«', x: 93, y: 22, size: 8, shape: 'menu', hidden: true },
   ],
   // Portrait positions are relative to the area below the screen.
   portrait: [
@@ -38,6 +41,9 @@ const DEFAULT_LAYOUT = {
     { id: 'AB', kind: 'button', buttons: ['A', 'B'], label: 'A+B', x: 87, y: 70, size: 11, hidden: true },
     { id: 'TurboA', kind: 'button', turbo: ['A'], label: 'TA', x: 87, y: 24, size: 12, hidden: true },
     { id: 'TurboB', kind: 'button', turbo: ['B'], label: 'TB', x: 70, y: 30, size: 12, hidden: true },
+    { id: 'QS', kind: 'button', hotkey: 'quickSave', label: 'SAVE', x: 30, y: 9, size: 10, shape: 'menu' },
+    { id: 'QL', kind: 'button', hotkey: 'quickLoad', label: 'LOAD', x: 70, y: 9, size: 10, shape: 'menu' },
+    { id: 'RW', kind: 'button', hotkey: 'rewind', label: '«', x: 37, y: 24, size: 10, shape: 'menu', hidden: true },
   ],
 };
 
@@ -55,7 +61,7 @@ export class TouchControls {
     layer.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('resize', () => this.render());
     settings.addEventListener('change', (e) => {
-      if (['touchControls', 'touchOpacity', 'touchLayout', 'handheldFrame', '*'].includes(e.detail.key)) this.render();
+      if (['touchControls', 'touchOpacity', 'touchLayout', 'touchScale', 'handheldFrame', '*'].includes(e.detail.key)) this.render();
     });
   }
 
@@ -83,17 +89,18 @@ export class TouchControls {
     const frame = settings.global.handheldFrame;
     document.body.classList.toggle('portrait', this.orientation === 'portrait');
     document.body.classList.toggle('touch-on', visible);
-    document.body.classList.toggle('handheld', frame === 'always' || (frame !== 'never' && (visible || this.editing)));
+    document.body.classList.toggle('handheld', frame === 'always' || (frame === 'auto' && (visible || this.editing)));
+    document.body.classList.toggle('edge', frame === 'edge');
     this.layer.replaceChildren();
     this.nodes.clear();
     // In portrait the controls live in the body below the screen.
     const shell = document.getElementById('shell');
-    const below = this.orientation === 'portrait' && document.body.classList.contains('handheld') && shell?.offsetParent;
+    const below = this.orientation === 'portrait' && (document.body.classList.contains('handheld') || document.body.classList.contains('edge')) && shell?.offsetParent;
     this.layer.style.top = below ? Math.round(shell.getBoundingClientRect().bottom) + 'px' : '';
     window.dispatchEvent(new Event('oleander-layout'));
     if (!visible && !this.editing) return;
     if (!this.editing || !this.controls) this.controls = this.layout();
-    const vmin = Math.min(innerWidth, innerHeight) / 100;
+    const vmin = (Math.min(innerWidth, innerHeight) / 100) * (settings.global.touchScale || 1);
     this.layer.style.opacity = this.editing ? 1 : settings.global.touchOpacity;
     for (const c of this.controls) {
       if (c.hidden && !this.editing) continue;
@@ -146,7 +153,8 @@ export class TouchControls {
   }
 
   evaluate() {
-    let mask = 0, turbo = 0, ff = false, menu = false;
+    let mask = 0, turbo = 0, ff = false, rw = false;
+    const taps = new Set(); // one-shot hotkeys (menu, quick save/load) fire once per press
     for (const p of this.pointers.values()) {
       if (!p.hit) continue;
       const { c, r } = p.hit;
@@ -154,17 +162,20 @@ export class TouchControls {
       for (const b of c.buttons || []) mask |= BUTTON_BITS[b];
       for (const b of c.turbo || []) turbo |= BUTTON_BITS[b];
       if (c.hotkey === 'fastForward') ff = true;
-      if (c.hotkey === 'menu') menu = true;
+      else if (c.hotkey === 'rewind') rw = true;
+      else if (c.hotkey) taps.add(c.hotkey);
     }
     if (mask & ~input.touchMask) input.haptic(10);
     input.touchMask = mask;
     input.touchTurbo = turbo;
     input.padHold('touch', 'fastForward', ff);
-    if (menu && !this.menuDown) {
+    input.padHold('touch', 'rewind', rw);
+    for (const id of taps) {
+      if (this.tapsDown?.has(id)) continue;
       input.haptic(15);
-      input.dispatchEvent(new CustomEvent('hotkey', { detail: { id: 'menu' } }));
+      input.dispatchEvent(new CustomEvent('hotkey', { detail: { id } }));
     }
-    this.menuDown = menu;
+    this.tapsDown = taps;
     for (const [id, n] of this.nodes) {
       const active = [...this.pointers.values()].some((p) => p.hit?.c.id === id);
       n.classList.toggle('pressed', active);

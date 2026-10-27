@@ -568,7 +568,7 @@
     <string name="nsfw_neutral">Neutral</string>
     <string name="modules">Studio &amp; apps</string>
     <string name="open_in">Open in %1$s</string>
-    <string name="module_studio">Groovesmith Studio</string>
+    <string name="module_studio" translatable="false">Groovesmith Studio</string>
     <string name="module_studio_summary">Beat sequencer, synth, sampler, video chopper and mixer</string>
     <string name="an_failed">Scan failed: %s</string>
     <string name="an_used_breakdown">Used space: %s</string>
@@ -577,8 +577,8 @@
     <string name="an_part_apps_unknown">Apps and app data: allow Usage access to measure</string>
     <string name="an_part_rest">System, blocked folders and other</string>
     <string name="an_blocked">%d folders were blocked and not counted (e.g. Android/data). Unlock them, then rescan:</string>
-    <string name="module_oleander">Oleander</string>
+    <string name="module_oleander" translatable="false">Oleander</string>
     <string name="module_oleander_summary">Game Boy Advance emulator</string>
-    <string name="module_quinten">Quinten Reader</string>
+    <string name="module_quinten" translatable="false">Quinten Reader</string>
     <string name="module_quinten_summary">E-books, PDFs, comics and scans with reflow, OCR and read-aloud</string>
 </resources>

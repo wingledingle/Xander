@@ -103,6 +103,10 @@ public class MainActivity extends Activity {
         web = new WebView(this);
         setContentView(web);
         immersive();
+        preferSixtyHz();
+        // Android 16 apps get the back gesture as a callback, not a BACK key event (Xander change).
+        if (Build.VERSION.SDK_INT >= 33) getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::handleBack);
 
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
@@ -287,6 +291,22 @@ public class MainActivity extends Activity {
     private void scanTrees(Set<String> list, boolean quiet) {
         new Thread(() -> {
             JSONArray out = new JSONArray();
+            // Xander change: games found by Xander's own storage index (including ROMs inside zips), so there's no
+            // separate folder scan to set up.
+            try {
+                for (File f : com.xander.files.modules.SharedIndex.gbaRoms(this)) {
+                    String doc = Uri.fromFile(f).toString();
+                    allowedDocs.add(doc);
+                    JSONObject o = new JSONObject();
+                    o.put("name", f.getName());
+                    o.put("size", f.length());
+                    o.put("lastModified", f.lastModified());
+                    o.put("url", nativeUrl(doc));
+                    o.put("tree", "xander");
+                    out.put(o);
+                }
+            } catch (Exception ignored) {
+            }
             for (String t : list) {
                 try {
                     listTree(Uri.parse(t), out);
@@ -303,6 +323,21 @@ public class MainActivity extends Activity {
     // ------------------------------------------------------------------
     // Window / lifecycle
     // ------------------------------------------------------------------
+
+    /** GBA games run at 60 fps; on 90/120 Hz screens the extra refreshes only cost battery (Xander change). */
+    private void preferSixtyHz() {
+        if (Build.VERSION.SDK_INT < 23) return;
+        android.view.Display d = getWindowManager().getDefaultDisplay();
+        android.view.Display.Mode cur = d.getMode(), best = null;
+        for (android.view.Display.Mode m : d.getSupportedModes()) {
+            if (m.getPhysicalWidth() != cur.getPhysicalWidth() || m.getPhysicalHeight() != cur.getPhysicalHeight()) continue;
+            if (best == null || Math.abs(m.getRefreshRate() - 60f) < Math.abs(best.getRefreshRate() - 60f)) best = m;
+        }
+        if (best == null) return;
+        WindowManager.LayoutParams lp = getWindow().getAttributes();
+        lp.preferredDisplayModeId = best.getModeId();
+        getWindow().setAttributes(lp);
+    }
 
     private void immersive() {
         View decor = getWindow().getDecorView();
@@ -516,14 +551,17 @@ public class MainActivity extends Activity {
     public boolean dispatchKeyEvent(KeyEvent e) {
         if (padKey(e)) return true;
         if (e.getKeyCode() == KeyEvent.KEYCODE_BACK) {
-            if (e.getAction() == KeyEvent.ACTION_UP) {
-                web.evaluateJavascript("window.oleanderBack ? window.oleanderBack() : false", v -> {
-                    if (!"true".equals(v)) moveTaskToBack(true);
-                });
-            }
+            if (e.getAction() == KeyEvent.ACTION_UP) handleBack();
             return true;
         }
         return super.dispatchKeyEvent(e);
+    }
+
+    /** Back closes dialogs or toggles the in-game menu; from the library it leaves the app. */
+    private void handleBack() {
+        web.evaluateJavascript("window.oleanderBack ? window.oleanderBack() : false", v -> {
+            if (!"true".equals(v)) moveTaskToBack(true);
+        });
     }
 
     @Override
@@ -665,8 +703,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void rescanFolders() {
-            Set<String> t = trees();
-            if (!t.isEmpty()) scanTrees(t, true);
+            scanTrees(trees(), true); // always: Xander's index is scanned even with no folder picked
         }
 
         @JavascriptInterface

@@ -13,4 +13,5 @@ object StudioModule : WebModule(
     opens = setOf("gsproj", "mp4", "mkv", "webm", "mov", "3gp", "avi", "m4v", "ts", "wav", "mp3", "flac", "ogg", "opus", "m4a", "aac", "aif", "aiff"),
     defaultFor = setOf("gsproj"),
     lowLatencyAudio = true,
+    nativeVideo = true,
 )

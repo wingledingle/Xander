@@ -385,6 +385,7 @@ button:disabled { opacity: .35; cursor: default; }
 .pack-play .ic { width: 18px; height: 18px; fill: currentColor; stroke: none; }
 /* Video deck: the <video> itself is shown (hardware playback); the WebGL canvas only for shader FX. */
 .video-stage .video-el { display: block; width: 100%; height: auto; max-height: 52vh; background: #000; }
+.video-stage .native-video { --ar: 16 / 9; aspect-ratio: var(--ar); width: min(100%, calc(52vh * (var(--ar)))); max-height: 52vh; margin: 0 auto; background: #000; }
 .video-stage .video-el.offscreen { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
 /* ---- Responsiveness: instant feedback on touch, no double-tap zoom delay, lazy rendering of long lists ---- */
