@@ -233,6 +233,7 @@ class XanderHostBridge(
     @JavascriptInterface fun toast(msg: String) { web.post { Toast.makeText(web.context, msg, Toast.LENGTH_SHORT).show() } }
     @JavascriptInterface fun keepScreenOn(on: Boolean) { web.post { web.keepScreenOn = on } }
     @JavascriptInterface fun exit() { web.post(onExit) }
+    @JavascriptInterface fun log(msg: String) = ModuleLog.write(web.context, module.id, msg.take(2000))
 
     // Low-latency pads (only when the module asked for them).
     @JavascriptInterface fun padAvailable(): Boolean = module.lowLatencyAudio
@@ -284,7 +285,7 @@ fun WebModuleScreen(module: WebModule, file: FsPath?, onBack: () -> Unit, vm: We
                     return assets.shouldInterceptRequest(url)
                 }
                 override fun onRenderProcessGone(view: WebView, detail: android.webkit.RenderProcessGoneDetail): Boolean {
-                    Log.w("WebModule", "${module.id}: renderer gone (crashed=${detail.didCrash()})")
+                    ModuleLog.write(context, module.id, "RENDERER GONE crashed=${detail.didCrash()} priority=${detail.rendererPriorityAtExit()}")
                     vm.crashes++
                     vm.launchJson = "" // don't reopen the file that may have caused it
                     (view.parent as? ViewGroup)?.removeView(view)
@@ -302,7 +303,8 @@ fun WebModuleScreen(module: WebModule, file: FsPath?, onBack: () -> Unit, vm: We
             }
             webChromeClient = object : WebChromeClient() {
                 override fun onConsoleMessage(m: ConsoleMessage): Boolean {
-                    if (m.messageLevel() == ConsoleMessage.MessageLevel.ERROR) Log.w("WebModule", "${module.id}: ${m.message()} (${m.sourceId()}:${m.lineNumber()})")
+                    if (m.messageLevel() == ConsoleMessage.MessageLevel.ERROR || m.messageLevel() == ConsoleMessage.MessageLevel.WARNING)
+                        ModuleLog.write(context, module.id, "${m.messageLevel()}: ${m.message()} (${m.sourceId().substringAfterLast('/')}:${m.lineNumber()})")
                     return true
                 }
             }
@@ -310,6 +312,7 @@ fun WebModuleScreen(module: WebModule, file: FsPath?, onBack: () -> Unit, vm: We
                 holder[0] = (this.tag as XanderHostBridge) to id
                 picker.launch(mimes) // the system picker always allows several; single-file callers take the first
             }, { back() }).also { tag = it }, "XanderHost")
+            ModuleLog.started(context, module.id)
             loadUrl(WebModuleHost.pageUrl(module))
         }
     }

@@ -383,3 +383,6 @@ button:disabled { opacity: .35; cursor: default; }
 .pack-row .li-main { flex: 1; }
 .pack-play { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--surface3); display: grid; place-items: center; flex: none; }
 .pack-play .ic { width: 18px; height: 18px; fill: currentColor; stroke: none; }
+/* Video deck: the <video> itself is shown (hardware playback); the WebGL canvas only for shader FX. */
+.video-stage .video-el { display: block; width: 100%; height: auto; max-height: 52vh; background: #000; }
+.video-stage .video-el.offscreen { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }

@@ -16,6 +16,11 @@ if (A) {
     fail(id, msg) { pending.get(id)?.rej(new Error(msg)); pending.delete(id); },
   };
 }
+// Uncaught errors go to the log file too, so a problem on a phone can be traced afterwards.
+if (A?.log) {
+  window.addEventListener('error', (e) => A.log(`JS ERROR: ${e.message} (${(e.filename || '').split('/').pop()}:${e.lineno})`));
+  window.addEventListener('unhandledrejection', (e) => A.log(`JS REJECTION: ${e.reason?.stack || e.reason}`));
+}
 const call = (fn) => new Promise((res, rej) => { const id = ++seq; pending.set(id, { res, rej }); fn(id); });
 
 function pickInBrowser(accept, multiple) {
@@ -68,6 +73,8 @@ export const host = {
   },
   /** Opens a file by its file-manager path (e.g. a sample's source video). Resolves to a file object or null. */
   async openPath(path) { return A ? JSON.parse(A.openPath(String(path)) || 'null') : null; },
+  /** Adds a line to the module's log file on the phone (Android/data/<app>/files/logs/<id>.log). */
+  log(msg) { if (A?.log) A.log(String(msg)); else console.info(msg); },
   toast(msg) { if (A) A.toast(String(msg)); },
   keepScreenOn(on) { A?.keepScreenOn(!!on); },
   exit() { if (A) A.exit(); else history.back(); },

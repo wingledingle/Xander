@@ -10,7 +10,7 @@ import { COLORS, uid, CHANNEL_PARAMS } from '../core.js';
 import { detectOnsets, equalSlices, gridSlices, markersToSlices, snapToZero, mixDown, fmtTime } from '../dsp.js';
 import { library, normTags, uniqueName } from '../library.js';
 import { playSample, renderSample } from '../audio.js';
-import { createVideoRenderer, VIDEO_FX, VIDEO_PRESETS, FX_KEYS, defaultVideoFx, normalizeVideoFx } from '../videofx.js';
+import { createVideoRenderer, VIDEO_FX, VIDEO_PRESETS, FX_KEYS, defaultVideoFx, normalizeVideoFx, needsShader, cssFilter, SHADER_KEYS } from '../videofx.js';
 import { h, btn, iconBtn, icon, knob, segmented, toast, prompt, sheet, confirmSheet, onLongPress, fmt } from '../ui.js';
 import { waveView } from './wave.js';
 import { decodeFile } from '../actions.js';
@@ -23,11 +23,13 @@ const V = {
   file: null, chops: [], fx: defaultVideoFx(), afx: { ...AFX_DEFAULT }, inPt: null, outPt: null, selected: null, tab: 'chops',
   buffer: null, audioStart: 0, decoding: false, autoMode: 'transient', autoAmount: 0.5, stopAt: null, padVoice: null,
 };
-const video = h('video', { class: 'src-video', playsinline: true, preload: 'auto', crossorigin: 'anonymous' });
-const thumbVideo = h('video', { class: 'src-video', muted: true, preload: 'auto', playsinline: true, crossorigin: 'anonymous' });
+const video = h('video', { class: 'video-el', playsinline: true, preload: 'auto' });
+const thumbVideo = h('video', { class: 'src-video', muted: true, preload: 'metadata', playsinline: true });
 const canvas = h('canvas', { class: 'video-canvas', width: 1280, height: 720 });
-const renderer = createVideoRenderer(canvas, video);
-let elGain = null, wave = null, rootEl = null, timeEl = null, playBtn = null, recording = null;
+// The WebGL renderer is created only when a shader effect is turned on (see applyFx).
+let renderer = null;
+const getRenderer = () => (renderer ??= createVideoRenderer(canvas, video));
+let wave = null, rootEl = null, timeEl = null, playBtn = null, recording = null;
 
 const chopColor = (i) => COLORS[i % COLORS.length];
 const session = () => ({ name: V.file?.name, path: V.file?.path || null, chops: V.chops, fx: V.fx, afx: V.afx, inPt: V.inPt, outPt: V.outPt });
@@ -44,30 +46,32 @@ export async function openVideo(file) {
   V.fx = normalizeVideoFx(same ? prev.fx : null);
   V.afx = { ...AFX_DEFAULT, ...(same ? prev.afx : {}) };
   V.inPt = same ? prev.inPt : null; V.outPt = same ? prev.outPt : null;
-  renderer.set(V.fx);
   video.src = file.url; thumbVideo.removeAttribute('src'); // the browser-only thumbnail fallback loads it on demand
   video.load();
-  await new Promise((res, rej) => { video.onloadedmetadata = res; video.onerror = () => rej(new Error('This video format is not supported')); });
-  canvas.width = Math.min(1280, video.videoWidth || 1280); canvas.height = Math.round(canvas.width * ((video.videoHeight || 720) / (video.videoWidth || 1280)));
-  renderer.start();
-  ensureAudioRoute();
+  host.log(`video open: ${file.name} ${file.mime || '?'} ${file.size ?? '?'} bytes`);
+  await new Promise((res, rej) => { video.onloadedmetadata = res; video.onerror = () => rej(new Error(`This video can't be played here (error ${video.error?.code ?? '?'})`)); });
+  host.log(`video ready: ${video.videoWidth}x${video.videoHeight}, ${video.duration?.toFixed(1)} s`);
+  canvas.width = Math.min(960, video.videoWidth || 960); canvas.height = Math.round(canvas.width * ((video.videoHeight || 540) / (video.videoWidth || 960)));
+  applyFx();
   persist();
   if (rootEl) renderVideo(rootEl);
-  loadAudio(0);
+  setTimeout(() => loadAudio(0), 800); // after the video's own decoder has started
   if (same && V.chops.length) toast(`Restored ${V.chops.length} chops for ${file.name}`);
 }
 
-function ensureAudioRoute() {
-  const e = audio();
-  if (!elGain) {
-    elGain = e.ctx.createGain();
-    try { e.ctx.createMediaElementSource(video).connect(elGain); } catch (err) { console.warn(err); }
-  }
-  elGain.disconnect();
-  elGain.connect(e.aux('video', afxParams()));
-}
 const afxParams = () => ({ ...Object.fromEntries(Object.entries(CHANNEL_PARAMS).map(([k, [, , d]]) => [k, d])), ...V.afx, pitch: 0, pan: 0, mute: false, solo: false });
-const applyAfx = () => { if (S.engine) S.engine.aux('video', afxParams()); persist(); };
+const applyAfx = () => { if (S.engine) S.engine.aux('video', afxParams()); video.volume = Math.min(1, V.afx.vol); persist(); };
+
+// Plain playback is the phone's own video player with its own sound: nothing is copied per frame and the sound is
+// not rerouted (both of those froze some phones). Colour FX are a CSS filter; shader FX switch the WebGL canvas on.
+function applyFx() {
+  const shader = needsShader(V.fx);
+  video.style.filter = shader ? '' : cssFilter(V.fx);
+  canvas.hidden = !shader;
+  video.classList.toggle('offscreen', shader);
+  if (shader) { const r = getRenderer(); r.set(V.fx); r.start(); } else renderer?.stop();
+  persist();
+}
 
 let loading = null;
 async function loadAudio(fromSec) {
@@ -170,11 +174,11 @@ export function playChop(chop) {
   video.currentTime = chop.start;
   V.stopAt = chop.end;
   if (V.buffer && chop.start >= V.audioStart && chop.end <= V.audioStart + V.buffer.duration + 0.01) {
-    elGain.gain.setValueAtTime(0, t);
+    video.muted = true; // the decoded audio (with audio FX) plays instead, on time
     V.padVoice = playSample(e.ctx, e.aux('video', afxParams()), V.buffer, t, {
       start: chop.start - V.audioStart, end: chop.end - V.audioStart, pitch: V.afx.pitch, reverse: V.afx.reverse, gain: V.afx.vol, attack: 0.003, release: 0.01,
     });
-  } else { elGain.gain.setValueAtTime(V.afx.vol, t); ensureAudio(chop.start, chop.end); }
+  } else { video.muted = false; ensureAudio(chop.start, chop.end); }
   video.play().catch(() => {});
   markSelected();
 }
@@ -203,7 +207,18 @@ async function exportClip(chop) {
   if (!window.MediaRecorder || !canvas.captureStream) return toast('Video export is not supported on this device');
   const e = audio(), dest = e.ctx.createMediaStreamDestination();
   e.analyser.connect(dest);
-  const stream = new MediaStream([...canvas.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]);
+  // Shader FX record the WebGL canvas; otherwise frames are drawn (with the colour filter) to a 2D canvas, only
+  // while this export runs.
+  let src = canvas, stopDraw = () => {};
+  if (!needsShader(V.fx)) {
+    src = h('canvas', { width: canvas.width, height: canvas.height });
+    const g = src.getContext('2d');
+    let raf = 0;
+    const draw = () => { g.filter = cssFilter(V.fx); if (video.readyState >= 2) g.drawImage(video, 0, 0, src.width, src.height); raf = requestAnimationFrame(draw); };
+    draw();
+    stopDraw = () => cancelAnimationFrame(raf);
+  }
+  const stream = new MediaStream([...src.captureStream(30).getVideoTracks(), ...dest.stream.getAudioTracks()]);
   const mime = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find((m) => MediaRecorder.isTypeSupported(m)) || '';
   const parts = [];
   recording = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: 6e6 } : {});
@@ -215,6 +230,7 @@ async function exportClip(chop) {
   const len = (chop.end - chop.start) / Math.min(4, Math.max(0.25, 2 ** (V.afx.pitch / 12)));
   setTimeout(() => recording.stop(), len * 1000 + 250);
   await done;
+  stopDraw();
   e.analyser.disconnect(dest);
   recording = null;
   const blob = new Blob(parts, { type: 'video/webm' });
@@ -295,11 +311,12 @@ function chopPads() {
 function videoFxPanel() {
   const knobs = FX_KEYS.map((k) => {
     const [min, max, def, label] = VIDEO_FX[k];
-    return knob({ label, min, max, def, value: V.fx[k], fmt: k === 'hue' ? (v) => `${Math.round(v)}°` : k === 'zoom' ? (v) => `${v.toFixed(2)}×` : fmt.pct, onchange: (v) => { V.fx[k] = v; renderer.set(V.fx); persist(); } }).el;
+    return knob({ label, min, max, def, value: V.fx[k], fmt: k === 'hue' ? (v) => `${Math.round(v)}°` : k === 'zoom' ? (v) => `${v.toFixed(2)}×` : fmt.pct, onchange: (v) => { V.fx[k] = v; applyFx(); } }).el;
   });
   return h('div', {},
-    h('div', { class: 'chips' }, Object.entries(VIDEO_PRESETS).map(([name, p]) => btn(name, () => { V.fx = normalizeVideoFx({ ...defaultVideoFx(), ...p }); renderer.set(V.fx); persist(); renderVideo(rootEl); }, { cls: 'chip' }))),
-    h('div', { class: 'knobs' }, knobs));
+    h('div', { class: 'chips' }, Object.entries(VIDEO_PRESETS).map(([name, p]) => btn(name, () => { V.fx = normalizeVideoFx({ ...defaultVideoFx(), ...p }); applyFx(); renderVideo(rootEl); }, { cls: 'chip' }))),
+    h('div', { class: 'knobs' }, knobs),
+    h('p', { class: 'hint' }, `Bright, Contrast, Sat, Hue and Invert are light on the phone. ${SHADER_KEYS.map((k) => VIDEO_FX[k][3]).join(', ')} use the GPU and switch on only while turned up.`));
 }
 
 function audioFxPanel() {
@@ -329,7 +346,7 @@ export function renderVideo(root) {
   });
   if (V.buffer) wave.setBuffer(V.buffer, V.audioStart);
   timeEl = h('span', { class: 'lcd' }, fmtTime(video.currentTime));
-  playBtn = iconBtn(video.paused ? 'play' : 'pause', 'Play or pause', () => { if (video.paused) { V.stopAt = null; elGain && elGain.gain.setValueAtTime(V.afx.vol, S.ctx.currentTime); video.playbackRate = 1; video.play(); } else video.pause(); }, 'big');
+  playBtn = iconBtn(video.paused ? 'play' : 'pause', 'Play or pause', () => { if (video.paused) { V.stopAt = null; V.padVoice?.stop(S.ctx?.currentTime ?? 0); video.muted = false; video.playbackRate = 1; video.play(); } else video.pause(); }, 'big');
   const step = (d) => { video.pause(); video.currentTime = Math.max(0, video.currentTime + d); refreshWave(); };
   const tabs = { chops: chopList, pads: chopPads, video: videoFxPanel, audio: audioFxPanel };
   root.replaceChildren(h('div', { class: 'deck video' },
@@ -379,6 +396,9 @@ function tick() {
 requestAnimationFrame(tick);
 video.addEventListener('play', () => { if (playBtn) playBtn.querySelector('use').setAttribute('href', '#i-pause'); });
 video.addEventListener('pause', () => { if (playBtn) playBtn.querySelector('use').setAttribute('href', '#i-play'); refreshWave(); });
-video.addEventListener('seeked', () => { renderer.frame(); });
+video.addEventListener('seeked', () => { renderer?.frame(); });
 
 export const videoState = V;
+
+video.addEventListener('error', () => host.log(`video error ${video.error?.code}: ${video.error?.message || ''} at ${video.currentTime.toFixed(2)} s`));
+video.addEventListener('stalled', () => host.log(`video stalled at ${video.currentTime.toFixed(2)} s`));

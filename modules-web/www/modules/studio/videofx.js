@@ -97,3 +97,11 @@ export function createVideoRenderer(canvas, video) {
   const loop = () => { frame(); raf = requestAnimationFrame(loop); };
   return { set(v) { fx = v; }, start() { cancelAnimationFrame(raf); loop(); }, stop() { cancelAnimationFrame(raf); }, webgl: true, frame };
 }
+
+// Colour adjustments can be shown with a CSS filter on the <video> itself (no frame copies, safe on every phone).
+// Everything else needs the WebGL shader, which copies each frame to the GPU; that path only runs when one of
+// these effects is actually turned up.
+export const SHADER_KEYS = ['rgbShift', 'pixelate', 'scanlines', 'noise', 'glitch', 'posterize', 'vignette', 'mirror', 'thermal', 'strobe', 'zoom'];
+export const needsShader = (fx) => SHADER_KEYS.some((k) => (k === 'zoom' ? fx.zoom > 1.001 : fx[k] > 0.001));
+export const cssFilter = (fx) =>
+  `brightness(${(1 + fx.brightness).toFixed(3)}) contrast(${fx.contrast.toFixed(3)}) saturate(${fx.saturation.toFixed(3)}) hue-rotate(${Math.round(fx.hue)}deg)${fx.invert > 0.5 ? ' invert(1)' : ''}`;

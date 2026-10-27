@@ -49,6 +49,13 @@ try {
   await chooser.setFiles(CLIP);
   await page.waitForFunction(() => /Audio 0:00/.test(document.querySelector('#video-audio-status')?.textContent || ''), null, { timeout: 15000 });
   check(true, 'audio extracted from the video');
+  // Plain playback is the phone's own video player: visible <video>, no WebGL canvas, time advances.
+  const t0 = await page.evaluate(() => document.querySelector('.video-el').currentTime);
+  await page.click('button[aria-label="Play or pause"]');
+  await page.waitForTimeout(2000);
+  const st = await page.evaluate(() => ({ t: document.querySelector('.video-el').currentTime, vis: !document.querySelector('.video-el').classList.contains('offscreen'), canvas: !document.querySelector('.video-canvas').hidden }));
+  check(st.t - t0 > 1.5 && st.vis && !st.canvas, `video plays on the native path without the GPU canvas (${(st.t - t0).toFixed(2)} s in 2 s)`);
+  await page.click('button[aria-label="Play or pause"]');
   await page.click('button:has-text("Auto-chop")');
   await page.waitForTimeout(300);
   const chops = await page.locator('.chop').count();
@@ -67,6 +74,7 @@ try {
 
   await page.click('.tabs-inline button:has-text("Video FX")');
   await page.click('button.chip:has-text("VHS")');
+  check(await page.evaluate(() => !document.querySelector('.video-canvas').hidden && document.querySelector('.video-el').classList.contains('offscreen')), 'a shader preset (VHS) switches to the GPU canvas');
   await page.click('.tabs-inline button:has-text("Pads")');
   await page.locator('.thumb-pad').nth(5).dispatchEvent('pointerdown');
   await page.locator('.thumb-pad').nth(5).dispatchEvent('pointerup');
