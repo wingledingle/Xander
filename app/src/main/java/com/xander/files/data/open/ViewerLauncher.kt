@@ -41,6 +41,8 @@ class ViewerLauncher @Inject constructor(
 
     suspend fun open(entry: FileEntry, forceKind: ViewerKind? = null) {
         runCatching { bookmarks.recordOpened(entry) }
+        // A module that claimed this extension (e.g. .gsproj → Studio) opens it on tap.
+        if (forceKind == null) com.xander.files.modules.Modules.defaultFor(entry)?.let { return channel.send(OpenRequest.Route(com.xander.files.modules.Modules.route(it, entry.path))) }
         val kind = forceKind ?: if (settings.settings.first().builtInViewers) ViewerRouter.kindOf(entry) else ViewerKind.EXTERNAL
         try {
             channel.send(

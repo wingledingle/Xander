@@ -78,6 +78,8 @@ android {
         aidl = true
     }
     androidResources { noCompress += "tflite" }
+    // Web modules (modules-web/www/modules/<id>/) ship as assets/modules/<id>/.
+    sourceSets["main"].assets.srcDir(rootProject.file("modules-web/www"))
 
     packaging {
         resources {

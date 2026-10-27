@@ -98,6 +98,8 @@ fun AppDrawer(
                 Section(title)
                 items.forEach { d -> Item(d.icon, stringResource(d.label)) { onRoute(d.route) } }
             }
+            Section(R.string.modules)
+            com.xander.files.modules.Modules.all.forEach { m -> Item(m.icon, stringResource(m.title)) { onRoute(com.xander.files.modules.Modules.route(m)) } }
             Section(R.string.tools)
             drawerTools.forEach { d -> Item(d.icon, stringResource(d.label)) { onRoute(d.route) } }
             HorizontalDivider(Modifier.padding(vertical = 8.dp))

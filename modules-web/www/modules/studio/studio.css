@@ -322,3 +322,4 @@ button:disabled { opacity: .35; cursor: default; }
   .steps { gap: 3px; }
   .steps > :nth-child(4n+1):not(:first-child) { margin-left: 3px; }
 }
+@media (min-width: 840px) { .track-head { width: 190px; } }

@@ -47,6 +47,23 @@ Release builds are minified with R8. Sign them with your own keystore (`signingC
 - App manager for user and system apps: sizes, back up the APK, share, uninstall, app info and Play Store.
 - APK, split APK (APKS/XAPK/APKM) and OBB install.
 
+**Groovesmith Studio and other modules**
+- Drawer → *Studio & apps*, or *Open in Groovesmith Studio* on any audio or video file. `.gsproj` projects open on tap.
+- Beat: 16-track step sequencer (16/32 steps, per-step velocity and accents, swing, 8 patterns, song arrangement),
+  4×4 pads with live recording, drum synth voices and library samples on any track.
+- Synth: two oscillators, filter, envelopes, glide, three-octave piano roll, playable keyboard.
+- Sampler: trim, gain, pitch, attack/release, reverse, loop, normalize, trim silence; chop by transients, equal
+  slices, beat grid or hand-placed markers; slices play from pads and save as new samples.
+- Video: watch a video and chop it with In/Out marks or auto-chop; label, tag and colour every chop (thumbnails
+  included); play chops from pads with picture and sound; real-time video FX (VHS, glitch, thermal, pixelate,
+  mirror…) and audio FX; save chops to the library for the Beat deck; export a chop as a WebM clip.
+  Audio is extracted with the phone's own decoders, so MKV/MP4/3GP etc. all work.
+- Library: search by label, source or `#tag`, favourites, preview, export WAV, jump back to the source video.
+- Mixer: fader, pan, mute/solo and meter per channel; filter, drive, bit-crush, 3-band EQ, delay and reverb sends;
+  master EQ, bus compressor and limiter. Undo/redo, WAV export (pattern or song), project files.
+- Low-latency native pad engine for finger drumming. See [modules-web/README.md](modules-web/README.md) for how
+  modules plug in (web or native) and how to add new ones.
+
 **Built-in viewers and players** (can be turned off in Settings)
 - Images: zoom and pan, swipe through the folder, slideshow, rotate, GIF/WebP animation, EXIF details.
 - Video: Media3, subtitles (SRT/VTT/ASS/TTML, auto-detected next to the video), playback speed,

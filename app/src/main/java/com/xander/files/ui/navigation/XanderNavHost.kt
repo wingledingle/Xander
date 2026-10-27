@@ -181,6 +181,10 @@ fun XanderNavHost(
             composable("office?path={path}", pathArg) { com.xander.files.ui.viewers.OfficeViewerScreen(onBack = { nav.popBackStack() }) }
             composable("book?path={path}", pathArg) { com.xander.files.ui.viewers.BookReaderScreen(onBack = { nav.popBackStack() }) }
             composable("editor?path={path}", pathArg) { com.xander.files.ui.editor.TextEditorScreen(onBack = { nav.popBackStack() }) }
+            composable(com.xander.files.modules.Modules.ROUTE, listOf(navArgument("id") { type = NavType.StringType }, navArgument("path") { type = NavType.StringType; defaultValue = "" })) { e ->
+                val path = e.arguments?.getString("path").orEmpty().ifEmpty { null }?.let { runCatching { FsPath.parse(it) }.getOrNull() }
+                com.xander.files.modules.Modules.byId(e.arguments?.getString("id"))?.Content(path) { nav.popBackStack() }
+            }
             composable(Routes.SERVERS) { com.xander.files.ui.server.ServerScreen(onBack = { nav.popBackStack() }) }
             composable(Routes.BLUETOOTH) { com.xander.files.ui.bluetooth.BluetoothScreen(onBack = { nav.popBackStack() }, onOpenFolder = nav::openFolder) }
             composable(Routes.TV) { com.xander.files.ui.tv.TvListScreen(onBack = { nav.popBackStack() }, onOpen = { nav.navigate(Routes.tvDevice(it)) }) }

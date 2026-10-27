@@ -29,6 +29,10 @@ you to publish your own source code or pay a licence fee. Audited from `mobileRe
 | Accompanist | Compose helpers | Apache-2.0 |
 | Firebase encoders / Google datatransport (transitive of Play Billing) | Play telemetry plumbing | Apache-2.0 |
 
+Bundled web modules (`modules-web/www/modules/`):
+- Groovesmith Studio: Apache-2.0. Built on Groovesmith by the Callback contributors (Apache-2.0). No third-party code,
+  fonts or samples: every sound is synthesized or comes from the user's own files; icons are drawn in this codebase.
+
 Excluded on purpose:
 - `com.google.code.findbugs:jsr305` (BSD-3, annotations only) is excluded from the runtime classpath.
 - `org.tukaani:xz` 1.10+ (0BSD) is replaced by 1.9 (public domain).

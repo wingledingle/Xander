@@ -277,6 +277,7 @@ class BrowserViewModel @Inject constructor(
 
     /** Opens with a specific built-in viewer (e.g. "Read as book" for .txt, "Open as text"). */
     fun openAs(entry: FileEntry, kind: com.xander.files.data.open.ViewerKind) = viewModelScope.launch { launcher.open(entry, kind) }
+    fun openInModule(entry: FileEntry, m: com.xander.files.modules.XanderModule) = viewModelScope.launch { launcher.navigate(com.xander.files.modules.Modules.route(m, entry.path)) }
 
     private fun archiveOf(p: FsPath): FsPath = if (p.scheme == FsPath.SCHEME_ARCHIVE) FsPath.parse(FsPath.decodeAuthority(p.authority)) else p
 

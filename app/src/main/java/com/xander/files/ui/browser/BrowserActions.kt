@@ -85,6 +85,9 @@ fun entryActions(
             add(SheetAction(Icons.Filled.VisibilityOff, stringResource(R.string.adult_check)) { vm.checkNsfw(single) })
         if (onShareLink != null) add(SheetAction(Icons.Filled.Link, stringResource(R.string.share_link)) { onShareLink() })
         if (single != null && !single.isDirectory) add(SheetAction(Icons.AutoMirrored.Filled.OpenInNew, stringResource(R.string.open_with)) { vm.openWith(single) })
+        if (single != null) com.xander.files.modules.Modules.forFile(single).forEach { m ->
+            add(SheetAction(m.icon, stringResource(R.string.open_in, stringResource(m.title))) { vm.openInModule(single, m) })
+        }
         if (single != null && !single.isDirectory && single.extension == "txt") add(SheetAction(Icons.AutoMirrored.Filled.MenuBook, stringResource(R.string.read_as_book)) { vm.openAs(single, com.xander.files.data.open.ViewerKind.BOOK) })
         if (single != null && !single.isDirectory && com.xander.files.data.open.ViewerRouter.kindOf(single) !in setOf(com.xander.files.data.open.ViewerKind.TEXT, com.xander.files.data.open.ViewerKind.IMAGE, com.xander.files.data.open.ViewerKind.VIDEO, com.xander.files.data.open.ViewerKind.AUDIO))
             add(SheetAction(Icons.Filled.Description, stringResource(R.string.open_as_text)) { vm.openAs(single, com.xander.files.data.open.ViewerKind.TEXT) })

@@ -560,4 +560,8 @@
     <string name="nsfw_sexy">Sexy</string>
     <string name="nsfw_drawings">Drawing</string>
     <string name="nsfw_neutral">Neutral</string>
+    <string name="modules">Studio &amp; apps</string>
+    <string name="open_in">Open in %1$s</string>
+    <string name="module_studio">Groovesmith Studio</string>
+    <string name="module_studio_summary">Beat sequencer, synth, sampler, video chopper and mixer</string>
 </resources>

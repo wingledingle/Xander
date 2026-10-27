@@ -126,6 +126,30 @@ try {
   await page.click('.seg button:has-text("Steps")');
   await shot('11-tablet-beat');
 
+  // Low-latency pads: with a native host present, pad hits go to XanderHost.padTrigger after a one-time upload.
+  const native = await browser.newPage({ ...devices['Pixel 7'] });
+  native.on('pageerror', (e) => errors.push(e.message));
+  await native.addInitScript(() => {
+    const calls = (window.__calls = []);
+    window.XanderHost = {
+      launchFile: () => '', padAvailable: () => true, padLatencyMs: () => 9.5, keepScreenOn() {}, toast() {},
+      padLoad: (id, rate, ch, b64) => calls.push(['load', id, rate, ch, b64.length]),
+      padTrigger: (id, gain, pan) => calls.push(['hit', id, gain, pan]), padStopAll() {},
+    };
+  });
+  await native.goto('http://localhost:8792/modules/studio/index.html');
+  await native.click('.nav button[data-view=beat]');
+  await native.click('.seg button:has-text("Pads")');
+  const pad = native.locator('.pad').first();
+  await pad.dispatchEvent('pointerdown'); await pad.dispatchEvent('pointerup');
+  await native.waitForFunction(() => window.__calls.some((c) => c[0] === 'load'), null, { timeout: 10000 });
+  await pad.dispatchEvent('pointerdown'); await pad.dispatchEvent('pointerup');
+  const calls = await native.evaluate(() => window.__calls);
+  const load = calls.find((c) => c[0] === 'load'), hit = calls.find((c) => c[0] === 'hit');
+  check(load && load[2] === 48000 && load[3] === 2 && load[4] > 1000, 'pad sound pre-rendered and uploaded to the native engine');
+  check(hit && hit[1] === load[1] && hit[2] > 0, 'second pad hit goes through the native low-latency path');
+  await native.close();
+
   check(errors.length === 0, `no page errors${errors.length ? `: ${errors.join(' | ')}` : ''}`);
   console.log(`screenshots in ${OUT}`);
 } catch (e) {
