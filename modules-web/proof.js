@@ -106,6 +106,21 @@ try {
   for (let i = 44; i < wav.length; i += 2) peak = Math.max(peak, Math.abs(wav.readInt16LE(i)));
   check(wav.toString('ascii', 0, 4) === 'RIFF' && peak > 3000, `exported WAV is audible (peak ${peak})`);
 
+  // Sound packs: search the bundled CC0 effects and put one on a track.
+  await nav('library');
+  await page.click('.seg button:has-text("Sound packs")');
+  await page.waitForSelector('.pack-row');
+  await page.fill('input[aria-label="Search sound packs"]', 'bell heavy');
+  const packRows = await page.locator('.pack-row').count();
+  check(packRows >= 3, `sound pack search finds ${packRows} heavy bells`);
+  await page.locator('.pack-row button[aria-label="Add to Beat as a track"]').first().click();
+  await page.waitForFunction(() => /added to the Beat deck/.test(document.querySelector('#toast').textContent), null, { timeout: 10000 });
+  await shot('12-sound-packs');
+  await nav('beat');
+  check(await page.locator('.track-row:not(.ruler)').count() === 10, 'pack sound became a 10th track');
+  await nav('library');
+  await page.click('.seg button:has-text("My samples")');
+
   // Sampler on a chop, then mixer while playing.
   await nav('library');
   await page.locator('.sample-card .icon-btn').first().click();

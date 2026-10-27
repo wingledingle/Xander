@@ -11,8 +11,10 @@ import { playSample } from '../audio.js';
 import { h, btn, iconBtn, icon, sheet, confirmSheet, toast } from '../ui.js';
 import { importAudioFiles } from '../actions.js';
 import { host } from '../../host/xander.js';
+import { renderPacks } from './packs.js';
+import { segmented } from '../ui.js';
 
-let query = '', tag = '', voice = null;
+let query = '', tag = '', voice = null, tab = 'mine';
 
 function preview(r) {
   const e = audio();
@@ -70,6 +72,13 @@ export function editSample(r, go) {
 }
 
 export function renderLibrary(root, go) {
+  const tabs = segmented([['mine', 'My samples'], ['packs', 'Sound packs']], tab, (v) => { tab = v; renderLibrary(root, go); });
+  if (tab === 'packs') {
+    const body = h('div', { class: 'deck library' }, h('div', { class: 'toolbar' }, tabs), h('div', { class: 'packs-body' }));
+    root.replaceChildren(body);
+    renderPacks(body.querySelector('.packs-body'));
+    return;
+  }
   const all = [...S.samples.values()], tags = allTags(all), list = searchSamples(all, query, tag);
   const results = h('div', { class: 'sample-grid' });
   const draw = () => {
@@ -85,6 +94,7 @@ export function renderLibrary(root, go) {
   };
   const search = h('input', { class: 'field search', type: 'search', value: query, placeholder: 'Search labels, tags, sources…', 'aria-label': 'Search samples', oninput: (e) => { query = e.target.value; draw(); } });
   root.replaceChildren(h('div', { class: 'deck library' },
+    h('div', { class: 'toolbar' }, tabs),
     h('div', { class: 'toolbar' }, h('div', { class: 'search-wrap grow' }, icon('search'), search),
       btn('Import', async () => importAudioFiles(await host.pick({ accept: ['audio/*', 'video/*'], multiple: true })), { icon: 'import', cls: 'primary small' })),
     tags.length ? h('div', { class: 'chips scroll' }, h('button', { type: 'button', class: `chip${!tag ? ' on' : ''}`, onclick: () => { tag = ''; renderLibrary(root, go); } }, `All ${all.length}`),

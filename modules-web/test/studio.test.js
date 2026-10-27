@@ -230,3 +230,13 @@ test('video fx params clamp and presets only use known keys', () => {
   assert.deepEqual(normalizeVideoFx(null), defaultVideoFx());
   for (const p of Object.values(VIDEO_PRESETS)) for (const k of Object.keys(p)) assert.ok(FX_KEYS.includes(k), k);
 });
+
+test('sound pack index names and tags come from file names', async () => {
+  const { describe: d } = await import('../tools/sound-index.js');
+  assert.deepEqual(d('impactBell_heavy_001.ogg'), { name: 'Impact bell heavy 2', tags: ['impact', 'bell', 'heavy'] });
+  assert.deepEqual(d('laserSmall_000.ogg'), { name: 'Laser small 1', tags: ['laser', 'small'] });
+  const { readFileSync, existsSync } = await import('node:fs');
+  const idx = JSON.parse(readFileSync(new URL('../www/modules/studio/sounds/index.json', import.meta.url)));
+  assert.ok(idx.sounds.length > 400);
+  for (const s of idx.sounds) assert.ok(existsSync(new URL(`../www/modules/studio/sounds/${s.p}/${s.f}`, import.meta.url)), s.f);
+});

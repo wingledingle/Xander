@@ -376,3 +376,10 @@ button:disabled { opacity: .35; cursor: default; }
 @media (min-width: 840px), (orientation: landscape) and (max-height: 500px) { .beat-pads { flex: none; grid-auto-rows: auto; align-content: start; } .beat-pads .pad { aspect-ratio: 1; } }
 .grid-wrap { flex: 0 0 auto; max-height: 60%; }
 @media (min-width: 840px), (orientation: landscape) and (max-height: 500px) { .grid-wrap { flex: 1; max-height: 100%; } }
+/* Sound packs */
+.packs-body { display: flex; flex-direction: column; gap: 10px; }
+.pack-list { display: flex; flex-direction: column; gap: 4px; }
+.pack-row { display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 6px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: inset 3px 0 0 var(--tc); }
+.pack-row .li-main { flex: 1; }
+.pack-play { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--surface3); display: grid; place-items: center; flex: none; }
+.pack-play .ic { width: 18px; height: 18px; fill: currentColor; stroke: none; }

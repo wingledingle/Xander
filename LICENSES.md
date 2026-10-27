@@ -31,7 +31,9 @@ you to publish your own source code or pay a licence fee. Audited from `mobileRe
 
 Bundled web modules (`modules-web/www/modules/`):
 - Groovesmith Studio: Apache-2.0. Built on Groovesmith by the Callback contributors (Apache-2.0). No third-party code,
-  fonts or samples: every sound is synthesized or comes from the user's own files; icons are drawn in this codebase.
+  fonts or samples except the sound packs below: sounds are synthesized, come from the user's own files, or are CC0.
+- Studio sound packs (`studio/sounds/`): 473 effects from Kenney's Impact, Interface, Sci-fi, Digital, RPG and Casino
+  audio packs, CC0 1.0 (public domain, no attribution required; credited anyway). License files ship next to each pack.
 
 Excluded on purpose:
 - `com.google.code.findbugs:jsr305` (BSD-3, annotations only) is excluded from the runtime classpath.
