@@ -13,6 +13,11 @@ val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) f.inputStream().use { load(it) }
 }
+val buildInfo = Properties().apply { rootProject.file("version.properties").inputStream().use { load(it) } }
+val buildNumber = buildInfo.getProperty("build").toInt()
+// APKs come out as xander-build-<N>-<flavor>-<type>.apk
+base.archivesName.set("xander-build-$buildNumber")
+
 fun cfg(key: String): String =
     (localProps.getProperty(key) ?: providers.gradleProperty(key).orNull ?: System.getenv(key.replace('.', '_').uppercase()) ?: "")
 
@@ -27,8 +32,8 @@ android {
         applicationId = "com.xander.files"
         minSdk = 23
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = buildNumber
+        versionName = "${buildInfo.getProperty("version")} build $buildNumber"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
 
