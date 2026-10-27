@@ -61,8 +61,17 @@ Release builds are minified with R8. Sign them with your own keystore (`signingC
 - Library: search by label, source or `#tag`, favourites, preview, export WAV, jump back to the source video.
 - Mixer: fader, pan, mute/solo and meter per channel; filter, drive, bit-crush, 3-band EQ, delay and reverb sends;
   master EQ, bus compressor and limiter. Undo/redo, WAV export (pattern or song), project files.
+- Library → Sound packs: 473 public-domain (CC0) sound effects, searchable, one tap to a Beat track.
 - Low-latency native pad engine for finger drumming. See [modules-web/README.md](modules-web/README.md) for how
   modules plug in (web or native) and how to add new ones.
+
+**Oleander (GBA emulator) and Quinten Reader**
+- Oleander: Game Boy Advance emulator (`third_party/oleander`); `.gba` files open in it on tap. Touch controls,
+  gamepads, save states, link play. No games or BIOS included.
+- Quinten Reader (`quinten/`): EPUB, PDF, MOBI/AZW3, FB2, DOCX/DOC/RTF, DjVu, comics, with reflow, OCR and
+  read-aloud. MOBI/AZW/DjVu/CBZ/CBR open in it on tap; other book formats offer *Open in Quinten Reader*.
+  Scans remember what they already checked: a rescan only looks at folders that changed (*Full rescan* in the
+  menu re-checks everything). Android 8+.
 
 **Built-in viewers and players** (can be turned off in Settings)
 - Images: zoom and pan, swipe through the folder, slideshow, rotate, GIF/WebP animation, EXIF details.
