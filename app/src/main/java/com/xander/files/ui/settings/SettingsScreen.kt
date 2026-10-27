@@ -88,6 +88,8 @@ class SettingsViewModel @Inject constructor(
     fun update(f: (AppSettings) -> AppSettings) = viewModelScope.launch { repo.update(f) }
     fun setPin(pin: String?) = viewModelScope.launch { lock.setPin(pin) }
     fun nsfwScan(all: Boolean) = viewModelScope.launch { nsfw.scan(all) }
+    /** Saves the switch first, then scans: launched separately, the scan read the old (off) value and did nothing. */
+    fun setNsfwEnabled(on: Boolean) = viewModelScope.launch { repo.update { it.copy(nsfwEnabled = on) }; if (on) nsfw.scan(false) }
     fun nsfwClear() = viewModelScope.launch { nsfw.clear() }
 
     suspend fun cacheSize(): Long = withContext(Dispatchers.IO) { context.cacheDir.walkTopDown().filter { it.isFile }.sumOf { it.length() } }
@@ -180,7 +182,7 @@ fun SettingsScreen(onBack: () -> Unit, onPremium: () -> Unit, onLicenses: () -> 
 
             Section(R.string.adult_section)
             Toggle(stringResource(R.string.adult_detect), s.nsfwEnabled, stringResource(R.string.adult_detect_summary)) { v ->
-                vm.update { it.copy(nsfwEnabled = v) }; if (v) vm.nsfwScan(false)
+                vm.setNsfwEnabled(v)
             }
             if (s.nsfwEnabled) {
                 val scanned by vm.nsfw.observeScanned().collectAsStateWithLifecycle(0)

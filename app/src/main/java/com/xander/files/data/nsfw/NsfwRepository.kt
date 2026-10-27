@@ -48,6 +48,9 @@ class NsfwRepository @Inject constructor(
 
     fun observeScanned() = dao.observeScanned()
 
+    /** Android/data/<app>/files/logs/adult.log, for diagnosing scans on a phone. */
+    fun log(line: String) = com.xander.files.modules.ModuleLog.write(context, "adult", line)
+
     suspend fun scoresFor(paths: Collection<String>): Map<String, NsfwScoreEntity> = paths.mapNotNull { dao.get(it) }.associateBy { it.path }
 
     /** Scores one file right now (and stores it), for "Check this file". */
@@ -104,6 +107,7 @@ class NsfwScanWorker @AssistedInject constructor(
     private val dao: NsfwDao,
     private val scorer: NsfwScorer,
     private val settings: SettingsRepository,
+    private val indexer: com.xander.files.data.index.FileIndexer,
 ) : CoroutineWorker(context, params) {
 
     private fun notification(done: Int, total: Int): ForegroundInfo {
@@ -119,9 +123,15 @@ class NsfwScanWorker @AssistedInject constructor(
         val s = settings.settings.first()
         if (!s.nsfwEnabled) return Result.success()
         val all = inputData.getBoolean("all", false)
+        // The scan works from the file index; on a fresh install it may not be built yet, so build it first.
+        if (index.media().isEmpty()) runCatching { indexer.indexAll(full = true) }
         val media = index.media().filter { s.nsfwVideos || it.category == "IMAGE" }.sortedBy { NsfwRepository.priority(it.path) }
+        val log = { line: String -> com.xander.files.modules.ModuleLog.write(applicationContext, "adult", line) }
+        log("scan start: ${media.size} files (all=$all, videos=${s.nsfwVideos}, threshold=${s.nsfwThreshold}%)")
         runCatching { setForeground(notification(0, media.size)) } // not allowed while the app is in the background on Android 12+; keep going
         var done = 0
+        var scored = 0
+        var failed = 0
         for (m in media) {
             if (isStopped) return Result.retry()
             done++
@@ -132,9 +142,13 @@ class NsfwScanWorker @AssistedInject constructor(
             val f = File(m.path)
             if (!f.canRead()) continue
             if (!all) dao.get(m.path)?.let { if (it.size == m.size && it.modified == m.modified) continue }
-            val r = runCatching { if (m.category == "IMAGE") scorer.image(f) else scorer.video(f) }.getOrNull() ?: continue
+            val res = runCatching { if (m.category == "IMAGE") scorer.image(f) else scorer.video(f) }
+            res.exceptionOrNull()?.let { e -> if (++failed <= 5) log("error on ${m.path}: ${android.util.Log.getStackTraceString(e).take(1500)}") }
+            val r = res.getOrNull() ?: continue
             dao.upsert(NsfwScoreEntity(m.path, m.size, m.modified, r.drawings, r.hentai, r.neutral, r.porn, r.sexy))
+            scored++
         }
+        log("scan done: $scored scored, $failed errors, ${media.size - scored - failed} skipped (unchanged, unreadable or too small)")
         return Result.success()
     }
 

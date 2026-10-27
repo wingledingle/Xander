@@ -417,7 +417,8 @@ class BrowserViewModel @Inject constructor(
     fun checkNsfw(entry: FileEntry) = viewModelScope.launch {
         nsfwCheck.value = entry.name to null
         val f = runCatching { opener.materialize(entry.path) }.getOrNull()
-        val r = f?.let { runCatching { nsfw.check(it, entry.category == FileCategory.VIDEO, nsfwScorer) }.getOrNull() }
+        val r = f?.let { file -> runCatching { nsfw.check(file, entry.category == FileCategory.VIDEO, nsfwScorer) }
+            .onFailure { e -> nsfw.log("check failed on ${entry.path}: ${android.util.Log.getStackTraceString(e).take(1500)}") }.getOrNull() }
         nsfwCheck.value = if (r == null) { _events.send(BrowserEvent.Toast("Could not read this file")); null } else entry.name to r
     }
     fun sendBluetooth(entries: List<FileEntry>) = viewModelScope.launch {

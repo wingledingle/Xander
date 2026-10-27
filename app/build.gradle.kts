@@ -45,6 +45,9 @@ android {
         manifestPlaceholders["appAuthRedirectScheme"] = "com.xander.files"
     }
 
+    // -Pxander.testRelease runs instrumentation tests against the minified release build (R8 problems show there).
+    if (project.hasProperty("xander.testRelease")) testBuildType = "release"
+
     flavorDimensions += "device"
     productFlavors {
         create("mobile") {
@@ -67,6 +70,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            testProguardFiles("test-proguard-rules.pro")
             buildConfigField("boolean", "ADS_ENABLED", cfg("xander.adsEnabled").ifBlank { "false" })
             signingConfig = signingConfigs.getByName("debug")
         }
