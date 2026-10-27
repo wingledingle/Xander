@@ -157,7 +157,7 @@ fun ImageViewerScreen(onBack: () -> Unit, castButton: @Composable () -> Unit = {
     LaunchedEffect(current) { current?.let(onCast) }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
-        HorizontalPager(pager, Modifier.fillMaxSize(), userScrollEnabled = !zoomed, key = { images[it].path.toString() }) { page ->
+        HorizontalPager(pager, Modifier.fillMaxSize(), userScrollEnabled = !zoomed, beyondViewportPageCount = 1, key = { images[it].path.toString() }) { page ->
             ZoomableImage(FullImage(images[page]), rotations[page] ?: 0f, onTap = { chrome = !chrome }, onZoomChanged = { zoomed = it })
         }
         AnimatedVisibility(chrome, enter = fadeIn(), exit = fadeOut(), modifier = Modifier.align(Alignment.TopCenter)) {

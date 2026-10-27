@@ -185,3 +185,6 @@ class NsfwScorer @Inject constructor(private val classifier: NsfwClassifier) {
         val BLANK = NsfwScores(0f, 0f, 1f, 0f, 0f)
     }
 }
+
+/** Lowest adult-content sensitivity both sliders (Settings and the adult-images screen) allow, in percent. */
+const val NSFW_THRESHOLD_MIN = 30

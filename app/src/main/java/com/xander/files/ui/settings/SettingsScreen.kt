@@ -188,7 +188,7 @@ fun SettingsScreen(onBack: () -> Unit, onPremium: () -> Unit, onLicenses: () -> 
                 val running = work.firstOrNull { it.state == androidx.work.WorkInfo.State.RUNNING }
                 Column(Modifier.padding(horizontal = 16.dp)) {
                     Text(stringResource(R.string.adult_threshold, s.nsfwThreshold))
-                    Slider(s.nsfwThreshold.toFloat(), { v -> vm.update { it.copy(nsfwThreshold = v.toInt()) } }, valueRange = 50f..95f)
+                    Slider(s.nsfwThreshold.toFloat(), { v -> vm.update { it.copy(nsfwThreshold = v.toInt()) } }, valueRange = com.xander.files.data.nsfw.NSFW_THRESHOLD_MIN.toFloat()..95f)
                     Text(stringResource(R.string.adult_threshold_hint), style = MaterialTheme.typography.bodySmall)
                     Text(running?.progress?.let { p -> stringResource(R.string.adult_scanning, p.getInt("done", 0), p.getInt("total", 0)) }
                         ?: stringResource(R.string.adult_scanned, scanned), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))

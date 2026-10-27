@@ -345,7 +345,7 @@ fun BrowserPane(
                     state.loading && state.entries.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                     state.entries.isEmpty() -> EmptyState(Icons.Filled.FolderOff, stringResource(R.string.empty_folder))
                     settings.viewMode == ViewMode.GRID -> LazyVerticalGrid(GridCells.Fixed(settings.gridSize), Modifier.fillMaxSize()) {
-                        items(state.entries, key = { it.path.toString() }) { e ->
+                        items(state.entries, key = { it.path.toString() }, contentType = { if (it.isDirectory) 0 else 1 }) { e ->
                             FileGridCell(e, e.path in state.selection, settings.showExtensions, settings.thumbnails,
                                 onClick = { vm.open(e) }, onLongClick = { if (state.selecting) vm.selectRange(e) else vm.toggle(e) })
                         }
@@ -353,7 +353,7 @@ fun BrowserPane(
                     else -> {
                         val listState = rememberLazyListState()
                         LazyColumn(Modifier.fillMaxSize(), state = listState) {
-                            items(state.entries, key = { it.path.toString() }) { e ->
+                            items(state.entries, key = { it.path.toString() }, contentType = { if (it.isDirectory) 0 else 1 }) { e ->
                                 Box {
                                     FileListRow(e, e.path in state.selection, settings.showExtensions, settings.thumbnails,
                                         onClick = { vm.open(e) }, onLongClick = { if (state.selecting) vm.selectRange(e) else vm.toggle(e) },

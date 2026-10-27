@@ -69,6 +69,15 @@ object Routes {
 
 fun NavHostController.openFolder(p: FsPath) = navigate(Routes.browser(p))
 
+object NavMotion {
+    private const val IN_MS = 220
+    private const val OUT_MS = 150
+    fun enter(forward: Boolean): androidx.compose.animation.EnterTransition =
+        androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(IN_MS, easing = androidx.compose.animation.core.LinearOutSlowInEasing)) +
+            androidx.compose.animation.slideInHorizontally(androidx.compose.animation.core.tween(IN_MS, easing = androidx.compose.animation.core.LinearOutSlowInEasing)) { w -> if (forward) w / 14 else -w / 14 }
+    val exit: androidx.compose.animation.ExitTransition = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(OUT_MS, easing = androidx.compose.animation.core.FastOutLinearInEasing))
+}
+
 @Composable
 fun XanderNavHost(
     hasAccess: Boolean,
@@ -111,7 +120,13 @@ fun XanderNavHost(
             )
         }
     ) {
-        NavHost(nav, startDestination = if (hasAccess) Routes.HOME else Routes.ONBOARDING) {
+        // Navigation Compose's default is a 700 ms fade on every screen change, which made the app feel slow. Material's
+        // mobile timings are ~200-250 ms in (decelerating) and ~150 ms out; a slight slide keeps the direction readable.
+        NavHost(
+            nav, startDestination = if (hasAccess) Routes.HOME else Routes.ONBOARDING,
+            enterTransition = { NavMotion.enter(forward = true) }, exitTransition = { NavMotion.exit },
+            popEnterTransition = { NavMotion.enter(forward = false) }, popExitTransition = { NavMotion.exit },
+        ) {
             composable(Routes.ONBOARDING) {
                 val app = androidx.compose.ui.platform.LocalContext.current.applicationContext as com.xander.files.XanderApp
                 OnboardingScreen(onGranted = {

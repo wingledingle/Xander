@@ -43,6 +43,24 @@ try {
   await shot('01-beat-playing');
   await page.click('.play-btn');
 
+  // Responsiveness: no main-thread task over 50 ms while painting steps, turning a knob or switching decks,
+  // and the transport is updated in place (same play button element), not rebuilt.
+  await page.evaluate(() => { window.__long = []; new PerformanceObserver((l) => l.getEntries().forEach((e) => window.__long.push(Math.round(e.duration)))).observe({ type: 'longtask' }); window.__play = document.querySelector('.play-btn'); });
+  for (const s of [5, 6, 7, 9, 10, 11]) await page.locator(`.step[data-step="${s}"]`).nth(3).click();
+  const stepsInPlace = await page.evaluate(() => window.__play.isConnected);
+  await nav('synth');
+  await page.evaluate(() => { window.__play = document.querySelector('.play-btn'); });
+  const k = await page.locator('.knob').first().boundingBox();
+  await page.mouse.move(k.x + k.width / 2, k.y + k.height / 2); await page.mouse.down();
+  for (let i = 0; i < 20; i++) await page.mouse.move(k.x + k.width / 2, k.y + k.height / 2 - i * 4);
+  await page.mouse.up();
+  const knobInPlace = await page.evaluate(() => window.__play.isConnected);
+  for (const v of ['mixer', 'library', 'beat']) await nav(v);
+  const resp = await page.evaluate(() => ({ long: window.__long, same: true }));
+  resp.same = stepsInPlace && knobInPlace;
+  check(resp.long.length === 0, `no long tasks (>50 ms) while editing and switching decks${resp.long.length ? `: ${resp.long.join(', ')} ms` : ''}`);
+  check(resp.same, 'knob moves and step edits update the transport in place');
+
   // Video: open, extract audio, auto-chop by transients.
   await nav('video');
   const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('text=Open video')]);

@@ -274,7 +274,11 @@ fun WebModuleScreen(module: WebModule, file: FsPath?, onBack: () -> Unit, vm: We
                 allowFileAccess = false
                 allowContentAccess = false
                 setSupportZoom(false)
+                // Rasterise the whole page ahead (smooth scrolling, no checkerboarding) while it's on screen.
+                offscreenPreRaster = true
             }
+            // Keep the renderer at foreground priority while the module is visible.
+            if (android.os.Build.VERSION.SDK_INT >= 26) setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, true)
             val assets = WebViewAssetLoader.Builder().addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(context)).build()
             webViewClient = object : WebViewClient() {
                 override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {

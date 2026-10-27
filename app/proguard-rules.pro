@@ -44,3 +44,11 @@
 # Web modules call these by name from JavaScript (XanderHostBridge); R8 must not rename or drop them.
 -keepattributes JavascriptInterface
 -keepclassmembers class * { @android.webkit.JavascriptInterface <methods>; }
+
+# TensorFlow Lite (adult-content classifier) and ONNX Runtime (Quinten read-aloud) call Java classes and fields from
+# native code by name; renaming them broke the classifier in release builds.
+-keep class org.tensorflow.lite.** { *; }
+-dontwarn org.tensorflow.lite.**
+-keep class ai.onnxruntime.** { *; }
+-dontwarn ai.onnxruntime.**
+-keep class com.xander.files.data.nsfw.** { *; }

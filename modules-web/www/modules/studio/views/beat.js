@@ -60,7 +60,8 @@ function grid(root) {
     const c = cellAt(e);
     if (c) painting.apply(c);
   });
-  const end = () => { if (painting) { painting = null; changed('song'); } };
+  // Cells are already painted; 'steps' saves and updates undo without rebuilding the grid.
+  const end = () => { if (painting) { painting = null; changed('steps'); } };
   root.addEventListener('pointerup', end);
   root.addEventListener('pointercancel', end);
 }
@@ -152,6 +153,12 @@ export function renderBeat(root) {
     iconBtn('trash', 'Clear pattern', () => { for (const id of Object.keys(pat.steps)) pat.steps[id].fill(0); changed('song'); }));
   root.replaceChildren(h('div', { class: 'deck beat' }, tools, S.song.mode === 'song' ? arrangement() : null,
     h('div', { class: 'beat-body' }, stepsView(), padsView())));
+}
+
+// Repaints step cells from the song (after a recorded hit or undo of a step edit) without rebuilding the grid.
+export function refreshCells() {
+  const pat = pattern();
+  for (const [k, el] of cells) { const [id, i] = k.split(':'); paintCell(el, pat.steps[id]?.[+i] || 0); }
 }
 
 export function beatPlayhead(p) {

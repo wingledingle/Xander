@@ -130,6 +130,8 @@ ksp {
 dependencies {
     coreLibraryDesugaring(libs.desugar)
     implementation(project(":quinten:app")) // Quinten e-reader module
+    // Installs the baseline profiles (ours in src/main/baseline-prof.txt, plus Compose's) on sideloaded APKs too.
+    implementation(libs.profileinstaller)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

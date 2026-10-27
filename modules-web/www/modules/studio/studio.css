@@ -386,3 +386,14 @@ button:disabled { opacity: .35; cursor: default; }
 /* Video deck: the <video> itself is shown (hardware playback); the WebGL canvas only for shader FX. */
 .video-stage .video-el { display: block; width: 100%; height: auto; max-height: 52vh; background: #000; }
 .video-stage .video-el.offscreen { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+/* ---- Responsiveness: instant feedback on touch, no double-tap zoom delay, lazy rendering of long lists ---- */
+button, .pad, .step, .note, .key, .knob, .fader { touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+.btn, .chip, .chip-toggle, .icon-btn, .pchip, .arr-chip, .seg button, .nav button, .pack-play, .list-item, .menu-item, .track-name, .sc-art { transition: transform 60ms ease-out, background-color 80ms; }
+.btn:active, .chip:active, .chip-toggle:active, .icon-btn:active, .pchip:active, .arr-chip:active, .seg button:active, .pack-play:active, .track-name:active { transform: scale(.96); }
+.nav button:active .ic { transform: scale(.9); }
+.pad:active { transform: scale(.97); }
+.pack-row, .sample-card, .chop { content-visibility: auto; contain-intrinsic-size: auto 56px; }
+.sample-card { contain-intrinsic-size: auto 220px; }
+.step, .note { will-change: auto; }
+@media (prefers-reduced-motion: reduce) { .btn:active, .chip:active, .icon-btn:active, .pad:active { transform: none; } }

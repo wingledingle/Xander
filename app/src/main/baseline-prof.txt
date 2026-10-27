@@ -1,0 +1,9 @@
+# Baseline profile: code compiled ahead of time at install (via profileinstaller), so first launches and first
+# scrolls don't run interpreted / JIT-compiling. Compose, Navigation and other AndroidX libraries ship their own.
+# Broad rules for the app's own code and the bundled modules; regenerate with a Macrobenchmark when a device lab exists.
+HSPLcom/xander/files/**->**(**)**
+Lcom/xander/files/**;
+HSPLdev/oleander/app/**->**(**)**
+Ldev/oleander/app/**;
+HSPLapp/quinten/**->**(**)**
+Lapp/quinten/**;

@@ -7,7 +7,7 @@ import { S, subscribe, changed, undo, redo, audio, loadLibrary, savePrefs } from
 import { PATTERNS, PATTERN_NAMES, clamp, tapTempo } from './core.js';
 import { h, $, icon, iconBtn, btn, sheet, prompt, toast, segmented } from './ui.js';
 import { togglePlay, stop, exportWav, bounceToLibrary, saveProject, openProject, newProject, importAudioFiles } from './actions.js';
-import { renderBeat, beatPlayhead } from './views/beat.js';
+import { renderBeat, beatPlayhead, refreshCells } from './views/beat.js';
 import { renderSynth, synthPlayhead } from './views/synth.js';
 import { renderSampler } from './views/sampler.js';
 import { renderVideo, openVideo } from './views/video.js';
@@ -37,6 +37,15 @@ function render() {
 }
 
 // ---- Top bar + transport -----------------------------------------------------------------------------
+
+// Cheap per-change update of the transport (no DOM rebuild).
+function updateTransport() {
+  $('#title').textContent = S.song.name;
+  $('#undo').disabled = !S.history.canUndo;
+  $('#redo').disabled = !S.history.canRedo;
+  const v = document.querySelector('.bpm .lcd-v');
+  if (v) v.textContent = String(Math.round(S.song.bpm * 10) / 10);
+}
 
 const taps = [];
 function renderTransport() {
@@ -124,7 +133,9 @@ subscribe((kind) => {
     if (pat !== lastPat) { lastPat = pat; document.querySelectorAll('.pchip').forEach((b, i) => b.classList.toggle('now', i === pat)); }
     return;
   }
-  if (kind === 'param') return renderTransport();
+  // Knob moves and step edits update in place: rebuilding the deck on every change is what makes UIs stutter.
+  if (kind === 'param') return updateTransport();
+  if (kind === 'steps') { updateTransport(); if (S.view === 'beat') refreshCells(); return; }
   if (kind === 'library' && !['library', 'sampler', 'beat'].includes(S.view)) return;
   if (kind === 'library' && S.view === 'sampler' && document.activeElement?.closest('.deck')) return; // don't rebuild while editing
   render();

@@ -27,7 +27,7 @@ export function hitTrack(id, vel = 0.9) {
     if (at) {
       const pat = S.song.mode === 'song' ? at.pattern : S.song.current;
       S.song.patterns[pat].steps[id][at.step] = Math.max(0.05, Math.min(1, vel));
-      changed('song');
+      changed('steps');
     }
   }
 }

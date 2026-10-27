@@ -33,6 +33,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         cast.init()
         if (BuildConfig.IS_TV_BUILD) tvCompanion.start()
+        // Load the WebView engine once the app is idle, so the first Studio open doesn't pay its start-up.
+        android.os.Looper.myQueue().addIdleHandler { window.decorView.postDelayed({ runCatching { android.webkit.WebSettings.getDefaultUserAgent(this) } }, 2500); false }
         val initial = intent.getStringExtra(EXTRA_PATH)?.let(FsPath::parse)
         setContent {
             val settings by settingsRepo.settings.collectAsStateWithLifecycle(AppSettings())

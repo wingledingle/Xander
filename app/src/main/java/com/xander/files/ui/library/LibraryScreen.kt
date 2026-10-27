@@ -226,7 +226,7 @@ fun LibraryScreen(onBack: () -> Unit, onOpenFolder: (FsPath) -> Unit, vm: Librar
         var t by remember(settings.nsfwThreshold) { mutableStateOf(settings.nsfwThreshold.toFloat()) }
         Column(Modifier.padding(horizontal = 16.dp)) {
             Text(stringResource(R.string.adult_threshold, t.toInt()), style = MaterialTheme.typography.labelLarge)
-            androidx.compose.material3.Slider(t, { t = it }, valueRange = 30f..95f, onValueChangeFinished = { vm.setAdultThreshold(t.toInt()) })
+            androidx.compose.material3.Slider(t, { t = it }, valueRange = com.xander.files.data.nsfw.NSFW_THRESHOLD_MIN.toFloat()..95f, onValueChangeFinished = { vm.setAdultThreshold(t.toInt()) })
         }
     }
     PullToRefreshBox(isRefreshing = loading && items.isNotEmpty(), onRefresh = vm::refresh, modifier = Modifier.fillMaxSize()) {

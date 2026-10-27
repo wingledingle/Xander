@@ -41,7 +41,7 @@ export function changed(kind = 'song') {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => { try { localStorage.setItem(SONG_KEY, JSON.stringify(S.song)); } catch {} }, 250);
   clearTimeout(histTimer);
-  histTimer = setTimeout(() => S.history.push(JSON.stringify(S.song)), kind === 'param' ? 500 : 0);
+  histTimer = setTimeout(() => { S.history.push(JSON.stringify(S.song)); if (kind === 'param' || kind === 'steps') emit(kind); }, kind === 'param' ? 500 : 0);
   emit(kind);
 }
 
