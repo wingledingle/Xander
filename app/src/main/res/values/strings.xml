@@ -573,4 +573,6 @@
     <string name="an_blocked">%d folders were blocked and not counted (e.g. Android/data). Unlock them, then rescan:</string>
     <string name="module_oleander">Oleander</string>
     <string name="module_oleander_summary">Game Boy Advance emulator</string>
+    <string name="module_quinten">Quinten Reader</string>
+    <string name="module_quinten_summary">E-books, PDFs, comics and scans with reflow, OCR and read-aloud</string>
 </resources>

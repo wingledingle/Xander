@@ -37,11 +37,18 @@ class ModulesTest {
     @Test fun registryOffersStudioForMediaAndOpensProjectsOnTap() {
         assertEquals(listOf(StudioModule), Modules.forFile(entry("beat.mp4")))
         assertEquals(listOf(StudioModule), Modules.forFile(entry("loop.WAV")))
-        assertTrue(Modules.forFile(entry("notes.txt")).isEmpty())
+        assertTrue(Modules.forFile(entry("data.xyz")).isEmpty())
+        assertEquals(listOf(QuintenModule), Modules.forFile(entry("notes.txt")))
         assertTrue(Modules.forFile(entry("folder.mp4", dir = true)).isEmpty())
         assertEquals(StudioModule, Modules.defaultFor(entry("song.gsproj")))
         assertNull("videos still open in the video player on tap", Modules.defaultFor(entry("clip.mp4")))
         assertEquals("module/studio?path=file%3A%2F%2F%2Fsdcard%2Fa%20b.mp4", Modules.route(StudioModule, FsPath.local("/sdcard/a b.mp4")))
+        assertEquals(OleanderModule, Modules.defaultFor(entry("pokemon.gba")))
+        assertTrue(OleanderModule in Modules.forFile(entry("roms.zip")))
+        assertEquals(QuintenModule, Modules.defaultFor(entry("novel.mobi")))
+        assertNull("EPUBs keep Xander's own reader on tap", Modules.defaultFor(entry("novel.epub")))
+        assertTrue(QuintenModule in Modules.forFile(entry("novel.epub")))
+        assertTrue(ctx.assets.list("web")!!.contains("oleander.wasm"))
         for (m in Modules.all) {
             assertTrue("${m.id}: defaultFor must be a subset of opens", m.opens.containsAll(m.defaultFor))
             assertEquals("duplicate id ${m.id}", 1, Modules.all.count { it.id == m.id })
@@ -120,6 +127,25 @@ class ModulesTest {
             assertTrue(shadow.getJavascriptInterface("XanderHost") is XanderHostBridge)
             assertTrue(w.settings.javaScriptEnabled)
             assertTrue(!w.settings.allowFileAccess)
+        } finally { scenario.close() }
+    }
+
+    @Test fun activityModulesLaunchTheirAppWithTheFile() {
+        StorageAccess.overrideForTests = true
+        val book = java.io.File(android.os.Environment.getExternalStorageDirectory(), "Books/novel.mobi").apply { parentFile!!.mkdirs(); writeBytes(ByteArray(64)) }
+        val scenario = ActivityScenario.launch<MainActivity>(Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_ROUTE, Modules.route(QuintenModule, FsPath.local(book.path))))
+        try {
+            var started: Intent? = null
+            val deadline = System.currentTimeMillis() + 20_000
+            while (started == null && System.currentTimeMillis() < deadline) {
+                ShadowLooper.idleMainLooper(100, TimeUnit.MILLISECONDS)
+                started = shadowOf(ApplicationProvider.getApplicationContext<android.app.Application>()).nextStartedActivity
+                    ?.takeIf { it.component?.className == "app.quinten.MainActivity" }
+            }
+            val i = checkNotNull(started) { "Quinten was not started" }
+            assertEquals(Intent.ACTION_VIEW, i.action)
+            assertEquals("content", i.data?.scheme)
+            assertTrue(i.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
         } finally { scenario.close() }
     }
 }

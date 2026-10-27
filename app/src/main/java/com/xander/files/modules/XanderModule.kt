@@ -29,6 +29,8 @@ interface XanderModule {
     val opens: Set<String> get() = emptySet()
     /** Extensions this module opens on a plain tap (instead of the built-in viewer). Must be a subset of [opens]. */
     val defaultFor: Set<String> get() = emptySet()
+    /** Lowest Android version the module runs on; it is hidden below that. */
+    val minSdk: Int get() = 23
 
     /** Full-screen UI. [file] is the file the module was opened with, if any. */
     @Composable
@@ -40,7 +42,8 @@ object Modules {
     val all: List<XanderModule> = listOf(
         StudioModule,
         OleanderModule,
-    )
+        QuintenModule,
+    ).filter { it.minSdk <= android.os.Build.VERSION.SDK_INT }
 
     const val ROUTE = "module/{id}?path={path}"
     fun route(m: XanderModule, file: FsPath? = null) = "module/${m.id}?path=${Uri.encode(file?.toString() ?: "")}"

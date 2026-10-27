@@ -39,6 +39,12 @@ Vendored apps (`third_party/`):
 - Oleander GBA emulator (`third_party/oleander`): MIT / Apache-2.0, Oleander contributors. Web app, wasm core built
   from source, and its Android host Activity. No BIOS or games included.
 
+- Quinten / Dingo Reader (`quinten/`): Apache-2.0 / MIT project code; see `quinten/THIRD_PARTY_NOTICES.md`.
+  Brings PdfBox-Android (Apache-2.0; bundles Liberation Sans, OFL), Tesseract4Android with Tesseract, Leptonica,
+  libjpeg, libpng (Apache-2.0 + BSD/IJG/libpng native code), ONNX Runtime (MIT) and the Kokoro voice model
+  (Apache-2.0, downloaded on first use). Open questions carried over from upstream: the BSD-style native code in
+  Tesseract4Android goes beyond this file's Apache/MIT rule, and the CBR/RAR decoder's provenance is unsettled.
+
 Excluded on purpose:
 - `com.google.code.findbugs:jsr305` (BSD-3, annotations only) is excluded from the runtime classpath.
 - `org.tukaani:xz` 1.10+ (0BSD) is replaced by 1.9 (public domain).

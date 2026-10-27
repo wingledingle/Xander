@@ -89,9 +89,12 @@ android {
             excludes += setOf(
                 "/META-INF/{AL2.0,LGPL2.1}", "META-INF/DEPENDENCIES", "META-INF/LICENSE*", "META-INF/NOTICE*",
                 "META-INF/INDEX.LIST", "META-INF/*.kotlin_module", "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
-                "META-INF/io.netty.versions.properties", "META-INF/BCKEY.*", "META-INF/BC*.SF", "META-INF/BC*.DSA"
+                "META-INF/io.netty.versions.properties", "META-INF/BCKEY.*", "META-INF/BC*.SF", "META-INF/BC*.DSA",
+                "META-INF/*.md",
             )
         }
+        // TensorFlow Lite, ONNX Runtime and Tesseract (Quinten) can each bring the C++ runtime.
+        jniLibs { pickFirsts += "**/libc++_shared.so" }
     }
     testOptions {
         unitTests.isIncludeAndroidResources = true
@@ -126,6 +129,7 @@ ksp {
 
 dependencies {
     coreLibraryDesugaring(libs.desugar)
+    implementation(project(":quinten:app")) // Quinten e-reader module
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Unit-test manifest: same library minSdk overrides as the main manifest (Quinten needs 26, guarded at runtime). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <uses-sdk tools:overrideLibrary="rikka.shizuku.api,rikka.shizuku.provider,rikka.shizuku.shared,rikka.shizuku.aidl" />
+    <uses-sdk tools:overrideLibrary="rikka.shizuku.api,rikka.shizuku.provider,rikka.shizuku.shared,rikka.shizuku.aidl,app.quinten,app.quinten.data,app.quinten.render,app.quinten.pdf,app.quinten.ocr,com.googlecode.tesseract.android,ai.onnxruntime,com.tom_roush.pdfbox" />
 </manifest>
