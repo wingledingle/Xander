@@ -69,11 +69,11 @@ class ScreensSmokeTest {
         File(root, "Pictures/trip").mkdirs(); File(root, "Pictures/trip/beach-sunset.jpg").writeBytes(ByteArray(5000))
         File(root, "Download").mkdirs(); File(root, "Download/manual-v2.pdf").writeBytes(ByteArray(3000))
         launch("analyzer")
-        waitFor(desc = "analyzer") { text("Analyze storage") || text("All files") }
-        if (text("Analyze storage")) rule.onNodeWithText("Analyze storage").performClick()
-        waitFor(desc = "All files tab") { text("All files") }
-        rule.onAllNodesWithText("All files").onFirst().performClick()
-        waitFor(desc = "file rows") { text("beach-sunset.jpg") && text("manual-v2.pdf") }
+        // Opens straight into the ranked list (scan starts by itself), largest file first.
+        waitFor(desc = "ranked file rows") { text("beach-sunset.jpg") && text("manual-v2.pdf") }
+        val big = rule.onAllNodesWithText("beach-sunset.jpg", useUnmergedTree = true).fetchSemanticsNodes().first().boundsInRoot.top
+        val small = rule.onAllNodesWithText("manual-v2.pdf", useUnmergedTree = true).fetchSemanticsNodes().first().boundsInRoot.top
+        assertTrue("5 KB file must be listed above the 3 KB file", big < small)
         rule.onAllNodesWithText("Unreadable").onFirst().performScrollTo().performClick()
         waitFor(desc = "unreadable tab") { text("Every folder could be read") || text("could not be read") }
     }

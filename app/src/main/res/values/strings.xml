@@ -560,4 +560,11 @@
     <string name="nsfw_sexy">Sexy</string>
     <string name="nsfw_drawings">Drawing</string>
     <string name="nsfw_neutral">Neutral</string>
+    <string name="an_failed">Scan failed: %s</string>
+    <string name="an_used_breakdown">Used space: %s</string>
+    <string name="an_part_files">Files found (%d)</string>
+    <string name="an_part_apps">Apps and app data</string>
+    <string name="an_part_apps_unknown">Apps and app data: allow Usage access to measure</string>
+    <string name="an_part_rest">System, blocked folders and other</string>
+    <string name="an_blocked">%d folders were blocked and not counted (e.g. Android/data). Unlock them, then rescan:</string>
 </resources>

@@ -551,6 +551,13 @@
     <string name="nsfw_sexy">Προκλητικό</string>
     <string name="nsfw_drawings">Σχέδιο</string>
     <string name="nsfw_neutral">Ουδέτερο</string>
+    <string name="an_failed">Η σάρωση απέτυχε: %s</string>
+    <string name="an_used_breakdown">Χρησιμοποιημένος χώρος: %s</string>
+    <string name="an_part_files">Αρχεία που βρέθηκαν (%d)</string>
+    <string name="an_part_apps">Εφαρμογές και δεδομένα εφαρμογών</string>
+    <string name="an_part_apps_unknown">Εφαρμογές και δεδομένα: επιτρέψτε την πρόσβαση χρήσης για μέτρηση</string>
+    <string name="an_part_rest">Σύστημα, αποκλεισμένοι φάκελοι και άλλα</string>
+    <string name="an_blocked">%d φάκελοι ήταν αποκλεισμένοι και δεν μετρήθηκαν (π.χ. Android/data). Ξεκλειδώστε τους και σαρώστε ξανά:</string>
     <plurals name="delete_confirm">
         <item quantity="one">Διαγραφή %d στοιχείου;</item>
         <item quantity="other">Διαγραφή %d στοιχείων;</item>

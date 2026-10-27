@@ -551,6 +551,13 @@
     <string name="nsfw_sexy">Sexy</string>
     <string name="nsfw_drawings">Dessin</string>
     <string name="nsfw_neutral">Neutre</string>
+    <string name="an_failed">Échec de l’analyse : %s</string>
+    <string name="an_used_breakdown">Espace utilisé : %s</string>
+    <string name="an_part_files">Fichiers trouvés (%d)</string>
+    <string name="an_part_apps">Applications et leurs données</string>
+    <string name="an_part_apps_unknown">Applications et données : autorisez l’accès aux données d’utilisation pour les mesurer</string>
+    <string name="an_part_rest">Système, dossiers bloqués et autres</string>
+    <string name="an_blocked">%d dossiers étaient bloqués et non comptés (ex. Android/data). Débloquez-les puis relancez :</string>
     <plurals name="delete_confirm">
         <item quantity="one">Supprimer %d élément ?</item>
         <item quantity="many">Supprimer %d éléments ?</item>

@@ -551,6 +551,13 @@
     <string name="nsfw_sexy">مثير</string>
     <string name="nsfw_drawings">رسم</string>
     <string name="nsfw_neutral">عادي</string>
+    <string name="an_failed">فشل الفحص: %s</string>
+    <string name="an_used_breakdown">المساحة المستخدمة: %s</string>
+    <string name="an_part_files">الملفات التي تم العثور عليها (%d)</string>
+    <string name="an_part_apps">التطبيقات وبياناتها</string>
+    <string name="an_part_apps_unknown">التطبيقات وبياناتها: اسمح بالوصول إلى بيانات الاستخدام لقياسها</string>
+    <string name="an_part_rest">النظام والمجلدات المحظورة وغيرها</string>
+    <string name="an_blocked">تم حظر %d مجلدات ولم تُحتسب (مثل Android/data). افتح الوصول إليها ثم أعد الفحص:</string>
     <plurals name="delete_confirm">
         <item quantity="zero">حذف %d عنصر؟</item>
         <item quantity="one">حذف عنصر واحد (%d)؟</item>

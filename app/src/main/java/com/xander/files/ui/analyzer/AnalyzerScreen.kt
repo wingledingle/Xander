@@ -91,7 +91,20 @@ class AnalyzerViewModel @Inject constructor(
     private val storage: StorageVolumes,
     private val transfers: TransferManager,
     private val settings: SettingsRepository,
+    private val apps: com.xander.files.data.apps.AppRepository,
+    val shizuku: com.xander.files.data.fs.shizuku.ShizukuFileSystemProvider,
+    private val rootFs: com.xander.files.data.fs.root.RootFileSystemProvider,
 ) : ViewModel() {
+    /** Installed apps' APK + data + cache (needs Usage access); null when not granted. */
+    val appBytes = MutableStateFlow<Long?>(null)
+    val error = MutableStateFlow<String?>(null)
+    fun usageAccessIntent() = apps.usageAccessIntent()
+    fun hasUsageAccess() = apps.hasUsageAccess()
+    fun loadAppBytes() = viewModelScope.launch(Dispatchers.IO) {
+        appBytes.value = if (apps.hasUsageAccess()) runCatching { apps.list().sumOf { it.totalSize ?: it.apkSize } }.getOrNull() else null
+    }
+    fun unlockShizuku() = viewModelScope.launch { shizuku.requestPermission() }
+    fun unlockRoot() = viewModelScope.launch { if (rootFs.requestRoot()) { settings.update { it.copy(rootMode = true) }; scan() } }
     val rootMode = settings.settings.map { it.rootMode }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val result = MutableStateFlow(analyzer.last)
     val progress = analyzer.progress
@@ -113,8 +126,12 @@ class AnalyzerViewModel @Inject constructor(
         val r = root.value ?: return
         job?.cancel()
         job = viewModelScope.launch {
-            running.value = true; selection.value = emptySet()
-            try { result.value = analyzer.analyze(r); folder.value = r } finally { running.value = false }
+            running.value = true; selection.value = emptySet(); error.value = null
+            try { result.value = analyzer.analyze(r); folder.value = r }
+            catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (e: Throwable) { error.value = e.message ?: e.javaClass.simpleName }
+            finally { running.value = false }
+            loadAppBytes()
         }
     }
 
@@ -151,7 +168,12 @@ fun AnalyzerScreen(onBack: () -> Unit, onOpenFolder: (FsPath) -> Unit, vm: Analy
     val sel by vm.selection.collectAsStateWithLifecycle()
     val volumes by vm.volumes.collectAsStateWithLifecycle()
     val root by vm.root.collectAsStateWithLifecycle()
-    var tab by remember { mutableStateOf(AnalyzerTab.OVERVIEW) }
+    var tab by remember { mutableStateOf(AnalyzerTab.ALL) }
+    val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+    androidx.compose.runtime.DisposableEffect(lifecycle) {
+        val o = androidx.lifecycle.LifecycleEventObserver { _, e -> if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME) vm.loadAppBytes() }
+        lifecycle.addObserver(o); onDispose { lifecycle.removeObserver(o) }
+    }
     var confirm by remember { mutableStateOf(false) }
     Scaffold(topBar = {
         TopAppBar(
@@ -181,12 +203,14 @@ fun AnalyzerScreen(onBack: () -> Unit, onOpenFolder: (FsPath) -> Unit, vm: Analy
                 }
             }
             val res = r
+            val err by vm.error.collectAsStateWithLifecycle()
+            err?.let { Text(stringResource(R.string.an_failed, it), color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
             if (res == null) { if (!running) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Button(onClick = vm::scan) { Text(stringResource(R.string.an_start)) } }; return@Column }
             ScrollableTabRow(selectedTabIndex = tab.ordinal, edgePadding = 8.dp) {
                 AnalyzerTab.entries.forEach { t -> Tab(tab == t, { tab = t; vm.clear() }, text = { Text(stringResource(t.label)) }) }
             }
             when (tab) {
-                AnalyzerTab.OVERVIEW -> Overview(res)
+                AnalyzerTab.OVERVIEW -> Overview(res, vm)
                 AnalyzerTab.ALL -> AllFiles(res, sel, vm, onOpenFolder)
                 AnalyzerTab.UNREADABLE -> Unreadable(res, onOpenFolder)
                 AnalyzerTab.LARGE -> FileList(res.largest, sel, vm, onOpenFolder)
@@ -208,8 +232,32 @@ fun AnalyzerScreen(onBack: () -> Unit, onOpenFolder: (FsPath) -> Unit, vm: Analy
 }
 
 @Composable
-private fun Overview(r: AnalysisResult) {
+private fun Overview(r: AnalysisResult, vm: AnalyzerViewModel) {
+    val appBytes by vm.appBytes.collectAsStateWithLifecycle()
+    val ctx = androidx.compose.ui.platform.LocalContext.current
     LazyColumn(Modifier.fillMaxSize().padding(16.dp)) {
+        // Where the phone's "used" space goes. Files alone never add up to it: apps, blocked folders and the system are invisible to a file scan.
+        if (r.volumeTotal > 0) item {
+            val used = r.volumeTotal - r.volumeFree
+            Column(Modifier.padding(bottom = 12.dp)) {
+                Text(stringResource(R.string.an_used_breakdown, Format.size(used)), style = MaterialTheme.typography.titleMedium)
+                SpaceRow(stringResource(R.string.an_part_files, r.files), r.totalBytes)
+                if (appBytes != null) SpaceRow(stringResource(R.string.an_part_apps), appBytes!!)
+                else Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.an_part_apps_unknown), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                    TextButton(onClick = { runCatching { ctx.startActivity(vm.usageAccessIntent()) } }) { Text(stringResource(R.string.grant)) }
+                }
+                SpaceRow(stringResource(R.string.an_part_rest), (used - r.totalBytes - (appBytes ?: 0)).coerceAtLeast(0))
+                if (r.unreadable.isNotEmpty()) {
+                    Text(stringResource(R.string.an_blocked, r.unreadable.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp))
+                    Row {
+                        TextButton(onClick = vm::unlockShizuku) { Text(stringResource(R.string.use_shizuku)) }
+                        TextButton(onClick = vm::unlockRoot) { Text(stringResource(R.string.use_root)) }
+                        TextButton(onClick = vm::scan) { Text(stringResource(R.string.rescan)) }
+                    }
+                }
+            }
+        }
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val used = r.volumeTotal - r.volumeFree
@@ -270,6 +318,14 @@ private fun FileList(items: List<FileEntry>, sel: Set<FsPath>, vm: AnalyzerViewM
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SpaceRow(label: String, bytes: Long) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+        Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        Text(Format.size(bytes), style = MaterialTheme.typography.bodyMedium)
     }
 }
 
