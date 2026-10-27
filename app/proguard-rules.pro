@@ -40,3 +40,7 @@
 # nfs-client uses Netty channel handlers created reflectively.
 -keep class io.netty.** { *; }
 -dontwarn io.netty.**
+
+# Web modules call these by name from JavaScript (XanderHostBridge); R8 must not rename or drop them.
+-keepattributes JavascriptInterface
+-keepclassmembers class * { @android.webkit.JavascriptInterface <methods>; }
