@@ -571,4 +571,6 @@
     <string name="an_part_apps_unknown">Apps and app data: allow Usage access to measure</string>
     <string name="an_part_rest">System, blocked folders and other</string>
     <string name="an_blocked">%d folders were blocked and not counted (e.g. Android/data). Unlock them, then rescan:</string>
+    <string name="module_oleander">Oleander</string>
+    <string name="module_oleander_summary">Game Boy Advance emulator</string>
 </resources>

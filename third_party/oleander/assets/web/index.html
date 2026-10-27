@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#3b2f86">
+<meta name="description" content="Oleander – a Game Boy Advance emulator that runs offline in your browser">
+<title>Oleander</title>
+<link rel="manifest" href="manifest.webmanifest" id="manifest-link">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="app">
+  <!-- Library -->
+  <section id="library-view" class="view active">
+    <header class="topbar">
+      <div class="brand" aria-label="Oleander">
+        <svg class="wordmark" viewBox="0 0 300 54" aria-hidden="true"><text x="4" y="42">OLEANDER</text></svg>
+        <span class="tagline">POCKET ADVANCE EMULATOR</span>
+      </div>
+      <input id="search" type="search" placeholder="Search games" aria-label="Search games">
+      <div class="topbar-actions">
+        <select id="sort" aria-label="Sort">
+          <option value="recent">Recently played</option>
+          <option value="title">Title</option>
+          <option value="added">Date added</option>
+          <option value="playtime">Play time</option>
+        </select>
+        <button id="btn-import" class="primary" title="Add ROMs (.gba, .zip)">Add games</button>
+        <button id="btn-scan" title="Scan a folder for games">Scan folder</button>
+        <button id="btn-settings" class="icon" title="Settings" aria-label="Settings">⚙</button>
+      </div>
+    </header>
+    <nav class="tabs" id="library-tabs">
+      <button data-filter="all" class="active">All</button>
+      <button data-filter="recent">Recent</button>
+      <button data-filter="favorites">Favorites</button>
+    </nav>
+    <main id="game-grid" class="grid"></main>
+    <div id="empty-library" class="empty hidden">
+      <h2>Your library is empty</h2>
+      <p>Add your own Game Boy Advance ROM dumps (<code>.gba</code> or zipped). Files stay on this device.</p>
+      <p>Drag and drop files here, use <b>Add games</b>, or <b>Scan folder</b>.</p>
+    </div>
+    <input id="file-input" type="file" accept=".gba,.agb,.bin,.zip,.gz,.mb" multiple hidden>
+    <input id="dir-input" type="file" webkitdirectory hidden>
+  </section>
+
+  <!-- Player -->
+  <section id="player-view" class="view">
+    <div id="shell" class="shell">
+      <div class="shoulder left"></div><div class="shoulder right"></div>
+      <div class="bezel">
+        <div class="bezel-top"><span class="led off" id="power-led"></span><span class="led-label">POWER</span><span class="bezel-brand">OLEANDER</span></div>
+        <div id="screens" class="screens"></div>
+      </div>
+      <div class="speaker" aria-hidden="true"></div>
+    </div>
+    <div id="osd" class="osd"></div>
+    <div id="stats" class="stats hidden"></div>
+    <div id="touch-layer" class="touch-layer"></div>
+    <div id="player-menu" class="player-menu hidden" role="dialog" aria-label="Game menu">
+      <div class="menu-panel">
+      <div class="menu-head"><span id="game-title"></span><button class="icon close-menu" aria-label="Close menu">✕</button></div>
+      <div class="menu-grid">
+        <button data-act="resume">Resume</button>
+        <button data-act="quicksave">Quick save</button>
+        <button data-act="quickload">Quick load</button>
+        <button data-act="states">Save states…</button>
+        <button data-act="ff">Fast forward</button>
+        <button data-act="slow">Slow motion</button>
+        <button data-act="rewind">Rewind</button>
+        <button data-act="screenshot">Screenshot</button>
+        <button data-act="record">Record video</button>
+        <button data-act="cheats">Cheats…</button>
+        <button data-act="link">Link cable…</button>
+        <button data-act="gamesettings">Game settings…</button>
+        <button data-act="settings">Settings…</button>
+        <button data-act="layout">Edit touch layout</button>
+        <button data-act="debug">Debugger…</button>
+        <button data-act="fullscreen">Fullscreen</button>
+        <button data-act="reset">Reset game</button>
+        <button data-act="exit">Quit to library</button>
+      </div>
+      <div class="speed-row">
+        <label>Speed <input id="speed" type="range" min="0.25" max="8" step="0.25" value="1"></label>
+        <span id="speed-label">1×</span>
+      </div>
+      <div class="menu-hint">✚ CHOOSE · Ⓐ SELECT · Ⓑ BACK</div>
+      </div>
+    </div>
+    <button id="menu-button" class="menu-button" aria-label="Menu">☰</button>
+  </section>
+</div>
+
+<!-- Boot animation -->
+<div id="splash" class="splash hidden" aria-hidden="true">
+  <div class="splash-logo"><svg viewBox="0 0 300 60"><defs><linearGradient id="shine" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs><text x="150" y="44" text-anchor="middle">OLEANDER</text><rect class="sweep" x="-80" y="0" width="70" height="60" fill="url(#shine)"/></svg></div>
+  <div class="splash-sub">POCKET ADVANCE</div>
+</div>
+
+<!-- Generic dialog -->
+<dialog id="dialog"><form method="dialog" id="dialog-form"><div id="dialog-body"></div></form></dialog>
+<div id="toasts" class="toasts"></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -11,9 +11,10 @@ import com.xander.files.domain.fs.FsPath
  * A feature that plugs into the file manager: it gets a drawer entry, an "Open in <title>" action for the file
  * types it handles, optionally becomes the default viewer for some of them, and a full-screen route.
  *
- * Two kinds:
+ * Kinds:
  *  - [WebModule]: a web app under `modules-web/www/modules/<id>/`, shipped in the APK and run in a WebView with
  *    the `XanderHost` bridge (file streaming, native audio decoding, saving). See modules-web/README.md.
+ *  - [ActivityModule]: a whole app brought in as source, started as its own Activity (Oleander, Quinten).
  *  - Native: implement [Content] with Compose.
  *
  * To add one, create the object and list it in [Modules.all]. Nothing else needs to change.
@@ -38,6 +39,7 @@ object Modules {
     /** Every module in the app, in drawer order. */
     val all: List<XanderModule> = listOf(
         StudioModule,
+        OleanderModule,
     )
 
     const val ROUTE = "module/{id}?path={path}"

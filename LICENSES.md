@@ -35,6 +35,10 @@ Bundled web modules (`modules-web/www/modules/`):
 - Studio sound packs (`studio/sounds/`): 473 effects from Kenney's Impact, Interface, Sci-fi, Digital, RPG and Casino
   audio packs, CC0 1.0 (public domain, no attribution required; credited anyway). License files ship next to each pack.
 
+Vendored apps (`third_party/`):
+- Oleander GBA emulator (`third_party/oleander`): MIT / Apache-2.0, Oleander contributors. Web app, wasm core built
+  from source, and its Android host Activity. No BIOS or games included.
+
 Excluded on purpose:
 - `com.google.code.findbugs:jsr305` (BSD-3, annotations only) is excluded from the runtime classpath.
 - `org.tukaani:xz` 1.10+ (0BSD) is replaced by 1.9 (public domain).

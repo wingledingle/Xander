@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Oleander's own window theme (third_party/oleander). -->
+    <style name="OleanderTheme" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:statusBarColor">#1c1830</item>
+        <item name="android:navigationBarColor">#000000</item>
+    </style>
+</resources>

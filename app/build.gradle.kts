@@ -80,6 +80,9 @@ android {
     androidResources { noCompress += "tflite" }
     // Web modules (modules-web/www/modules/<id>/) ship as assets/modules/<id>/.
     sourceSets["main"].assets.srcDir(rootProject.file("modules-web/www"))
+    // Oleander GBA emulator (third_party/oleander): its host Activity and web app with the wasm core.
+    sourceSets["main"].java.srcDir(rootProject.file("third_party/oleander/java"))
+    sourceSets["main"].assets.srcDir(rootProject.file("third_party/oleander/assets"))
 
     packaging {
         resources {

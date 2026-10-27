@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
@@ -48,6 +49,18 @@
         android:theme="@style/Theme.Xander"
         android:localeConfig="@xml/locales_config"
         tools:targetApi="36">
+
+        <!-- Oleander GBA emulator (third_party/oleander). Its own task, so it sits in Recents like an app. -->
+        <activity
+            android:name="dev.oleander.app.MainActivity"
+            android:label="Oleander"
+            android:exported="false"
+            android:taskAffinity="com.xander.files.oleander"
+            android:launchMode="singleTask"
+            android:theme="@style/OleanderTheme"
+            android:screenOrientation="fullSensor"
+            android:configChanges="orientation|screenSize|screenLayout|keyboard|keyboardHidden|navigation|uiMode|smallestScreenSize"
+            android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".MainActivity"

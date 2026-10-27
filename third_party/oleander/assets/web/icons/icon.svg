@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#2a2347"/>
+  <g transform="translate(32 32)">
+    <g fill="#f06b9a">
+      <ellipse rx="7" ry="15" transform="rotate(0) translate(0 -12)"/>
+      <ellipse rx="7" ry="15" transform="rotate(72) translate(0 -12)"/>
+      <ellipse rx="7" ry="15" transform="rotate(144) translate(0 -12)"/>
+      <ellipse rx="7" ry="15" transform="rotate(216) translate(0 -12)"/>
+      <ellipse rx="7" ry="15" transform="rotate(288) translate(0 -12)"/>
+    </g>
+    <circle r="6" fill="#ffd36e"/>
+  </g>
+</svg>

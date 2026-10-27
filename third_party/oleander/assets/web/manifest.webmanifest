@@ -1,0 +1,21 @@
+{
+  "name": "Oleander GBA Emulator",
+  "short_name": "Oleander",
+  "description": "Game Boy Advance emulator that works offline",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#121018",
+  "theme_color": "#1c1830",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "file_handlers": [
+    { "action": "./index.html", "accept": { "application/x-gba-rom": [".gba", ".agb"], "application/zip": [".zip"] } }
+  ],
+  "launch_handler": { "client_mode": "focus-existing" }
+}
