@@ -384,7 +384,10 @@ public class MainActivity extends Activity {
             o.put("name", name);
             o.put("url", nativeUrl(uri.toString()));
             if (size >= 0) o.put("size", size);
-            web.evaluateJavascript("window.oleanderOpenNative && window.oleanderOpenNative(" + o + ")", null);
+            // The page defines oleanderOpenNative only after it has loaded its settings and the wasm core, which is
+            // after onPageFinished; calling it straight away dropped the file on a cold start. Wait for it (up to 15 s).
+            web.evaluateJavascript("(function f(o, n) { if (window.oleanderOpenNative) window.oleanderOpenNative(o);"
+                    + " else if (n < 300) setTimeout(function () { f(o, n + 1); }, 50); })(" + o + ", 0)", null);
         } catch (Exception e) {
             Toast.makeText(this, "Cannot open file: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
