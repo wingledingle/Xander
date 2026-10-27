@@ -90,13 +90,14 @@ try {
 
   // Sequence the chop and bounce.
   await nav('beat');
+  const fits = await page.evaluate(() => { const g = document.querySelector('.grid'), p = document.querySelector('.beat-pads');
+    return g.scrollWidth <= g.clientWidth + 1 && p.getBoundingClientRect().bottom <= document.querySelector('#main').getBoundingClientRect().bottom + 1; });
+  check(fits, 'beat grid fits the phone width and the pads are on screen without scrolling');
   const tracks = await page.locator('.track-row:not(.ruler):not(.add)').count();
   check(tracks === 9, 'chop became a 9th track');
   const row = page.locator('.track-row:not(.ruler):not(.add)').last();
   for (const s of [0, 4, 8, 12]) await row.locator(`.step[data-step="${s}"]`).click();
   await shot('06-beat-with-chop');
-  await page.click('.seg button:has-text("Pads")');
-  await shot('07-pads');
 
   await page.click('#menu');
   const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.click('text=Export pattern as WAV')]);
@@ -123,7 +124,6 @@ try {
 
   await page.setViewportSize({ width: 1280, height: 800 });
   await nav('beat');
-  await page.click('.seg button:has-text("Steps")');
   await shot('11-tablet-beat');
 
   // Low-latency pads: with a native host present, pad hits go to XanderHost.padTrigger after a one-time upload.
@@ -139,8 +139,7 @@ try {
   });
   await native.goto('http://localhost:8792/modules/studio/index.html');
   await native.click('.nav button[data-view=beat]');
-  await native.click('.seg button:has-text("Pads")');
-  const pad = native.locator('.pad').first();
+  const pad = native.locator('.beat-pads .pad').first();
   await pad.dispatchEvent('pointerdown'); await pad.dispatchEvent('pointerup');
   await native.waitForFunction(() => window.__calls.some((c) => c[0] === 'load'), null, { timeout: 10000 });
   await pad.dispatchEvent('pointerdown'); await pad.dispatchEvent('pointerup');

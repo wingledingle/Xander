@@ -1,5 +1,7 @@
 package com.xander.files.data.thumbs
 
+import okio.Path.Companion.toPath
+
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -181,6 +183,12 @@ data class FullImage(val entry: FileEntry)
 class FullImageFetcher(private val model: FullImage, private val registry: FileSystemRegistry) : Fetcher {
     override suspend fun fetch(): FetchResult = withContext(Dispatchers.IO) {
         val path = model.entry.path
+        // Local files decode straight from disk (lets the decoder seek and subsample) instead of through a stream.
+        val local = if (path.isLocal) java.io.File(path.path).takeIf { it.canRead() } else null
+        if (local != null) return@withContext coil3.fetch.SourceFetchResult(
+            source = coil3.decode.ImageSource(file = local.absolutePath.toPath(), fileSystem = okio.FileSystem.SYSTEM),
+            mimeType = model.entry.mimeType, dataSource = DataSource.DISK,
+        )
         val stream = registry.provider(path).openInput(path)
         coil3.fetch.SourceFetchResult(
             source = coil3.decode.ImageSource(source = stream.source().buffer(), fileSystem = okio.FileSystem.SYSTEM),

@@ -88,11 +88,13 @@ class ImageViewerViewModel @Inject constructor(
     val initialIndex = MutableStateFlow(-1)
 
     init {
-        viewModelScope.launch {
-            val self = runCatching { registry.provider(start).stat(start) }.getOrNull()
-            val list = media.siblings(start, setOf(FileCategory.IMAGE)).ifEmpty { listOfNotNull(self) }
-            images.value = list
-            initialIndex.value = list.indexOfFirst { it.path == start }.coerceAtLeast(0)
+        // Show the tapped image at once; listing a big folder (DCIM/Camera) for swiping can take seconds.
+        viewModelScope.launch(Dispatchers.IO) {
+            val self = runCatching { registry.provider(start).stat(start) }.getOrNull() ?: FileEntry(start, false)
+            images.value = listOf(self)
+            initialIndex.value = 0
+            val list = media.siblings(start, setOf(FileCategory.IMAGE))
+            if (list.size > 1 && list.any { it.path == start }) images.value = list
         }
     }
 
@@ -133,6 +135,11 @@ fun ImageViewerScreen(onBack: () -> Unit, castButton: @Composable () -> Unit = {
     val initial by vm.initialIndex.collectAsStateWithLifecycle()
     if (initial < 0 || images.isEmpty()) { Box(Modifier.fillMaxSize().background(Color.Black)); return }
     val pager = rememberPagerState(initialPage = initial.coerceIn(0, images.lastIndex)) { images.size }
+    // When the folder listing arrives, stay on the image that is showing.
+    LaunchedEffect(images) {
+        val i = images.indexOfFirst { it.path == vm.start }
+        if (images.size > 1 && i >= 0 && pager.currentPage == 0 && i != 0) pager.scrollToPage(i)
+    }
     var chrome by remember { mutableStateOf(true) }
     var zoomed by remember { mutableStateOf(false) }
     var slideshow by remember { mutableStateOf(false) }

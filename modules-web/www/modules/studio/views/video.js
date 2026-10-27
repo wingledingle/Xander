@@ -17,7 +17,7 @@ import { decodeFile } from '../actions.js';
 import { host } from '../../host/xander.js';
 
 const AFX_DEFAULT = { vol: 1, pitch: 0, reverse: false, cutoff: 1, reso: 0.7, drive: 0, crush: 0, low: 0, mid: 0, high: 0, delay: 0, reverb: 0 };
-const MAX_AUDIO_SEC = 300;
+const AUDIO_WINDOW = 60; // seconds of mono audio held at once; it follows the playhead
 
 const V = {
   file: null, chops: [], fx: defaultVideoFx(), afx: { ...AFX_DEFAULT }, inPt: null, outPt: null, selected: null, tab: 'chops',
@@ -45,7 +45,7 @@ export async function openVideo(file) {
   V.afx = { ...AFX_DEFAULT, ...(same ? prev.afx : {}) };
   V.inPt = same ? prev.inPt : null; V.outPt = same ? prev.outPt : null;
   renderer.set(V.fx);
-  video.src = file.url; thumbVideo.src = file.url;
+  video.src = file.url; thumbVideo.removeAttribute('src'); // the browser-only thumbnail fallback loads it on demand
   video.load();
   await new Promise((res, rej) => { video.onloadedmetadata = res; video.onerror = () => rej(new Error('This video format is not supported')); });
   canvas.width = Math.min(1280, video.videoWidth || 1280); canvas.height = Math.round(canvas.width * ((video.videoHeight || 720) / (video.videoWidth || 1280)));
@@ -69,18 +69,31 @@ function ensureAudioRoute() {
 const afxParams = () => ({ ...Object.fromEntries(Object.entries(CHANNEL_PARAMS).map(([k, [, , d]]) => [k, d])), ...V.afx, pitch: 0, pan: 0, mute: false, solo: false });
 const applyAfx = () => { if (S.engine) S.engine.aux('video', afxParams()); persist(); };
 
+let loading = null;
 async function loadAudio(fromSec) {
   if (!V.file) return;
+  if (loading) return loading;
   V.decoding = true; refreshStatus();
-  try {
-    const { buffer, startSec } = await decodeFile(V.file, { startSec: fromSec, maxSec: MAX_AUDIO_SEC });
-    V.buffer = buffer; V.audioStart = startSec;
-    wave?.setBuffer(buffer, startSec);
-    refreshWave();
-  } catch (e) {
-    toast(`Could not extract audio: ${e.message}`, 5000);
-  }
-  V.decoding = false; refreshStatus();
+  loading = (async () => {
+    try {
+      const { buffer, startSec } = await decodeFile(V.file, { startSec: Math.max(0, fromSec), maxSec: AUDIO_WINDOW, channels: 1 });
+      V.buffer = null; // let the old window go before holding the new one
+      V.buffer = buffer; V.audioStart = startSec;
+      wave?.setBuffer(buffer, startSec);
+      refreshWave();
+    } catch (e) {
+      toast(`Could not extract audio: ${e.message}`, 5000);
+    } finally { V.decoding = false; loading = null; refreshStatus(); }
+  })();
+  return loading;
+}
+const inWindow = (a, b) => V.buffer && a >= V.audioStart - 0.01 && b <= V.audioStart + V.buffer.duration + 0.01;
+// Makes sure [a, b] is in the decoded window, moving the window if needed.
+async function ensureAudio(a, b) {
+  if (inWindow(a, b)) return true;
+  if (b - a > AUDIO_WINDOW - 2) return false;
+  await loadAudio(Math.max(0, a - 2));
+  return inWindow(a, b);
 }
 
 // ---- Thumbnails (a second, hidden video seeks so the main one never jumps) ---------------------------
@@ -93,6 +106,17 @@ async function nextThumb() {
   if (!chop) { thumbBusy = false; return; }
   thumbBusy = true;
   try {
+    const native = await host.thumbnail(V.file, chop.start + 0.05).catch(() => null);
+    if (native) {
+      chop.thumb = native;
+      persist();
+      document.querySelectorAll(`[data-chop="${chop.id}"]`).forEach((el) => {
+        if (el.classList.contains('thumb-pad')) el.style.backgroundImage = `url(${chop.thumb})`;
+        el.querySelector('.thumb')?.replaceWith(h('img', { class: 'thumb', src: chop.thumb, alt: '' }));
+      });
+      return nextThumb();
+    }
+    if (!thumbVideo.src) thumbVideo.src = V.file.url;
     if (thumbVideo.readyState < 1) await new Promise((r) => { thumbVideo.onloadedmetadata = r; setTimeout(r, 3000); });
     await new Promise((r) => { thumbVideo.onseeked = r; thumbVideo.currentTime = Math.min(chop.start + 0.05, (thumbVideo.duration || chop.start) - 0.01); setTimeout(r, 3000); });
     const c = h('canvas', { width: 160, height: 90 }), g = c.getContext('2d');
@@ -150,18 +174,18 @@ export function playChop(chop) {
     V.padVoice = playSample(e.ctx, e.aux('video', afxParams()), V.buffer, t, {
       start: chop.start - V.audioStart, end: chop.end - V.audioStart, pitch: V.afx.pitch, reverse: V.afx.reverse, gain: V.afx.vol, attack: 0.003, release: 0.01,
     });
-  } else elGain.gain.setValueAtTime(V.afx.vol, t);
+  } else { elGain.gain.setValueAtTime(V.afx.vol, t); ensureAudio(chop.start, chop.end); }
   video.play().catch(() => {});
   markSelected();
 }
 
 async function saveChops(list) {
-  if (!V.buffer) return toast('Audio is still loading');
+  if (!V.buffer && !V.decoding) return toast('No audio in this video');
   const names = [...S.samples.values()].map((s) => s.name);
   let n = 0;
   toast(`Saving ${list.length} chop${list.length > 1 ? 's' : ''}…`, 10000);
-  for (const c of list) {
-    if (c.start < V.audioStart || c.end > V.audioStart + V.buffer.duration + 0.01) continue;
+  for (const c of [...list].sort((a, b) => a.start - b.start)) {
+    if (!(await ensureAudio(c.start, c.end))) continue;
     const out = await renderSample(OfflineAudioContext, V.buffer, { start: c.start - V.audioStart, end: c.end - V.audioStart, gain: V.afx.vol, attack: 0.002, release: 0.008 }, V.afx);
     const name = uniqueName(c.name, names);
     names.push(name);
@@ -319,7 +343,7 @@ export function renderVideo(root) {
     wave.el,
     h('div', { class: 'toolbar wrap' },
       h('span', { id: 'video-audio-status', class: 'muted small' }),
-      btn('Load audio from here', () => loadAudio(Math.max(0, video.currentTime - 10)), { cls: 'ghost small', id: 'video-load-here' }),
+      btn('Load audio here', () => loadAudio(Math.max(0, video.currentTime - 2)), { cls: 'ghost small', id: 'video-load-here' }),
       h('div', { class: 'spacer' }),
       btn('Add chop', () => {
         const a = V.inPt ?? video.currentTime, b = V.outPt != null && V.outPt > a ? V.outPt : a + (60 / S.song.bpm);
@@ -347,6 +371,8 @@ function tick() {
     if (V.stopAt != null && video.currentTime >= V.stopAt) { video.pause(); V.stopAt = null; }
     if (timeEl?.isConnected) timeEl.textContent = fmtTime(video.currentTime);
     if (S.view === 'video' && wave && !video.paused) { wave.reveal(video.currentTime); wave.set({ cursor: video.currentTime }); }
+    // Keep the decoded window ahead of normal playback (not during pad hits, which load their own).
+    if (!video.paused && V.stopAt == null && V.buffer && !V.decoding && video.currentTime > V.audioStart + V.buffer.duration - 5 && video.currentTime < (video.duration || 0) - 1) loadAudio(video.currentTime - 2);
   }
   requestAnimationFrame(tick);
 }

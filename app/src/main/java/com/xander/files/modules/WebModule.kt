@@ -23,6 +23,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -91,7 +94,8 @@ class WebModuleViewModel @Inject constructor(
     private val saves = ConcurrentHashMap<String, File>()
     private val decodeDir = File(context.cacheDir, "module-audio").apply { mkdirs(); listFiles()?.forEach { it.delete() } }
     var launchJson: String = ""
-        private set
+    /** Times the page's renderer died this session (shown to the user, and stops auto-reopening the file). */
+    var crashes = 0
     private var launched: FsPath? = null
 
     fun launch(file: FsPath?) {
@@ -102,17 +106,41 @@ class WebModuleViewModel @Inject constructor(
 
     fun openPath(path: String): String = runCatching { runBlocking(Dispatchers.IO) { files.register(FsPath.parse(path)).toJson().toString() } }.getOrDefault("")
 
-    fun decode(token: String, startMs: Long, maxMs: Long, done: (JSONObject?, String?) -> Unit) = viewModelScope.launch(Dispatchers.IO) {
+    fun decode(token: String, startMs: Long, maxMs: Long, channels: Int, done: (JSONObject?, String?) -> Unit) = viewModelScope.launch(Dispatchers.IO) {
         val f = files.get(token) ?: return@launch done(null, "Unknown file")
         try {
-            val out = File(decodeDir, "${token}_$startMs.wav")
-            val r = extractor.extract(f, startMs, maxMs, out)
+            // One decoded window per file is kept; the previous one is dropped to bound cache use.
+            decodeDir.listFiles { x -> x.name.startsWith("${token}_") }?.forEach { it.delete() }
+            val out = File(decodeDir, "${token}_${startMs}_$channels.wav")
+            val r = extractor.extract(f, startMs, maxMs, out, channels)
             val wav = files.register(out, "audio/wav")
             done(JSONObject().put("url", wav.url).put("startSec", r.startMs / 1000.0).put("durationSec", r.durationMs / 1000.0)
                 .put("sampleRate", r.sampleRate).put("channels", r.channels), null)
         } catch (e: Exception) {
             done(null, e.message ?: "Could not decode audio")
         }
+    }
+
+    /** A JPEG data URL of the frame at [ms], [width] px wide, from the platform decoder (no second <video> needed). */
+    fun thumbnail(token: String, ms: Long, width: Int, done: (JSONObject?, String?) -> Unit) = viewModelScope.launch(Dispatchers.IO) {
+        val f = files.get(token) ?: return@launch done(null, "Unknown file")
+        val mmr = android.media.MediaMetadataRetriever()
+        var ds: StreamDataSource? = null
+        try {
+            when (val s = f.source) {
+                is HostSource.Local -> mmr.setDataSource(s.file.absolutePath)
+                is HostSource.Content -> mmr.setDataSource(context, s.uri)
+                is HostSource.Fs -> if (s.path.isLocal && File(s.path.path).canRead()) mmr.setDataSource(s.path.path) else mmr.setDataSource(StreamDataSource(f, files).also { ds = it })
+            }
+            val src = mmr.getFrameAtTime(ms * 1000, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC) ?: return@launch done(null, "No frame")
+            val h = (width * src.height / src.width.coerceAtLeast(1)).coerceAtLeast(1)
+            val bmp = android.graphics.Bitmap.createScaledBitmap(src, width, h, true)
+            val bytes = java.io.ByteArrayOutputStream().also { bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 72, it) }.toByteArray()
+            if (bmp !== src) bmp.recycle(); src.recycle()
+            done(JSONObject().put("dataUrl", "data:image/jpeg;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)), null)
+        } catch (e: Exception) {
+            done(null, e.message ?: "No frame")
+        } finally { mmr.release(); ds?.close() }
     }
 
     fun saveBegin(name: String, folder: String): String {
@@ -193,8 +221,11 @@ class XanderHostBridge(
         val mimes = runCatching { JSONArray(acceptJson).let { a -> Array(a.length()) { a.getString(it) } } }.getOrDefault(arrayOf("*/*"))
         web.post { requestPick(id, mimes, multiple) }
     }
-    @JavascriptInterface fun decodeAudio(id: Int, token: String, startMs: Double, maxMs: Double) {
-        vm.decode(token, startMs.toLong(), maxMs.toLong()) { r, err -> if (r != null) resolve(id, r.toString()) else reject(id, err ?: "error") }
+    @JavascriptInterface fun decodeAudio(id: Int, token: String, startMs: Double, maxMs: Double, channels: Int) {
+        vm.decode(token, startMs.toLong(), maxMs.toLong(), channels) { r, err -> if (r != null) resolve(id, r.toString()) else reject(id, err ?: "error") }
+    }
+    @JavascriptInterface fun thumbnail(id: Int, token: String, ms: Double, width: Int) {
+        vm.thumbnail(token, ms.toLong(), width.coerceIn(16, 1280)) { r, err -> if (r != null) resolve(id, r.toString()) else reject(id, err ?: "error") }
     }
     @JavascriptInterface fun saveBegin(name: String, mime: String, folder: String): String = vm.saveBegin(name, folder)
     @JavascriptInterface fun saveChunk(sid: String, b64: String) = vm.saveChunk(sid, b64)
@@ -228,7 +259,10 @@ fun WebModuleScreen(module: WebModule, file: FsPath?, onBack: () -> Unit, vm: We
         }
         bridge.resolve(id, arr.toString())
     }
-    val web = remember {
+    // If the page's renderer dies (usually out of memory), Android would kill the whole app unless we handle it.
+    // We drop that WebView and build a fresh one instead.
+    var generation by remember { mutableIntStateOf(0) }
+    val web = remember(generation) {
         WebView(context).apply {
             layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
             setBackgroundColor(android.graphics.Color.parseColor("#0b0c0f"))
@@ -248,6 +282,16 @@ fun WebModuleScreen(module: WebModule, file: FsPath?, onBack: () -> Unit, vm: We
                     val p = url.path.orEmpty()
                     if (p.startsWith("/host/file/")) return vm.files.respond(p.removePrefix("/host/file/").substringBefore('/'), request.requestHeaders.entries.firstOrNull { it.key.equals("Range", true) }?.value)
                     return assets.shouldInterceptRequest(url)
+                }
+                override fun onRenderProcessGone(view: WebView, detail: android.webkit.RenderProcessGoneDetail): Boolean {
+                    Log.w("WebModule", "${module.id}: renderer gone (crashed=${detail.didCrash()})")
+                    vm.crashes++
+                    vm.launchJson = "" // don't reopen the file that may have caused it
+                    (view.parent as? ViewGroup)?.removeView(view)
+                    view.destroy()
+                    Toast.makeText(context, if (detail.didCrash()) "The module crashed and was restarted" else "The module ran out of memory and was restarted", Toast.LENGTH_LONG).show()
+                    generation++
+                    return true
                 }
                 // Links to the web open in the browser; the module page itself never navigates away.
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
@@ -274,9 +318,9 @@ fun WebModuleScreen(module: WebModule, file: FsPath?, onBack: () -> Unit, vm: We
             if (handled?.trim('"') != "true") back()
         }
     }
-    DisposableEffect(Unit) {
+    DisposableEffect(web) {
         web.onResume()
-        onDispose { web.keepScreenOn = false; web.stopLoading(); web.destroy() }
+        onDispose { web.keepScreenOn = false; runCatching { web.stopLoading(); web.destroy() } }
     }
-    AndroidView(factory = { web }, modifier = Modifier.fillMaxSize())
+    key(generation) { AndroidView(factory = { web }, modifier = Modifier.fillMaxSize()) }
 }

@@ -82,7 +82,7 @@ export async function importAudioFiles(files) {
   for (const f of files) {
     try {
       toast(`Importing ${f.name}…`, 10000);
-      const { buffer } = await decode(f, { maxSec: 120 });
+      const { buffer } = await decode(f, { maxSec: 60 });
       const rec = bufferToRecord(buffer, {
         name: uniqueName(f.name.replace(/\.[^.]+$/, ''), [...S.samples.values()].map((s) => s.name)),
         tags: normTags(['import']), color: COLORS[added.length % COLORS.length], source: { kind: 'file', name: f.name, path: f.path || null },

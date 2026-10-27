@@ -22,7 +22,8 @@ class AudioExtractor(private val context: Context, private val files: HostFiles)
 
     data class Result(val sampleRate: Int, val channels: Int, val startMs: Long, val durationMs: Long)
 
-    fun extract(f: HostFile, startMs: Long, maxMs: Long, out: File): Result {
+    fun extract(f: HostFile, startMs: Long, maxMs: Long, out: File, maxChannels: Int = 2): Result {
+        val chCap = maxChannels.coerceIn(1, 2)
         val ex = MediaExtractor()
         var dataSource: MediaDataSource? = null
         try {
@@ -77,7 +78,7 @@ class AudioExtractor(private val context: Context, private val files: HostFiles)
                                 if (firstUs < 0) firstUs = info.presentationTimeUs
                                 val buf = codec.getOutputBuffer(o)!!.order(ByteOrder.LITTLE_ENDIAN)
                                 buf.position(info.offset); buf.limit(info.offset + info.size)
-                                frames += writePcm(buf, raf, inCh, minOf(2, inCh), float, chunk)
+                                frames += writePcm(buf, raf, inCh, minOf(chCap, inCh), float, chunk)
                             }
                             codec.releaseOutputBuffer(o, false)
                             if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) outputDone = true
@@ -85,7 +86,7 @@ class AudioExtractor(private val context: Context, private val files: HostFiles)
                     }
                 }
                 codec.stop(); codec.release()
-                val ch = minOf(2, inCh)
+                val ch = minOf(chCap, inCh)
                 raf.seek(0)
                 raf.write(wavHeader(frames, rate, ch))
                 return Result(rate, ch, if (firstUs >= 0) firstUs / 1000 else startMs, frames * 1000 / rate.coerceAtLeast(1))
@@ -96,19 +97,20 @@ class AudioExtractor(private val context: Context, private val files: HostFiles)
         }
     }
 
-    // Converts one decoder buffer to interleaved 16-bit with at most two channels. Returns frames written.
+    // Converts one decoder buffer to interleaved 16-bit. outCh 1 averages all input channels (mono downmix);
+    // outCh 2 keeps the first two. Returns frames written.
     private fun writePcm(buf: ByteBuffer, raf: RandomAccessFile, inCh: Int, outCh: Int, float: Boolean, chunk: ByteArray): Long {
         val bytesPer = if (float) 4 else 2
         val frameCount = buf.remaining() / (bytesPer * inCh)
+        val frame = IntArray(inCh)
         var pos = 0
-        for (fr in 0 until frameCount) {
-            for (c in 0 until inCh) {
-                val v: Int = if (float) (buf.float.coerceIn(-1f, 1f) * 32767).toInt() else buf.short.toInt()
-                if (c < outCh) {
-                    chunk[pos++] = v.toByte(); chunk[pos++] = (v shr 8).toByte()
-                    if (pos == chunk.size) { raf.write(chunk, 0, pos); pos = 0 }
-                }
-            }
+        fun put(v: Int) {
+            chunk[pos++] = v.toByte(); chunk[pos++] = (v shr 8).toByte()
+            if (pos == chunk.size) { raf.write(chunk, 0, pos); pos = 0 }
+        }
+        repeat(frameCount) {
+            for (c in 0 until inCh) frame[c] = if (float) (buf.float.coerceIn(-1f, 1f) * 32767).toInt() else buf.short.toInt()
+            if (outCh == 1 && inCh > 1) put(frame.sum() / inCh) else for (c in 0 until outCh) put(frame[c])
         }
         if (pos > 0) raf.write(chunk, 0, pos)
         return frameCount.toLong()
@@ -127,7 +129,7 @@ class AudioExtractor(private val context: Context, private val files: HostFiles)
 }
 
 /** Random access over any file-manager backend (SMB, cloud…) for MediaExtractor; reopens only on seeks. */
-private class StreamDataSource(private val f: HostFile, private val files: HostFiles) : MediaDataSource() {
+internal class StreamDataSource(private val f: HostFile, private val files: HostFiles) : MediaDataSource() {
     private var input: InputStream? = null
     private var pos = -1L
     override fun getSize(): Long = f.size

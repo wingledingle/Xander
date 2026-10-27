@@ -323,3 +323,56 @@ button:disabled { opacity: .35; cursor: default; }
   .steps > :nth-child(4n+1):not(:first-child) { margin-left: 3px; }
 }
 @media (min-width: 840px) { .track-head { width: 190px; } }
+
+/* ---- Beat deck v2: grid fits the width, pads always visible, nothing to scroll sideways ---------------- */
+.deck.beat { height: 100%; gap: 8px; padding-bottom: 10px; }
+.beat-tools { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 6px; }
+.beat-tools::-webkit-scrollbar { display: none; }
+.beat-tools .icon-btn { width: 38px; height: 38px; }
+.beat-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+.grid-wrap { flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.deck.beat .grid { width: 100%; min-width: 0; gap: 3px; }
+.deck.beat .track-head { position: static; width: 76px; }
+.deck.beat .track-name { height: 30px; border-radius: 7px; font-size: 11px; padding: 0 5px; gap: 5px; }
+.deck.beat .track-head.muted .track-name { opacity: .45; }
+.deck.beat .ms { display: none; }
+.deck.beat .steps { flex: 1; min-width: 0; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 2px; }
+.deck.beat .steps > :nth-child(4n+1):not(:first-child) { margin-left: 3px; }
+.deck.beat .step { height: 30px; border-radius: 5px; }
+.deck.beat .step.accent::after { top: 3px; width: 4px; height: 4px; margin-left: -2px; }
+.deck.beat .ruler .steps, .deck.beat .led { height: 14px; font-size: 9px; }
+.deck.beat .track-head.ghost { height: 14px; }
+.beat-pads { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-width: none; }
+.beat-pads .pad { aspect-ratio: auto; height: clamp(48px, 8.6vh, 96px); border-radius: 11px; padding: 6px 8px; }
+.beat-pads .pad-l { font-size: 11px; -webkit-line-clamp: 1; }
+.arrangement { display: flex; align-items: center; gap: 10px; padding: 6px 10px; }
+.arrangement .arr-chips { flex: 1; }
+.arr-chip { min-width: 34px; height: 32px; border-radius: 8px; }
+.arr-chip.add { display: grid; place-items: center; color: var(--muted); border-style: dashed; }
+.arr-chip.add .ic { width: 16px; height: 16px; }
+@media (min-width: 600px) { .deck.beat .track-head { width: 120px; } .deck.beat .track-name { font-size: 12px; } .deck.beat .step, .deck.beat .track-name { height: 36px; } }
+@media (min-width: 840px) {
+  .beat-body { flex-direction: row; align-items: flex-start; }
+  .grid-wrap { flex: 1; max-height: 100%; }
+  .beat-pads { width: min(38%, 440px); }
+  .beat-pads .pad { height: auto; aspect-ratio: 1; }
+  .deck.beat .track-head { width: 150px; }
+  .deck.beat .ms { display: block; height: 36px; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .beat-body { flex-direction: row; }
+  .grid-wrap { flex: 1; max-height: 100%; }
+  .beat-pads { width: 34%; }
+  .beat-pads .pad { height: auto; aspect-ratio: 1.4; }
+  .deck.beat .step, .deck.beat .track-name { height: 24px; }
+}
+.deck.beat .toolbar.beat-tools { flex-wrap: nowrap; }
+.grid-wrap { flex: 1 1 auto; }
+.beat-pads .pad { height: clamp(44px, 6.6vh, 92px); }
+/* Pads take whatever height the grid leaves (bigger targets), the grid scrolls inside itself only past ~10 tracks. */
+.grid-wrap { flex: 0 1 auto; }
+.beat-pads { flex: 1 1 auto; min-height: 140px; grid-auto-rows: minmax(44px, 120px); align-content: end; }
+.beat-pads .pad { height: auto; }
+@media (min-width: 840px), (orientation: landscape) and (max-height: 500px) { .beat-pads { flex: none; grid-auto-rows: auto; align-content: start; } .beat-pads .pad { aspect-ratio: 1; } }
+.grid-wrap { flex: 0 0 auto; max-height: 60%; }
+@media (min-width: 840px), (orientation: landscape) and (max-height: 500px) { .grid-wrap { flex: 1; max-height: 100%; } }

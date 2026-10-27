@@ -42,10 +42,16 @@ export const host = {
     return A ? call((id) => A.pick(id, JSON.stringify(accept), multiple)) : pickInBrowser(accept, multiple);
   },
   /** Decodes the audio track of an audio/video file to WAV on the device (any codec the phone supports).
-   *  Returns { url, startSec, durationSec }. In a browser the original file URL is returned for decodeAudioData. */
-  decodeAudio(file, { startSec = 0, maxSec = 300 } = {}) {
+   *  channels: 1 (mono downmix, half the memory) or 2. Returns { url, startSec, durationSec }.
+   *  In a browser the original file URL is returned for decodeAudioData. */
+  decodeAudio(file, { startSec = 0, maxSec = 60, channels = 2 } = {}) {
     if (!A || !file.token) return Promise.resolve({ url: file.url, startSec: 0 });
-    return call((id) => A.decodeAudio(id, file.token, startSec * 1000, maxSec * 1000));
+    return call((id) => A.decodeAudio(id, file.token, startSec * 1000, maxSec * 1000, channels));
+  },
+  /** JPEG data URL of a video frame at `sec`, made by the platform decoder. Null when unavailable (browser). */
+  async thumbnail(file, sec, width = 160) {
+    if (!A || !file.token || !A.thumbnail) return null;
+    return (await call((id) => A.thumbnail(id, file.token, sec * 1000, width))).dataUrl;
   },
   /** Saves a Blob into the user's storage (Music/<folder> by default). Returns { path } or { downloaded: true }. */
   async save(name, blob, { folder = 'Groovesmith' } = {}) {
