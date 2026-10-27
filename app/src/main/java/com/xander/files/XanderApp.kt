@@ -43,12 +43,16 @@ class XanderApp : Application(), SingletonImageLoader.Factory, Configuration.Pro
         TransferWorker.ensureChannel(this)
         MaintenanceWorker.schedule(this)
         appLock.install()
-        startIndexing()
+        // The full storage walk floods the storage layer; let the first screens and images load before it starts.
+        startIndexing(delayMs = 20_000)
     }
 
     /** Indexes storage in the background once storage access exists (called again after onboarding). */
-    fun startIndexing() {
-        if (StorageAccess.hasFullAccess(this)) appScope.launch { runCatching { indexer.indexAll(full = true) }; runCatching { nsfw.scan() } }
+    fun startIndexing(delayMs: Long = 0) {
+        if (StorageAccess.hasFullAccess(this)) appScope.launch {
+            kotlinx.coroutines.delay(delayMs)
+            runCatching { indexer.indexAll(full = true) }; runCatching { nsfw.scan() }
+        }
     }
 
     override fun newImageLoader(context: PlatformContext): ImageLoader =

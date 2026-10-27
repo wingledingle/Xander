@@ -46,14 +46,20 @@ class ThumbnailService @Inject constructor(
 ) {
     private val cacheDir = File(context.cacheDir, "thumb_src").apply { mkdirs() }
     private val remoteLimit = Semaphore(3)
+    private val thumbDir = File(context.cacheDir, "thumbs").apply { mkdirs() }
+    private val thumbWrites = java.util.concurrent.atomic.AtomicInteger()
 
     suspend fun load(entry: FileEntry, sizePx: Int): Bitmap? = withContext(Dispatchers.IO) {
         try {
             val provider = registry.provider(entry.path)
             // Backends with native thumbnails (cloud drives) answer first.
             if (entry.path.scheme != FsPath.SCHEME_FILE) provider.thumbnail(entry, sizePx)?.let { return@withContext it }
+            // Finished thumbnails are kept on disk, so reopening a photo grid reads small files instead of decoding
+            // every full-size photo again.
+            val cached = File(thumbDir, digest("${entry.path}|${entry.lastModified}|${entry.size}|$sizePx") )
+            if (cached.exists()) BitmapFactory.decodeFile(cached.path)?.let { return@withContext it }
             val file = localFile(entry) ?: return@withContext null
-            when (entry.category) {
+            val bmp = when (entry.category) {
                 FileCategory.IMAGE -> decodeImage(file, sizePx)
                 FileCategory.VIDEO -> videoFrame(file, sizePx)
                 FileCategory.AUDIO -> audioArt(file, sizePx)
@@ -61,6 +67,8 @@ class ThumbnailService @Inject constructor(
                 FileCategory.PDF -> pdfPage(file, sizePx)
                 else -> null
             }
+            if (bmp != null && entry.category != FileCategory.APK) saveThumb(bmp, cached)
+            bmp
         } catch (e: Throwable) {
             null
         }
@@ -74,8 +82,7 @@ class ThumbnailService @Inject constructor(
         }
         val limit = when (entry.category) { FileCategory.VIDEO -> 0L; FileCategory.APK -> 200L shl 20; else -> 30L shl 20 }
         if (entry.size > limit) return null
-        val key = MessageDigest.getInstance("MD5").digest("${entry.path}|${entry.lastModified}|${entry.size}".toByteArray())
-            .joinToString("") { "%02x".format(it) }
+        val key = digest("${entry.path}|${entry.lastModified}|${entry.size}")
         val out = File(cacheDir, key + "." + entry.extension)
         if (out.exists() && out.length() == entry.size) return out
         remoteLimit.withPermit {
@@ -85,11 +92,24 @@ class ThumbnailService @Inject constructor(
         return out
     }
 
-    private fun trimCache() {
-        val files = cacheDir.listFiles() ?: return
+    private fun digest(s: String) = MessageDigest.getInstance("MD5").digest(s.toByteArray()).joinToString("") { "%02x".format(it) }
+
+    private fun saveThumb(bmp: Bitmap, out: File) {
+        runCatching {
+            val tmp = File(out.path + ".tmp")
+            tmp.outputStream().use { bmp.compress(if (bmp.hasAlpha()) Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.JPEG, 85, it) }
+            tmp.renameTo(out)
+        }
+        if (thumbWrites.incrementAndGet() % 200 == 0) trim(thumbDir, 120L shl 20, 90L shl 20)
+    }
+
+    private fun trimCache() = trim(cacheDir, 200L shl 20, 150L shl 20)
+
+    private fun trim(dir: File, max: Long, target: Long) {
+        val files = dir.listFiles() ?: return
         var total = files.sumOf { it.length() }
-        if (total < 200L shl 20) return
-        files.sortedBy { it.lastModified() }.forEach { if (total > 150L shl 20) { total -= it.length(); it.delete() } }
+        if (total < max) return
+        files.sortedBy { it.lastModified() }.forEach { if (total > target) { total -= it.length(); it.delete() } }
     }
 
     private fun decodeImage(f: File, size: Int): Bitmap? {

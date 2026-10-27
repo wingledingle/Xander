@@ -116,14 +116,16 @@ class LibraryViewModel @Inject constructor(
 
     fun load() = viewModelScope.launch {
         loading.value = true
-        raw = repo.files(kind).filter { java.io.File(it.path.path).exists() }
+        // No per-file exists() check: on Android 11+ every stat goes through the storage FUSE layer, and doing it for
+        // thousands of photos on the main thread froze the Images screen for seconds. The indexer prunes deleted files.
+        raw = repo.files(kind)
         if (kind == LibraryKind.ADULT) scores.value = nsfw.scoresFor(raw.map { it.path.path })
-        apply(); loading.value = false
+        apply().join(); loading.value = false
     }
 
     fun refresh() = viewModelScope.launch { indexer.indexAll(full = true); load() }
 
-    private fun apply() {
+    private fun apply() = viewModelScope.launch(kotlinx.coroutines.Dispatchers.Default) {
         val hidden = settings.value.showHidden
         val base = if (hidden) raw else raw.filter { e -> !e.isHidden && !e.path.path.contains("/.") }
         items.value = when (sort.value) {
