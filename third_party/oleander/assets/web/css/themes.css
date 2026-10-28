@@ -167,3 +167,6 @@ body.saver *, body.saver *::before, body.saver *::after { backdrop-filter: none 
 body.saver .tbtn, body.saver .tbtn.dpad::before, body.saver .tbtn.dpad::after, body.saver .bezel, body.saver .card .cart-shell { box-shadow: none !important; }
 body.saver #player-view { background: var(--shell-lo) !important; }
 body.saver .player-menu { background: rgba(0, 0, 0, .9); }
+
+/* ---------- Camera cutout: keep the picture (and the whole player) out of it unless turned off ---------- */
+body.avoid-cutout #player-view { padding: var(--cut-top, 0) var(--cut-right, 0) var(--cut-bottom, 0) var(--cut-left, 0); box-sizing: border-box; }

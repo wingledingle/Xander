@@ -47,6 +47,7 @@ export const DEFAULTS = {
   bootAnimation: 'first', // 'first' (first launch only), 'always', 'never'
   powerSaver: false,
   touchScale: 1,
+  avoidCutout: true, // keep the game picture clear of the camera cutout
   handheldFrame: 'auto',
   uiSounds: true,
   accent: '',
@@ -138,7 +139,7 @@ class Settings extends EventTarget {
   async set(key, value) {
     this.global[key] = value;
     await setSetting('all', this.global);
-    if (key === 'theme' || key === 'accent' || key === 'powerSaver') this.applyTheme();
+    if (key === 'theme' || key === 'accent' || key === 'powerSaver' || key === 'avoidCutout') this.applyTheme();
     this.dispatchEvent(new CustomEvent('change', { detail: { key, value } }));
   }
 
@@ -177,6 +178,7 @@ class Settings extends EventTarget {
   applyTheme() {
     document.documentElement.dataset.theme = this.global.theme;
     document.body?.classList.toggle('saver', !!this.global.powerSaver);
+    document.body?.classList.toggle('avoid-cutout', this.global.avoidCutout !== false);
     if (this.global.accent) document.documentElement.style.setProperty('--accent', this.global.accent);
     else document.documentElement.style.removeProperty('--accent');
   }
@@ -238,6 +240,7 @@ const SCHEMA = {
     ['scrapeCovers', 'Download cover art and game names (libretro-thumbnails)', 'check'],
     ['theme', 'Theme', 'select', THEMES.map(([v, l]) => [v, l])],
     ['handheldFrame', 'Screen frame', 'select', [['auto', 'Handheld frame with touch controls'], ['always', 'Handheld frame always'], ['edge', 'No bezel: screen edge to edge'], ['never', 'Plain (no frame)']]],
+    ['avoidCutout', 'Keep the picture clear of the camera cutout (off: use the whole screen)', 'check'],
     ['powerSaver', 'Battery saver (30 fps picture, no visual effects; game speed unchanged)', 'check'],
     ['bootAnimation', 'Boot animation and chime', 'select', [['first', 'First launch only'], ['always', 'Every launch'], ['never', 'Never']]],
     ['uiSounds', 'Menu sounds', 'check'],

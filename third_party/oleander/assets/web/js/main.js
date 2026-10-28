@@ -438,4 +438,10 @@ function pickSecondGame(library, onPick) {
 }
 
 export { safeName };
+// Camera cutout insets from the Android host (CSS px), used by body.avoid-cutout in themes.css.
+window.oleanderCutout = (c) => {
+  const r = document.documentElement.style;
+  for (const k of ['top', 'right', 'bottom', 'left']) r.setProperty(`--cut-${k}`, `${Math.max(0, +(c?.[k]) || 0)}px`);
+};
+try { window.oleanderCutout(JSON.parse(window.OleanderAndroid?.cutoutInsets?.() || '{}')); } catch {}
 boot();

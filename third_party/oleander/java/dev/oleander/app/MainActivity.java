@@ -90,6 +90,7 @@ public class MainActivity extends Activity {
     private Uri pendingOpen;
     private boolean pageReady;
     /** Single documents the page may read (opened with / shared to the app). */
+    private volatile String cutout = "{}";
     private final Set<String> allowedDocs = Collections.synchronizedSet(new HashSet<>());
 
     @Override
@@ -104,6 +105,16 @@ public class MainActivity extends Activity {
         setContentView(web);
         immersive();
         preferSixtyHz();
+        // Camera cutout (Xander change): the page reads these insets and keeps the game picture clear of the
+        // camera unless the player chose otherwise.
+        if (Build.VERSION.SDK_INT >= 28) web.setOnApplyWindowInsetsListener((v, insets) -> {
+            android.view.DisplayCutout dc = insets.getDisplayCutout();
+            float d = getResources().getDisplayMetrics().density;
+            cutout = dc == null ? "{}" : "{\"top\":" + dc.getSafeInsetTop() / d + ",\"left\":" + dc.getSafeInsetLeft() / d
+                    + ",\"right\":" + dc.getSafeInsetRight() / d + ",\"bottom\":" + dc.getSafeInsetBottom() / d + "}";
+            web.evaluateJavascript("window.oleanderCutout && window.oleanderCutout(" + cutout + ")", null);
+            return v.onApplyWindowInsets(insets);
+        });
         // Android 16 apps get the back gesture as a callback, not a BACK key event (Xander change).
         if (Build.VERSION.SDK_INT >= 33) getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
                 android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::handleBack);
@@ -683,6 +694,11 @@ public class MainActivity extends Activity {
 
     /** JavaScript bridge (window.OleanderAndroid). */
     private class Bridge {
+        @JavascriptInterface
+        public String cutoutInsets() {
+            return cutout;
+        }
+
         @JavascriptInterface
         public String platform() {
             return "android";
