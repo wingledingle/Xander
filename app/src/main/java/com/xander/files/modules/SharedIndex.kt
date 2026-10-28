@@ -34,13 +34,31 @@ object SharedIndex {
         return (plain + zips).filter { it.canRead() }
     }
 
-    /** True when [f] is a zip holding a GBA ROM. Answers are cached by path, size and date, so rescans are cheap. */
-    @JvmStatic fun isGbaZip(c: Context, f: File): Boolean {
-        val prefs = c.getSharedPreferences("shared_index_zips", Context.MODE_PRIVATE)
+    /** What a zip holds that a module can open: a GBA game (Oleander) or a book (Quinten). */
+    enum class ZipKind { GBA, BOOK, NONE }
+
+    private val BOOK = setOf("epub", "pdf", "mobi", "azw", "azw3", "kf8", "prc", "fb2", "djvu", "djv", "txt", "rtf", "doc", "docx", "cbz", "cbr")
+
+    /** Answers are cached by path, size and date, so rescans and taps are cheap. */
+    @JvmStatic fun zipKind(c: Context, f: File): ZipKind {
+        val prefs = c.getSharedPreferences("shared_index_zips2", Context.MODE_PRIVATE)
         val stamp = "${f.length()}:${f.lastModified()}"
-        prefs.getString(f.path, null)?.let { if (it.substringBeforeLast(':') == stamp) return it.endsWith(":1") }
-        val yes = runCatching { ZipFile(f).use { z -> z.entries().asSequence().any { !it.isDirectory && it.name.substringAfterLast('.').lowercase() in GBA } } }.getOrDefault(false)
-        prefs.edit().putString(f.path, "$stamp:${if (yes) 1 else 0}").apply()
-        return yes
+        prefs.getString(f.path, null)?.let { v -> if (v.substringBeforeLast(':') == stamp) return runCatching { ZipKind.valueOf(v.substringAfterLast(':')) }.getOrDefault(ZipKind.NONE) }
+        val kind = runCatching {
+            ZipFile(f).use { z ->
+                val files = z.entries().asSequence().filter { !it.isDirectory && !it.name.startsWith("__MACOSX") }.toList()
+                val ext = { e: java.util.zip.ZipEntry -> e.name.substringAfterLast('.').lowercase() }
+                // A book zip: its largest file is the book (so a program's zip with a readme.txt is not one).
+                when {
+                    files.any { ext(it) in GBA } -> ZipKind.GBA
+                    files.maxByOrNull { it.size }?.let { ext(it) in BOOK } == true -> ZipKind.BOOK
+                    else -> ZipKind.NONE
+                }
+            }
+        }.getOrDefault(ZipKind.NONE)
+        prefs.edit().putString(f.path, "$stamp:${kind.name}").apply()
+        return kind
     }
+
+    @JvmStatic fun isGbaZip(c: Context, f: File): Boolean = zipKind(c, f) == ZipKind.GBA
 }

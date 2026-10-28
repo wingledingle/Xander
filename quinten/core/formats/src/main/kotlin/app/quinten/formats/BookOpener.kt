@@ -15,6 +15,7 @@ import java.io.File
 /** Opens the pure-JVM formats. Page-rendered formats (PDF, DjVu) are opened by platform modules. */
 object BookOpener {
     fun detect(file: File, nameHint: String? = null): BookFormat? {
+        if (app.quinten.formats.util.ZippedBook.isPlainZip(nameHint ?: file.name)) return app.quinten.formats.util.ZippedBook.formatOf(file)
         val head = ByteArray(4096)
         val n = file.inputStream().use { it.read(head) }
         return BookFormat.sniff(if (n > 0) head.copyOf(n) else ByteArray(0), nameHint ?: file.name)

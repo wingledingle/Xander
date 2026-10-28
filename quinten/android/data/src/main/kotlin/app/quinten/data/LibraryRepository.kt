@@ -410,7 +410,7 @@ class LibraryRepository(
         var folders = 0
         val before = books.all().associateBy { it.location }
         suspend fun consider(location: String, name: String, size: Long, modified: Long) {
-            if (BookFormat.fromFileName(name) == null) return
+            if (BookFormat.fromFileName(name) == null && !app.quinten.formats.util.ZippedBook.isPlainZip(name)) return
             if (!seen.add(location)) return
             val known = before[location]
             if (known != null) {
@@ -516,7 +516,7 @@ class LibraryRepository(
                 val p = c.absolutePath
                 if (p.endsWith("/Android/data") || p.endsWith("/Android/obb")) continue
                 subdirs += c.name
-            } else if (BookFormat.fromFileName(c.name) != null && runCatching { c.length() }.getOrDefault(0L) > 0) bookFiles += c.name
+            } else if ((BookFormat.fromFileName(c.name) != null || app.quinten.formats.util.ZippedBook.isPlainZip(c.name)) && runCatching { c.length() }.getOrDefault(0L) > 0) bookFiles += c.name
         }
         listed += ScannedDirEntity(path, modified, subdirs.joinToString("\n"), bookFiles.joinToString("\n"))
         for (name in bookFiles) onFile(File(dir, name))
@@ -533,7 +533,7 @@ class LibraryRepository(
                 val name = c.name ?: continue
                 if (name.startsWith(".")) continue
                 if (c.isDirectory) walkTree(c, depth + 1, onFolder, onError, onFile)
-                else if (BookFormat.fromFileName(name) != null) onFile(c)
+                else if (BookFormat.fromFileName(name) != null || app.quinten.formats.util.ZippedBook.isPlainZip(name)) onFile(c)
             } catch (_: Exception) { onError() }
         }
     }

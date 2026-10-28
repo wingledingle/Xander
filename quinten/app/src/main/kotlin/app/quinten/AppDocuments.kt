@@ -39,14 +39,18 @@ class AppDocuments(private val context: Context, private val ocr: TesseractOcrEn
      * Opens a book only to read its title, authors and cover (library scan). No OCR engine, OCR
      * cache or page-text analysis is set up: the library reads several books at a time.
      */
-    fun openForMetadata(file: File, format: BookFormat, @Suppress("UNUSED_PARAMETER") bookId: Long): BookDocument = when (format) {
+    fun openForMetadata(zipOrFile: File, format: BookFormat, @Suppress("UNUSED_PARAMETER") bookId: Long): BookDocument = openForMetadataUnwrapped(app.quinten.formats.util.ZippedBook.unwrap(zipOrFile, context.cacheDir, format), format)
+
+    private fun openForMetadataUnwrapped(file: File, format: BookFormat): BookDocument = when (format) {
         BookFormat.PDF -> PagedBookDocument(PdfPageSource(context, file), BookFormat.PDF, ocrMode = OcrMode.NEVER)
         BookFormat.DJVU -> BookOpener.open(file, format, BookOpener.PagedServices(ocrMode = OcrMode.NEVER))
         BookFormat.CBZ, BookFormat.CBR -> ComicDocument.open(file, format)
         else -> BookOpener.open(file, format)
     }
 
-    fun open(file: File, format: BookFormat, bookId: Long, prefs: BookPrefs): BookDocument {
+    fun open(zipOrFile: File, format: BookFormat, bookId: Long, prefs: BookPrefs): BookDocument {
+        // A book inside a plain .zip is read from a cached copy of that entry.
+        val file = app.quinten.formats.util.ZippedBook.unwrap(zipOrFile, context.cacheDir, format)
         val mode = runCatching { OcrMode.valueOf(prefs.ocrMode) }.getOrDefault(OcrMode.AUTO)
         prefs.ocrLanguages?.let { ocr.languages = it }
         val doc: BookDocument = when (format) {

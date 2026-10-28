@@ -45,6 +45,15 @@ object Modules {
         QuintenModule,
     ).filter { it.minSdk <= android.os.Build.VERSION.SDK_INT }
 
+    /** The module that opens what a plain .zip holds (GBA game, book), or null. Blocks briefly: call off the main thread. */
+    suspend fun forZip(c: android.content.Context, f: java.io.File): XanderModule? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        when (SharedIndex.zipKind(c, f)) {
+            SharedIndex.ZipKind.GBA -> OleanderModule.takeIf { it in all }
+            SharedIndex.ZipKind.BOOK -> QuintenModule.takeIf { it in all }
+            SharedIndex.ZipKind.NONE -> null
+        }
+    }
+
     const val ROUTE = "module/{id}?path={path}"
     fun route(m: XanderModule, file: FsPath? = null) = "module/${m.id}?path=${Uri.encode(file?.toString() ?: "")}"
 

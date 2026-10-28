@@ -44,10 +44,9 @@ class ViewerLauncher @Inject constructor(
         runCatching { bookmarks.recordOpened(entry) }
         // A module that claimed this extension (e.g. .gsproj → Studio) opens it on tap.
         if (forceKind == null) com.xander.files.modules.Modules.defaultFor(entry)?.let { return channel.send(OpenRequest.Route(com.xander.files.modules.Modules.route(it, entry.path))) }
-        // A zip holding a GBA game (e.g. tapped in Library > Games) plays in Oleander.
-        if (forceKind == null && entry.extension == "zip" && entry.path.isLocal && com.xander.files.modules.OleanderModule in com.xander.files.modules.Modules.all &&
-            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { com.xander.files.modules.SharedIndex.isGbaZip(appContext, java.io.File(entry.path.path)) })
-            return channel.send(OpenRequest.Route(com.xander.files.modules.Modules.route(com.xander.files.modules.OleanderModule, entry.path)))
+        // A zip holding a GBA game or a book (e.g. tapped in Library > Games) opens in Oleander or Quinten.
+        if (forceKind == null && entry.extension == "zip" && entry.path.isLocal)
+            com.xander.files.modules.Modules.forZip(appContext, java.io.File(entry.path.path))?.let { return channel.send(OpenRequest.Route(com.xander.files.modules.Modules.route(it, entry.path))) }
         val kind = forceKind ?: if (settings.settings.first().builtInViewers) ViewerRouter.kindOf(entry) else ViewerKind.EXTERNAL
         try {
             channel.send(

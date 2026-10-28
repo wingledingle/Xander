@@ -268,10 +268,10 @@ class BrowserViewModel @Inject constructor(
         if (entry.extension in setOf("apk", "apks", "xapk", "apkm")) { install(entry); return }
         if (ArchiveFormats.isArchiveName(entry.name)) {
             viewModelScope.launch {
-                // A zip holding a GBA game plays in Oleander on tap (it reads the ROM straight from the zip).
-                val gba = entry.extension == "zip" && entry.path.isLocal && com.xander.files.modules.OleanderModule in com.xander.files.modules.Modules.all &&
-                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { com.xander.files.modules.SharedIndex.isGbaZip(appContext, java.io.File(entry.path.path)) }
-                if (gba) launcher.navigate(com.xander.files.modules.Modules.route(com.xander.files.modules.OleanderModule, entry.path))
+                // A zip holding a GBA game plays in Oleander, one holding a book opens in Quinten (both read it
+                // straight from the zip); any other archive is browsed.
+                val module = if (entry.extension == "zip" && entry.path.isLocal) com.xander.files.modules.Modules.forZip(appContext, java.io.File(entry.path.path)) else null
+                if (module != null) launcher.navigate(com.xander.files.modules.Modules.route(module, entry.path))
                 else navigate(FsPath.archive(entry.path))
             }
             return

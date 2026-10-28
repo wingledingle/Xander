@@ -12,7 +12,7 @@ object QuintenModule : ActivityModule(
     summary = R.string.module_quinten_summary,
     icon = Icons.AutoMirrored.Filled.MenuBook,
     activity = app.quinten.MainActivity::class.java,
-    opens = setOf("epub", "pdf", "fb2", "mobi", "azw", "azw3", "djvu", "cbz", "cbr", "doc", "docx", "rtf", "txt"),
+    opens = setOf("epub", "pdf", "fb2", "mobi", "azw", "azw3", "djvu", "cbz", "cbr", "doc", "docx", "rtf", "txt", "zip"),
     // Formats Xander has no viewer for open here on tap; the rest keep Xander's viewers and offer "Open in…".
     defaultFor = setOf("txt", "mobi", "azw", "azw3", "djvu", "cbz", "cbr"),
 ) {
