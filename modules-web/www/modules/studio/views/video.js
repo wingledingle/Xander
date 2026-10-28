@@ -414,5 +414,6 @@ video.addEventListener('seeked', () => { renderer?.frame(); });
 
 export const videoState = V;
 
+if (NATIVE) video.addEventListener('fxoff', () => toast('This phone\'s video engine can\'t run the GPU effects; colour effects still work', 5000));
 video.addEventListener('error', () => host.log(`video error ${video.error?.code}: ${video.error?.message || ''} at ${video.currentTime.toFixed(2)} s`));
 video.addEventListener('stalled', () => host.log(`video stalled at ${video.currentTime.toFixed(2)} s`));

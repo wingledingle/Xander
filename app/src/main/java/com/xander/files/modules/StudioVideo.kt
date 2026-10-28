@@ -55,6 +55,8 @@ class StudioVideo(private val context: Context, private val registry: FileSystem
     private var file: HostFile? = null
     private var announced = false
     private var seeking = false
+    /** GPU effects pipeline on; switched off for good if this phone's player fails with it (see onPlayerError). */
+    private var gpuFx = true
 
     fun command(json: String) = main.post {
         val o = runCatching { JSONObject(json) }.getOrNull() ?: return@post
@@ -87,7 +89,7 @@ class StudioVideo(private val context: Context, private val registry: FileSystem
         val p = player ?: ExoPlayer.Builder(context)
             .setMediaSourceFactory(DefaultMediaSourceFactory(RoutingDataSourceFactory(context, registry)))
             .build().also { p ->
-                p.setVideoEffects(listOf<Effect>(FxEffect(fx)))
+                if (gpuFx) runCatching { p.setVideoEffects(listOf<Effect>(FxEffect(fx))) }.onFailure { gpuFx = false }
                 p.setVideoTextureView(view)
                 p.addListener(listener)
                 player = p
@@ -95,6 +97,13 @@ class StudioVideo(private val context: Context, private val registry: FileSystem
         p.setMediaItem(MediaItem.fromUri(uriOf(f)))
         p.prepare()
         p.playWhenReady = false
+        // Watchdog: if the GPU pipeline never gets the player ready, fall back to plain playback.
+        main.removeCallbacks(watchdog)
+        if (gpuFx) main.postDelayed(watchdog, 8000)
+    }
+
+    private val watchdog = Runnable {
+        if (!announced && gpuFx && file != null) listener.onPlayerError(PlaybackException("not ready after 8 s with GPU effects", null, PlaybackException.ERROR_CODE_TIMEOUT))
     }
 
     private val ticker = object : Runnable {
@@ -117,7 +126,20 @@ class StudioVideo(private val context: Context, private val registry: FileSystem
         }
         override fun onVideoSizeChanged(size: VideoSize) { if (announced) state(null) }
         override fun onPlayerError(e: PlaybackException) {
-            ModuleLog.write(context, "studio", "native video error ${e.errorCodeName}: ${e.message}")
+            ModuleLog.write(context, "studio", "native video error ${e.errorCodeName} (gpu fx $gpuFx): ${android.util.Log.getStackTraceString(e).take(3000)}")
+            val f = file
+            // The GPU effect pipeline is the only part Xander's own (working) video player doesn't use: if the phone
+            // rejects it, play the same file plainly, with colour effects as a layer filter instead.
+            if (gpuFx && f != null) {
+                gpuFx = false
+                val at = player?.currentPosition ?: 0L
+                player?.release(); player = null
+                open(f.token)
+                if (at > 0) player?.seekTo(at)
+                applyLayerFx()
+                state("fxoff")
+                return
+            }
             state("error", JSONObject().put("error", e.errorCodeName).put("message", e.message ?: ""))
         }
     }
@@ -134,8 +156,27 @@ class StudioVideo(private val context: Context, private val registry: FileSystem
 
     private fun setFx(o: JSONObject) {
         FX_KEYS.forEachIndexed { i, k -> if (o.has(k)) fx[i] = o.getDouble(k).toFloat() }
+        if (!gpuFx) { applyLayerFx(); return }
         // A paused frame is not redrawn by itself; re-seek to show the new look.
         player?.let { if (!it.isPlaying && announced) it.seekTo(it.currentPosition) }
+    }
+
+    /** Without the GPU pipeline: brightness, contrast, saturation, hue and invert as a colour matrix on the view. */
+    private fun applyLayerFx() {
+        val m = android.graphics.ColorMatrix()
+        m.setSaturation(fx[2])
+        if (fx[3] != 0f) { // CSS hue-rotate matrix, same as the shader's hueRot
+            val a = Math.toRadians(fx[3].toDouble()); val cs = Math.cos(a).toFloat(); val sn = Math.sin(a).toFloat()
+            m.postConcat(android.graphics.ColorMatrix(floatArrayOf(
+                0.213f + cs * 0.787f - sn * 0.213f, 0.715f - cs * 0.715f - sn * 0.715f, 0.072f - cs * 0.072f + sn * 0.928f, 0f, 0f,
+                0.213f - cs * 0.213f + sn * 0.143f, 0.715f + cs * 0.285f + sn * 0.140f, 0.072f - cs * 0.072f - sn * 0.283f, 0f, 0f,
+                0.213f - cs * 0.213f - sn * 0.787f, 0.715f - cs * 0.715f + sn * 0.715f, 0.072f + cs * 0.928f + sn * 0.072f, 0f, 0f,
+                0f, 0f, 0f, 1f, 0f)))
+        }
+        val c = fx[1]; val b = 255f * (fx[0] + 0.5f * (1 - c))
+        m.postConcat(android.graphics.ColorMatrix(floatArrayOf(c, 0f, 0f, 0f, b, 0f, c, 0f, 0f, b, 0f, 0f, c, 0f, b, 0f, 0f, 0f, 1f, 0f)))
+        if (fx[11] > 0.5f) m.postConcat(android.graphics.ColorMatrix(floatArrayOf(-1f, 0f, 0f, 0f, 255f, 0f, -1f, 0f, 0f, 255f, 0f, 0f, -1f, 0f, 255f, 0f, 0f, 0f, 1f, 0f)))
+        view.setLayerPaint(android.graphics.Paint().apply { colorFilter = android.graphics.ColorMatrixColorFilter(m) })
     }
 
     /** Renders [startSec]..[endSec] of the open video with the current FX to an MP4 in Movies/Groovesmith/Clips. */
@@ -149,7 +190,7 @@ class StudioVideo(private val context: Context, private val registry: FileSystem
         val out = generateSequence(0) { it + 1 }.map { File(dir, if (it == 0) "$safe.mp4" else "$safe-$it.mp4") }.first { !it.exists() }
         val item = MediaItem.Builder().setUri(uri).setClippingConfiguration(
             MediaItem.ClippingConfiguration.Builder().setStartPositionMs((startSec * 1000).toLong()).setEndPositionMs((endSec * 1000).toLong()).build()).build()
-        val edited = EditedMediaItem.Builder(item).setEffects(Effects(emptyList(), listOf<Effect>(FxEffect(fx.copyOf())))).build()
+        val edited = EditedMediaItem.Builder(item).setEffects(Effects(emptyList(), if (gpuFx) listOf<Effect>(FxEffect(fx.copyOf())) else emptyList())).build()
         Transformer.Builder(context).addListener(object : Transformer.Listener {
             override fun onCompleted(composition: Composition, result: ExportResult) { done(JSONObject().put("path", out.absolutePath), null) }
             override fun onError(composition: Composition, result: ExportResult, e: ExportException) {
@@ -159,7 +200,7 @@ class StudioVideo(private val context: Context, private val registry: FileSystem
     }
 
     fun release() {
-        main.removeCallbacks(ticker)
+        main.removeCallbacks(ticker); main.removeCallbacks(watchdog)
         player?.release(); player = null; file = null; rect.value = null
     }
 
