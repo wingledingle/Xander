@@ -66,6 +66,78 @@ object PageLayout {
         return PageText(pageIndex, width, height, out, images, cols.toIntArray(), colBoxes, ocr)
     }
 
+    /**
+     * For scanned books' invisible OCR text layers. There each word is placed on its own, sized to its box, so
+     * words of one line do not share a baseline and the invisible font often makes a word wider than the printed
+     * one: building lines glyph by glyph split lines apart and interleaved the letters of overlapping words
+     * ("OddsP,laHyoinugse..."). Here each [words] entry stays whole; words are chained into lines left to right
+     * by vertical position (following a slightly skewed scan), and lines are split at wide gaps (columns).
+     */
+    fun fromWords(pageIndex: Int, width: Float, height: Float, words: List<Glyph>, images: List<PageImage> = emptyList()): PageText {
+        val clean = words.filter { it.text.isNotBlank() && it.box.height > 0 && it.box.y1 > 0 && it.box.y0 < height && it.box.x1 > 0 && it.box.x0 < width }
+        if (clean.isEmpty()) return PageText(pageIndex, width, height, emptyList(), images, scanned = true)
+        val h = clean.map { it.box.height }.median()
+        val gutters = ocrGutters(clean, width, h)
+        val lines = ArrayList<MutableList<Glyph>>()
+        for (w in clean.sortedBy { it.box.x0 }) {
+            // Join the line whose last word is left of this one and at the same height (by box centre, so
+            // descenders and per-word font sizes don't matter); pick the closest such line. The invisible font
+            // rarely matches the print's width, so the horizontal gap is not limited here; columns are split below.
+            var host: MutableList<Glyph>? = null
+            var best = Float.MAX_VALUE
+            for (l in lines) {
+                val p = l[l.size - 1]
+                val dy = abs(w.box.cy - p.box.cy)
+                // Same line: boxes overlap vertically for most of the smaller one (word boxes differ in height,
+                // with or without descenders), and the centres are not a line apart.
+                val overlap = minOf(w.box.y1, p.box.y1) - maxOf(w.box.y0, p.box.y0)
+                if (w.box.x0 <= p.box.x0 || dy >= h * 0.7f || overlap < 0.5f * minOf(w.box.height, p.box.height)) continue
+                if (gutters.any { g -> p.box.cx < g && w.box.cx > g }) continue // never across a column gap
+                val score = dy + maxOf(0f, w.box.x0 - p.box.x1) * 0.01f
+                if (score < best) { best = score; host = l }
+            }
+            if (host != null) host.add(w) else lines.add(mutableListOf(w))
+        }
+        // Columns: split lines at gaps far wider than this page's usual gap between words.
+        val gaps = lines.flatMap { l -> l.zipWithNext { a, b -> b.box.x0 - a.box.x1 } }.filter { it > 0 }
+        val split = maxOf(h * 4f, (if (gaps.isEmpty()) h else gaps.median()) * 3.5f)
+        val pieces = ArrayList<MutableList<Glyph>>()
+        for (l in lines) for ((i, w) in l.withIndex()) {
+            if (i == 0 || w.box.x0 - l[i - 1].box.x1 > split) pieces.add(mutableListOf(w)) else pieces[pieces.size - 1].add(w)
+        }
+        val out = pieces.map { ws ->
+            val box = ws.map { it.box }.reduce { a, b -> a.union(b) }
+            val text = ws.joinToString(" ") { it.text.trim() }
+            TextLine(text, box, ws.map { it.baseline }.median(), ws.map { it.fontSize }.median(),
+                listOf(StyleRun(0, text.length, ws.map { it.fontSize }.median(), ws.count { it.bold } * 2 > ws.size, ws.count { it.italic } * 2 > ws.size)))
+        }
+        return fromLines(pageIndex, width, height, out, images).let { PageText(it.pageIndex, it.width, it.height, it.lines, it.images, it.columnOf, it.columns, scanned = true) }
+    }
+
+    /**
+     * Column gaps of an OCR layer: vertical strips no word crosses, at least [h] wide, with plenty of words on both
+     * sides. Gaps between words of single lines (titles) don't qualify: they are not empty all the way down.
+     */
+    private fun ocrGutters(words: List<Glyph>, width: Float, h: Float): List<Float> {
+        val n = width.toInt().coerceIn(1, 20000) + 1
+        val cov = IntArray(n)
+        for (w in words) for (x in w.box.x0.toInt().coerceIn(0, n - 1)..w.box.x1.toInt().coerceIn(0, n - 1)) cov[x]++
+        val minX = words.minOf { it.box.x0 }.toInt().coerceIn(0, n - 1); val maxX = words.maxOf { it.box.x1 }.toInt().coerceIn(0, n - 1)
+        val out = ArrayList<Float>()
+        var x = minX
+        while (x <= maxX) {
+            if (cov[x] != 0) { x++; continue }
+            val start = x
+            while (x <= maxX && cov[x] == 0) x++
+            val g = (start + x) / 2f
+            if (x - start < h) continue
+            val left = words.filter { it.box.x1 < g }; val right = words.filter { it.box.x0 > g }
+            val tall = { ws: List<Glyph> -> ws.maxOfOrNull { it.box.y1 }?.minus(ws.minOf { it.box.y0 }) ?: 0f }
+            if (left.size >= 12 && right.size >= 12 && tall(left) > h * 6 && tall(right) > h * 6) out += g
+        }
+        return out
+    }
+
     private fun buildRows(glyphs: List<Glyph>): List<MutableList<Glyph>> {
         val sorted = glyphs.sortedWith(compareBy({ it.baseline }, { it.box.x0 }))
         val rows = ArrayList<MutableList<Glyph>>()

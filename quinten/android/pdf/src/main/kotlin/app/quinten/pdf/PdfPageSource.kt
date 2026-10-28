@@ -120,13 +120,23 @@ class PdfPageSource(context: Context, private val file: File, password: String =
         val (w, h) = pageBox(pdPage)
         val glyphs = ArrayList<Glyph>()
         val glyphDirs = ArrayList<Int>()
+        // Which text-showing operation (or space-separated part of one) each glyph came from: in a scan's OCR
+        // layer that is one word, which PageLayout.fromWords keeps whole.
+        val glyphRun = ArrayList<Int>()
+        val glyphHidden = ArrayList<Boolean>()
+        var run = 0
         var invisible = 0
         val stripper = object : PDFTextStripper() {
+            override fun showText(string: ByteArray) { run++; super.showText(string) }
             override fun processTextPosition(tp: TextPosition) {
                 val u = tp.unicode ?: return
-                if (u.isBlank()) return
+                if (u.isBlank()) { run++; return }
                 // Scanned books carry the scanner's OCR as invisible text over the page picture.
-                if (graphicsState.textState.renderingMode == com.tom_roush.pdfbox.pdmodel.graphics.state.RenderingMode.NEITHER) invisible++
+                // Hidden either with the "invisible" text mode or by drawing it fully transparent (Library of Congress,
+                // some Internet Archive scans).
+                val hidden = graphicsState.textState.renderingMode == com.tom_roush.pdfbox.pdmodel.graphics.state.RenderingMode.NEITHER ||
+                    graphicsState.nonStrokeAlphaConstant < 0.05
+                if (hidden) invisible++
                 val fontName = tp.font?.name?.lowercase() ?: ""
                 val desc = tp.font?.fontDescriptor
                 val bold = fontName.contains("bold") || fontName.contains("black") || fontName.contains("heavy") ||
@@ -146,6 +156,8 @@ class PdfPageSource(context: Context, private val file: File, password: String =
                 for ((k, part) in parts.withIndex()) {
                     val x = tp.xDirAdj + w * k
                     glyphDirs += ((Math.round(tp.dir / 90f) * 90) % 360)
+                    glyphRun += run
+                    glyphHidden += hidden
                     glyphs += Glyph(
                         part, Box(x, tp.yDirAdj - gh, x + w, tp.yDirAdj),
                         tp.yDirAdj, size, bold, italic, tp.widthOfSpace.takeIf { it > 0 } ?: (size * 0.25f),
@@ -163,7 +175,8 @@ class PdfPageSource(context: Context, private val file: File, password: String =
         // reading text; when a whole page is rotated, its main direction is kept.
         val mainDir = glyphDirs.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key ?: 0
         val upright = glyphs.filterIndexed { i, _ -> glyphDirs[i] == mainDir }
-        val text = PageLayout.build(page, w, h, upright)
+        val scannedLayer = glyphs.isNotEmpty() && invisible > glyphs.size / 2
+        val text = if (scannedLayer) PageLayout.fromWords(page, w, h, ocrWords(glyphs, glyphRun, glyphDirs, mainDir, glyphHidden)) else PageLayout.build(page, w, h, upright)
         val textChars = text.lines.sumOf { it.text.length }
         val pageArea = w * h
         val images = ArrayList<Box>()
@@ -177,8 +190,32 @@ class PdfPageSource(context: Context, private val file: File, password: String =
         }
         images += vectorFigures(graphics.paths, text, w, h)
         val merged = mergeBoxes(images)
-        val scanned = glyphs.isNotEmpty() && invisible > glyphs.size / 2
+        val scanned = scannedLayer
         return PageText(page, w, h, text.lines, merged.map { PageImage(it, PagedBookDocument.regionResource(page, it)) }, text.columnOf, text.columns, scanned = scanned)
+    }
+
+    /** Groups a scan's OCR glyphs into words: one per text run, split further at gaps inside a run. */
+    private fun ocrWords(glyphs: List<Glyph>, runs: List<Int>, dirs: List<Int>, mainDir: Int, hidden: List<Boolean>): List<Glyph> {
+        val out = ArrayList<Glyph>()
+        var cur = ArrayList<Glyph>()
+        fun flush() {
+            if (cur.isEmpty()) return
+            val box = cur.map { it.box }.reduce { a, b -> a.union(b) }
+            out += Glyph(cur.joinToString("") { it.text }, box, cur.maxOf { it.baseline }, cur.map { it.fontSize }.sorted()[cur.size / 2],
+                cur.count { it.bold } * 2 > cur.size, cur.count { it.italic } * 2 > cur.size)
+            cur = ArrayList()
+        }
+        for (i in glyphs.indices) {
+            if (dirs[i] != mainDir || !hidden[i]) continue // only the OCR layer, not any visible text on the page
+            val g = glyphs[i]
+            val prev = cur.lastOrNull()
+            val newRun = i > 0 && runs[i] != runs[i - 1]
+            val gap = prev != null && (g.box.x0 - prev.box.x1 > g.box.height * 0.35f || g.box.x1 < prev.box.x0)
+            if (newRun || gap) flush()
+            cur += g
+        }
+        flush()
+        return out
     }
 
     private fun mergeBoxes(input: List<Box>): List<Box> {
