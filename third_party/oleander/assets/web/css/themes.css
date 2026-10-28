@@ -170,3 +170,8 @@ body.saver .player-menu { background: rgba(0, 0, 0, .9); }
 
 /* ---------- Camera cutout: keep the picture (and the whole player) out of it unless turned off ---------- */
 body.avoid-cutout #player-view { padding: var(--cut-top, 0) var(--cut-right, 0) var(--cut-bottom, 0) var(--cut-left, 0); box-sizing: border-box; }
+
+/* Clear purple Game Paks for the see-through theme, white ones for Pearl. */
+:root[data-theme="atomic"] { --cart: rgba(108, 80, 168, .82); --cart-hi: rgba(170, 140, 230, .85); --cart-lo: rgba(52, 30, 100, .9); }
+:root[data-theme="pearl"] { --cart: #e8e7e3; --cart-hi: #ffffff; --cart-lo: #b8b5ae; }
+:root[data-theme="pearl"] .cart-top { color: #cfccc6; }

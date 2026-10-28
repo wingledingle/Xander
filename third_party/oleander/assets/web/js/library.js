@@ -163,13 +163,13 @@ export class Library extends EventTarget {
     const art = url
       ? el('img', { class: `cart-art ${g.coverSource === 'libretro:Named_Boxarts' ? 'boxart' : ''}`, src: url, alt: '', loading: 'lazy', decoding: 'async' })
       : el('div', { class: 'cart-art generated', style: { '--hue': hue } }, el('span', {}, g.title));
-    return el('div', { class: 'cart-shell' },
-      el('div', { class: 'cart-lip' }),
+    // Wrapper carries the drop shadow: the shell itself is masked to the Game Pak outline (narrower bottom).
+    return el('div', { class: 'cart' }, el('div', { class: 'cart-shell' },
+      el('div', { class: 'cart-top' }, el('b', {}, '▼'), el('i', {}, 'OLEANDER'), el('b', {}, '▼')),
       el('div', { class: 'cart-label' },
-        el('div', { class: 'cart-band' }, el('i', {}, 'OLEANDER'), el('span', {}, 'GAME PAK')),
-        art,
-        el('div', { class: 'cart-code' }, productCode(g))),
-      el('div', { class: 'cart-foot' }));
+        el('div', { class: 'cart-band' }, el('i', {}, 'OLEANDER'), el('span', {}, 'ADVANCE')),
+        el('div', { class: 'cart-artbox' }, art, el('div', { class: 'cart-code' }, productCode(g)))),
+      el('div', { class: 'cart-foot' })));
   }
 
   render() {
