@@ -39,6 +39,9 @@
     <string name="open_app_settings">Open app settings</string>
     <string name="restricted_title">Restricted folder</string>
     <string name="restricted_body">Android limits access to Android/data and Android/obb. On Android 11–12 you can grant it once with the system picker. On Android 13 and newer use Shizuku (no root needed) or root.</string>
+    <string name="restricted_body_per_app">Android doesn\'t let apps open Android/data or Android/obb as a whole, but you can give Xander one app\'s folder at a time with the system picker (no extra app needed): pick the app, then tap "Use this folder". Or use Shizuku or root for everything.</string>
+    <string name="grant_app_folder">Open an app\'s folder…</string>
+    <string name="grant_this_app_folder">Give access to this app\'s folder</string>
     <string name="grant_with_picker">Grant with system picker</string>
     <string name="use_shizuku">Use Shizuku</string>
     <string name="use_root">Use root</string>

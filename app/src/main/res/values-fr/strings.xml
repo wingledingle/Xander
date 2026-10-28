@@ -579,4 +579,7 @@
     <string name="module_studio_summary">Séquenceur, synthé, sampler, découpeur vidéo et table de mixage</string>
     <string name="module_oleander_summary">Émulateur Game Boy Advance</string>
     <string name="module_quinten_summary">Livres numériques, PDF, BD et scans avec remise en page, OCR et lecture à voix haute</string>
+    <string name="restricted_body_per_app">Android ne laisse pas les applis ouvrir Android/data ou Android/obb en entier, mais vous pouvez donner à Xander le dossier d’une appli à la fois avec le sélecteur système (sans autre appli) : choisissez l’appli puis touchez « Utiliser ce dossier ». Ou utilisez Shizuku ou root pour tout.</string>
+    <string name="grant_app_folder">Ouvrir le dossier d’une appli…</string>
+    <string name="grant_this_app_folder">Autoriser l’accès au dossier de cette appli</string>
 </resources>

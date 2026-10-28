@@ -585,4 +585,7 @@
     <string name="module_studio_summary">مُسلسِل إيقاعات ومُركِّب صوت ومُقتطِع عيّنات وقاطع فيديو ومازج</string>
     <string name="module_oleander_summary">محاكي Game Boy Advance</string>
     <string name="module_quinten_summary">كتب إلكترونية وملفات PDF وقصص مصوّرة ومسوحات مع إعادة التدفق والتعرّف الضوئي والقراءة بصوت عالٍ</string>
+    <string name="restricted_body_per_app">لا يسمح Android بفتح Android/data أو Android/obb بالكامل، لكن يمكنك منح Xander مجلد تطبيق واحد في كل مرة عبر منتقي النظام (دون تطبيق إضافي): اختر التطبيق ثم اضغط «استخدام هذا المجلد». أو استخدم Shizuku أو الروت للكل.</string>
+    <string name="grant_app_folder">فتح مجلد تطبيق…</string>
+    <string name="grant_this_app_folder">منح الوصول إلى مجلد هذا التطبيق</string>
 </resources>

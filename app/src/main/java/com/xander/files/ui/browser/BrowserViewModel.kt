@@ -2,6 +2,7 @@ package com.xander.files.ui.browser
 
 import android.content.Intent
 import android.net.Uri
+import android.provider.DocumentsContract
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -479,6 +480,27 @@ class BrowserViewModel @Inject constructor(
             safRoots.add(uri, uri.lastPathSegment ?: "Storage", kind, uuid, volumePath)
             refresh()
         } catch (e: Exception) { _events.send(BrowserEvent.Toast(e.message ?: "Grant failed")) }
+    }
+
+    /**
+     * Android 13+: Android/data (and obb) can't be granted as a whole, but one app's folder at a time through the
+     * system picker (no extra app needed). The installed apps to pick from, as label to package.
+     */
+    suspend fun appsForDataGrant(): List<Pair<String, String>> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val pm = appContext.packageManager
+        pm.getInstalledApplications(0).filter { it.packageName != appContext.packageName }
+            .map { (runCatching { pm.getApplicationLabel(it).toString() }.getOrDefault(it.packageName)) to it.packageName }
+            .sortedBy { it.first.lowercase() }
+    }
+
+    /** App folders under Android/data or obb this app was already given, as (package, local path). */
+    suspend fun grantedAppFolders(obb: Boolean): List<Pair<String, String>> {
+        val base = "${volumes.primaryRoot}/Android/${if (obb) "obb" else "data"}/"
+        return safRoots.all().filter { safRoots.isGranted(it) }.mapNotNull { r ->
+            val rel = DocumentsContract.getTreeDocumentId(Uri.parse(r.treeUri)).substringAfter(':', "")
+            val path = "${r.volumePath}/$rel"
+            if (path.startsWith(base) && !path.removePrefix(base).contains('/')) path.removePrefix(base) to path else null
+        }.sortedBy { it.first }
     }
 
     fun volumePathFor(path: FsPath): String? = volumes.volumeFor(path.path)?.directPath

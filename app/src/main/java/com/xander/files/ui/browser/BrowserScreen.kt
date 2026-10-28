@@ -1,5 +1,10 @@
 package com.xander.files.ui.browser
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.produceState
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -126,6 +131,7 @@ private sealed interface Dialog {
     data class Delete(val entries: List<FileEntry>) : Dialog
     data object EditPath : Dialog
     data class Properties(val entries: List<FileEntry>) : Dialog
+    data class PickDataApp(val obb: Boolean) : Dialog
     data class Actions(val entries: List<FileEntry>) : Dialog
     data class Pick(val purpose: PickPurpose, val entries: List<FileEntry>) : Dialog
     data class Compress(val entries: List<FileEntry>) : Dialog
@@ -185,11 +191,23 @@ fun BrowserPane(
 
     // SAF tree grant for restricted folders (Android 11/12) and SD cards on old releases.
     var pendingKind by remember { mutableStateOf(SafRootKind.FOLDER) }
+    var pendingPrimary by remember { mutableStateOf(false) } // an app folder under Android/data on internal storage
+    var pendingAppPath by remember { mutableStateOf<String?>(null) }
     val treeLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) {
-            val vp = if (pendingKind == SafRootKind.ANDROID_DATA || pendingKind == SafRootKind.ANDROID_OBB) vm.primaryRoot() else vm.volumePathFor(state.path)
+            val vp = if (pendingPrimary || pendingKind == SafRootKind.ANDROID_DATA || pendingKind == SafRootKind.ANDROID_OBB) vm.primaryRoot() else vm.volumePathFor(state.path)
+            pendingPrimary = false
+            pendingAppPath?.let { target -> pendingAppPath = null; vm.onTreeGranted(uri, pendingKind, vp, null); vm.navigate(FsPath.local(target)); return@rememberLauncherForActivityResult }
             vm.onTreeGranted(uri, pendingKind, vp, null)
         }
+    }
+
+    // Android 13+: one app's Android/data (or obb) folder through the system picker, then open it.
+    val grantAppFolder: (String, Boolean) -> Unit = { pkg, obb ->
+        val dir = if (obb) "obb" else "data"
+        pendingKind = SafRootKind.FOLDER; pendingPrimary = true
+        pendingAppPath = "${vm.primaryRoot()}/Android/$dir/$pkg"
+        treeLauncher.launch(SafRootStore.initialUri("primary", "Android/$dir/$pkg"))
     }
 
     Scaffold(
@@ -303,14 +321,25 @@ fun BrowserPane(
             HorizontalDivider()
             PullToRefreshBox(isRefreshing = state.loading && state.entries.isNotEmpty(), onRefresh = vm::refresh, modifier = Modifier.fillMaxSize()) {
                 when {
-                    state.error is BrowserError.Restricted -> RestrictedCard(
-                        onShizuku = vm::useShizuku, onRoot = vm::useRoot,
-                        onSaf = if (StorageAccess.canGrantAndroidDataViaSaf) ({
-                            val isObb = state.path.path.contains("/Android/obb")
-                            pendingKind = if (isObb) SafRootKind.ANDROID_OBB else SafRootKind.ANDROID_DATA
-                            treeLauncher.launch(SafRootStore.initialUri("primary", if (isObb) "Android/obb" else "Android/data"))
-                        }) else null
-                    )
+                    state.error is BrowserError.Restricted -> {
+                        val isObb = state.path.path.contains("/Android/obb")
+                        val dir = if (isObb) "obb" else "data"
+                        // Inside one app's folder (Android/data/<package>/...): that package.
+                        val pkg = state.path.path.substringAfter("/Android/$dir/", "").substringBefore('/').ifEmpty { null }
+                        val grantApp: (String) -> Unit = { p -> grantAppFolder(p, isObb) }
+                        RestrictedCard(
+                            onShizuku = vm::useShizuku, onRoot = vm::useRoot,
+                            onSaf = if (StorageAccess.canGrantAndroidDataViaSaf) ({
+                                pendingKind = if (isObb) SafRootKind.ANDROID_OBB else SafRootKind.ANDROID_DATA
+                                treeLauncher.launch(SafRootStore.initialUri("primary", "Android/$dir"))
+                            }) else null,
+                            perApp = Build.VERSION.SDK_INT >= 33,
+                            currentApp = pkg, onGrantApp = grantApp,
+                            onPickApp = { dialog = Dialog.PickDataApp(isObb) },
+                            granted = produceState(emptyList<Pair<String, String>>(), state.path) { value = vm.grantedAppFolders(isObb) }.value,
+                            onOpen = { vm.navigate(FsPath.local(it)) },
+                        )
+                    }
                     state.error is BrowserError.SafGrant -> {
                         val e = state.error as BrowserError.SafGrant
                         EmptyState(Icons.Filled.Lock, stringResource(R.string.sd_grant_title), stringResource(R.string.sd_grant_body)) {
@@ -377,6 +406,7 @@ fun BrowserPane(
             dialog = null; vm.delete(d.entries, permanent)
         } else { LaunchedEffect(d) { dialog = null; vm.delete(d.entries, false) } }
         is Dialog.Properties -> PropertiesDialog(d.entries, onDismiss = { dialog = null })
+        is Dialog.PickDataApp -> PickDataAppDialog(load = vm::appsForDataGrant, onDismiss = { dialog = null }) { pkg -> dialog = null; grantAppFolder(pkg, d.obb) }
         is Dialog.Actions -> ActionSheet(
             title = if (d.entries.size == 1) d.entries.first().name else "${d.entries.size} items",
             actions = entryActions(d.entries, vm, state.writable, onRename = { dialog = Dialog.Rename(it) }, onProperties = { dialog = Dialog.Properties(it) },
@@ -463,18 +493,49 @@ fun Breadcrumbs(path: FsPath, onJump: (FsPath) -> Unit, onCopy: (FsPath) -> Unit
 }
 
 @Composable
-private fun RestrictedCard(onShizuku: () -> Unit, onRoot: () -> Unit, onSaf: (() -> Unit)?) {
-    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center) {
+private fun RestrictedCard(
+    onShizuku: () -> Unit, onRoot: () -> Unit, onSaf: (() -> Unit)?,
+    perApp: Boolean = false, currentApp: String? = null, onGrantApp: (String) -> Unit = {}, onPickApp: () -> Unit = {},
+    granted: List<Pair<String, String>> = emptyList(), onOpen: (String) -> Unit = {},
+) {
+    Column(Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.Center) {
         Card(shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.padding(20.dp)) {
                 Icon(Icons.Filled.Lock, null, tint = MaterialTheme.colorScheme.primary)
                 Text(stringResource(R.string.restricted_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp))
-                Text(stringResource(R.string.restricted_body), style = MaterialTheme.typography.bodyMedium,
+                Text(stringResource(if (perApp) R.string.restricted_body_per_app else R.string.restricted_body), style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
                 if (onSaf != null) Button(onClick = onSaf, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) { Text(stringResource(R.string.grant_with_picker)) }
+                if (perApp && currentApp != null) Button(onClick = { onGrantApp(currentApp) }, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) { Text(stringResource(R.string.grant_this_app_folder)) }
+                if (perApp && currentApp == null) Button(onClick = onPickApp, modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) { Text(stringResource(R.string.grant_app_folder)) }
+                for ((pkg, path) in granted) TextButton(onClick = { onOpen(path) }, modifier = Modifier.fillMaxWidth()) { Text(pkg, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
                 OutlinedButton(onClick = onShizuku, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) { Text(stringResource(R.string.use_shizuku)) }
                 OutlinedButton(onClick = onRoot, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) { Text(stringResource(R.string.use_root)) }
             }
         }
     }
+}
+
+/** Installed apps to pick one whose Android/data (or obb) folder to grant, with search. */
+@Composable
+private fun PickDataAppDialog(load: suspend () -> List<Pair<String, String>>, onDismiss: () -> Unit, onPick: (String) -> Unit) {
+    val apps by produceState<List<Pair<String, String>>?>(null) { value = load() }
+    var q by remember { mutableStateOf("") }
+    AlertDialog(onDismissRequest = onDismiss, title = { Text(stringResource(R.string.grant_app_folder)) }, text = {
+        Column {
+            OutlinedTextField(q, { q = it }, singleLine = true, modifier = Modifier.fillMaxWidth(), placeholder = { Text(stringResource(R.string.search)) })
+            val list = apps
+            if (list == null) CircularProgressIndicator(Modifier.padding(16.dp))
+            else androidx.compose.foundation.lazy.LazyColumn(Modifier.heightIn(max = 420.dp)) {
+                val shown = list.filter { (label, pkg) -> q.isBlank() || label.contains(q, true) || pkg.contains(q, true) }
+                items(shown.size) { i ->
+                    val (label, pkg) = shown[i]
+                    Column(Modifier.fillMaxWidth().clickable { onPick(pkg) }.padding(vertical = 10.dp)) {
+                        Text(label, style = MaterialTheme.typography.bodyLarge)
+                        Text(pkg, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+    }, confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } })
 }

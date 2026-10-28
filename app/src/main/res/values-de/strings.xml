@@ -577,4 +577,7 @@
     <string name="module_studio_summary">Beat-Sequencer, Synth, Sampler, Video-Chopper und Mixer</string>
     <string name="module_oleander_summary">Game-Boy-Advance-Emulator</string>
     <string name="module_quinten_summary">E-Books, PDFs, Comics und Scans mit Umbruch, Texterkennung und Vorlesen</string>
+    <string name="restricted_body_per_app">Android lässt Apps Android/data und Android/obb nicht als Ganzes öffnen, aber du kannst Xander mit der Systemauswahl den Ordner einer App nach dem anderen freigeben (keine Zusatz-App nötig): App wählen, dann „Diesen Ordner verwenden“ tippen. Oder Shizuku bzw. Root für alles nutzen.</string>
+    <string name="grant_app_folder">Ordner einer App öffnen…</string>
+    <string name="grant_this_app_folder">Zugriff auf den Ordner dieser App erlauben</string>
 </resources>

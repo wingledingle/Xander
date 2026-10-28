@@ -581,4 +581,7 @@
     <string name="module_studio_summary">Секвенсор, синтезатор, сэмплер, нарезка видео и микшер</string>
     <string name="module_oleander_summary">Эмулятор Game Boy Advance</string>
     <string name="module_quinten_summary">Книги, PDF, комиксы и сканы с переформатированием, OCR и чтением вслух</string>
+    <string name="restricted_body_per_app">Android не даёт открыть Android/data и Android/obb целиком, но можно дать Xander доступ к папке одного приложения через системный выбор (без других приложений): выберите приложение и нажмите «Использовать эту папку». Или используйте Shizuku либо root.</string>
+    <string name="grant_app_folder">Открыть папку приложения…</string>
+    <string name="grant_this_app_folder">Разрешить доступ к папке этого приложения</string>
 </resources>

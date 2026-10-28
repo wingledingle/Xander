@@ -577,4 +577,7 @@
     <string name="module_studio_summary">Sequencer, synth, sampler, κόφτης βίντεο και μίκτης</string>
     <string name="module_oleander_summary">Εξομοιωτής Game Boy Advance</string>
     <string name="module_quinten_summary">Ηλεκτρονικά βιβλία, PDF, κόμικ και σαρώσεις με αναδιάταξη, OCR και ανάγνωση φωναχτά</string>
+    <string name="restricted_body_per_app">Το Android δεν επιτρέπει το άνοιγμα ολόκληρων των Android/data και Android/obb, αλλά μπορείτε να δώσετε στο Xander τον φάκελο μιας εφαρμογής κάθε φορά με τον επιλογέα συστήματος (χωρίς άλλη εφαρμογή): επιλέξτε την εφαρμογή και πατήστε «Χρήση αυτού του φακέλου». Ή χρησιμοποιήστε Shizuku ή root.</string>
+    <string name="grant_app_folder">Άνοιγμα φακέλου εφαρμογής…</string>
+    <string name="grant_this_app_folder">Πρόσβαση στον φάκελο αυτής της εφαρμογής</string>
 </resources>
