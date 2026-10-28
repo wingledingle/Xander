@@ -14,7 +14,7 @@ class FlowDumpProbe {
         val out = File(System.getenv("PROBE_OUT")).apply { mkdirs() }
         for (path in files!!.split(',')) {
             val f = File(path)
-            val fmt = when (f.extension.lowercase()) { "epub" -> BookFormat.EPUB; "txt" -> BookFormat.TXT; "mobi" -> BookFormat.MOBI; "azw3" -> BookFormat.AZW3; "fb2" -> BookFormat.FB2; else -> continue }
+            val fmt = BookFormat.fromFileName(f.name) ?: continue
             val sb = StringBuilder()
             try {
                 BookOpener.open(f, fmt).use { d ->
