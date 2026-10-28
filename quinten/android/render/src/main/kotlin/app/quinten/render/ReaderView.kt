@@ -43,6 +43,9 @@ class ReaderView @JvmOverloads constructor(context: Context, attrs: AttributeSet
         set(value) {
             field = value
             value?.onContentChanged = { onContentChanged() }
+            // A view that already has its size gets no size change for a new controller (book reopened): give it
+            // the page size now, or it keeps its 1x1 placeholder and lays out one letter per line and per page.
+            if (width > 0 && height > 0) { updateViewport(); page = null; nextPage = null; prevPage = null }
             requestLayout(); invalidate()
         }
     var listener: ReaderListener? = null
@@ -393,6 +396,8 @@ class ReaderView @JvmOverloads constructor(context: Context, attrs: AttributeSet
 
     private fun ensurePage(): Page? {
         val c = controller ?: return null
+        // Safety net: never paginate with the 1x1 placeholder size while this view has a real one.
+        if (width > marginH * 2 && height > marginV * 2 && (c.contentWidth <= 1 || c.contentHeight <= 1)) { updateViewport(); page = null }
         page?.let { if (!it.isLoading) return it }
         val start = c.normalize(pendingStart) ?: pendingStart
         val p = c.pageFrom(start)
