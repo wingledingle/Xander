@@ -5,7 +5,7 @@
 
 import { S, subscribe, changed, undo, redo, audio, loadLibrary, savePrefs } from './state.js';
 import { PATTERNS, PATTERN_NAMES, clamp, tapTempo } from './core.js';
-import { h, $, icon, iconBtn, btn, sheet, prompt, toast, segmented } from './ui.js';
+import { h, $, icon, iconBtn, btn, sheet, prompt, toast } from './ui.js';
 import { togglePlay, stop, exportWav, bounceToLibrary, saveProject, openProject, newProject, importAudioFiles } from './actions.js';
 import { renderBeat, beatPlayhead, refreshCells } from './views/beat.js';
 import { renderSynth, synthPlayhead } from './views/synth.js';
@@ -61,11 +61,11 @@ function renderTransport() {
     return h('button', { type: 'button', role: 'radio', class: `pchip p${i}${used ? ' used' : ''}${now ? ' now' : ''}`, 'aria-checked': String(sg.current === i),
       onclick: () => { sg.current = i; changed('view'); } }, PATTERN_NAMES[i]);
   }));
+  requestAnimationFrame(() => pats.querySelector('[aria-checked="true"]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' }));
   $('#transport').replaceChildren(
     h('button', { type: 'button', class: `play-btn${playing ? ' on' : ''}`, 'aria-label': playing ? 'Stop' : 'Play', onclick: togglePlay }, icon(playing ? 'stop' : 'play')),
     h('button', { type: 'button', class: `rec-btn${S.rec ? ' on' : ''}`, 'aria-label': 'Record pad hits', 'aria-pressed': String(S.rec), onclick: () => { S.rec = !S.rec; renderTransport(); toast(S.rec ? 'Recording: pad and track hits are written to the playing step' : 'Recording off'); } }, icon('rec')),
     bpm,
-    segmented([['pattern', 'Pattern'], ['song', 'Song']], sg.mode, (v) => { sg.mode = v; changed('song'); }, 'compact mode-seg'),
     pats,
     h('canvas', { id: 'scope', class: 'scope', width: 240, height: 64, 'aria-hidden': 'true' }));
 }

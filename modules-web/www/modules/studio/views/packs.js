@@ -63,7 +63,7 @@ export function renderPacks(root) {
         h('span', { class: 'li-main' }, h('strong', {}, s.n), h('small', {}, `${data.packs[s.p]} · ${s.t.map((t) => `#${t}`).join(' ')}`)),
         iconBtn('library', 'Add to library', () => addPackSound(s, data.packs).catch((e) => toast(e.message))),
         iconBtn('plus', 'Add to Beat as a track', () => addPackSound(s, data.packs, { toBeat: true }).catch((e) => toast(e.message))))),
-      items.length > 200 ? h('p', { class: 'muted small' }, 'Showing the first 200, search to narrow down.') : null);
+      ...(items.length > 200 ? [h('p', { class: 'muted small' }, 'Showing the first 200, search to narrow down.')] : []));
   };
   const search = h('input', { class: 'field search', type: 'search', value: query, placeholder: 'Search sound effects…', 'aria-label': 'Search sound packs', oninput: (e) => { query = e.target.value; loadIndex().then(draw); } });
   const chips = h('div', { class: 'chips scroll' });

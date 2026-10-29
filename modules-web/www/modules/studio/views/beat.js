@@ -8,9 +8,11 @@ import { DRUMS, PATTERNS, PATTERN_NAMES, COLORS, STEP_OPTIONS, CHANNEL_PARAMS, M
 import { h, icon, btn, iconBtn, knob, segmented, sheet, prompt, confirmSheet, onLongPress, toast, fmt } from '../ui.js';
 import { hitTrack } from '../actions.js';
 
-let edit = 'toggle', clip = null, page = 0, rootEl = null;
+let edit = 'toggle', clip = null, page = 0, mode = 'steps';
+try { mode = localStorage.getItem('gs-beat-mode') === 'pads' ? 'pads' : 'steps'; } catch {}
 const PAGE = 16; // steps shown at once; 32-step patterns flip between two pages
-const cells = new Map(); // `${trackId}:${step}` → element
+const cells = new Map(); // `${trackId}:${step}` → editor cell
+const minis = new Map(); // `${trackId}:${step}` → track-list mini cell
 
 const track = (id) => S.song.tracks.find((t) => t.id === id);
 const pattern = () => S.song.patterns[S.song.current];
@@ -66,64 +68,80 @@ function grid(root) {
   root.addEventListener('pointercancel', end);
 }
 
-function trackHead(t) {
-  const sel = S.selectedTrack === t.id;
+// Track list: one 48 px row per track (tap to edit its steps above, hold for its sound), with a mini view of the
+// pattern so you can see the whole beat at once without the cells being too small to hit.
+function trackRow(t) {
+  const n = S.song.steps, pat = pattern();
   const smp = t.kind === 'sample' ? S.samples.get(t.ref) : null;
-  const head = h('div', { class: `track-head${sel ? ' selected' : ''}${t.mute ? ' muted' : ''}`, style: { '--tc': t.color }, 'data-id': t.id },
-    h('button', { type: 'button', class: 'track-name', title: 'Tap to play · hold to edit', onclick: () => { S.selectedTrack = t.id; hitTrack(t.id, 0.9); markSelected(); } },
-      h('span', { class: 'swatch' }), h('span', { class: 'tn' }, t.name), t.kind === 'sample' && !smp ? h('span', { class: 'warn', title: 'Sample missing' }, '!') : null),
-    h('button', { type: 'button', class: `ms m${t.mute ? ' on' : ''}`, 'aria-pressed': String(t.mute), title: 'Mute', onclick: () => { t.mute = !t.mute; changed('song'); } }, 'M'),
-    h('button', { type: 'button', class: `ms s${t.solo ? ' on' : ''}`, 'aria-pressed': String(t.solo), title: 'Solo', onclick: () => { t.solo = !t.solo; changed('song'); } }, 'S'));
-  onLongPress(head.querySelector('.track-name'), () => editTrack(t.id));
-  return head;
+  const sel = h('button', { type: 'button', class: 'track-sel', title: 'Tap to edit · hold for sound settings', 'aria-label': `Edit ${t.name}`, onclick: () => selectTrack(t.id) },
+    h('span', { class: 'tn' }, t.name, t.kind === 'sample' && !smp ? h('span', { class: 'warn', title: 'Sample missing' }, ' !') : null),
+    h('span', { class: 'mini', style: { '--n': n } }, Array.from({ length: n }, (_, i) => {
+      const m = h('span', { class: `m b${Math.floor(i / 4) % 4}`, 'data-step': i });
+      paintMini(m, pat.steps[t.id][i]);
+      minis.set(`${t.id}:${i}`, m);
+      return m;
+    })));
+  onLongPress(sel, () => editTrack(t.id));
+  return h('div', { class: `track-row${S.selectedTrack === t.id ? ' selected' : ''}${t.mute ? ' muted' : ''}`, 'data-id': t.id, style: { '--tc': t.color } }, sel,
+    h('button', { type: 'button', class: `ms m${t.mute ? ' on' : ''}`, 'aria-pressed': String(t.mute), 'aria-label': `Mute ${t.name}`, onclick: () => { t.mute = !t.mute; changed('song'); } }, 'M'),
+    h('button', { type: 'button', class: `ms s${t.solo ? ' on' : ''}`, 'aria-pressed': String(t.solo), 'aria-label': `Solo ${t.name}`, onclick: () => { t.solo = !t.solo; changed('song'); } }, 'S'));
 }
-function markSelected() {
-  document.querySelectorAll('.track-head').forEach((el) => el.classList.toggle('selected', el.dataset.id === S.selectedTrack));
-  document.querySelectorAll('.pads.beat-pads .pad').forEach((el) => el.classList.toggle('selected', el.dataset.id === S.selectedTrack));
+const paintMini = (m, v) => m.classList.toggle('on', v > 0);
+
+function selectTrack(id) {
+  S.selectedTrack = id;
+  if (!S.seq?.playing) hitTrack(id, 0.8);
+  document.querySelectorAll('.track-row').forEach((el) => el.classList.toggle('selected', el.dataset.id === id));
+  document.querySelectorAll('.pads.beat-pads .pad').forEach((el) => el.classList.toggle('selected', el.dataset.id === id));
+  const ed = document.querySelector('.editor');
+  if (ed) ed.replaceWith(editor());
 }
 
-// The whole bar fits the screen width; no sideways scrolling. 32-step patterns show one 16-step page at a time.
-function stepsView() {
+// The step editor: the selected track's 16 steps as a 4×4 block of big cells (one bar, one row per beat).
+// 32-step patterns flip between two pages.
+function editor() {
   cells.clear();
-  const n = S.song.steps, pat = pattern(), from = n > PAGE ? page * PAGE : 0, cols = Math.min(n, PAGE);
-  const range = Array.from({ length: cols }, (_, k) => from + k);
-  const rows = S.song.tracks.map((t) => h('div', { class: 'track-row' }, trackHead(t),
-    h('div', { class: 'steps', style: { '--n': cols } }, range.map((i) => {
-      const c = h('div', { class: `step b${Math.floor(i / 4) % 4}`, 'data-track': t.id, 'data-step': i, style: { '--tc': t.color } }, h('i'));
-      paintCell(c, pat.steps[t.id][i]);
-      cells.set(`${t.id}:${i}`, c);
-      return c;
-    }))));
-  const ruler = h('div', { class: 'track-row ruler' }, h('div', { class: 'track-head ghost' }),
-    h('div', { class: 'steps', style: { '--n': cols } }, range.map((i) => h('span', { class: `led b${Math.floor(i / 4) % 4}`, 'data-step': i }, i % 4 === 0 ? String(i / 4 + 1) : ''))));
-  const g = h('div', { class: 'grid' }, ruler, rows);
+  const t = track(S.selectedTrack) || S.song.tracks[0];
+  if (!t) return h('div', { class: 'editor empty' }, h('p', {}, 'No tracks yet.'), btn('Add a track', addTrackSheet, { icon: 'plus', cls: 'primary' }));
+  S.selectedTrack = t.id;
+  const n = S.song.steps, pat = pattern(), from = n > PAGE ? page * PAGE : 0;
+  const g = h('div', { class: `step-grid${edit === 'velocity' ? ' vel' : ''}`, style: { '--tc': t.color } }, Array.from({ length: Math.min(n, PAGE) }, (_, k) => {
+    const i = from + k;
+    const c = h('div', { class: `step b${Math.floor(i / 4) % 4}`, 'data-track': t.id, 'data-step': i, role: 'button', 'aria-label': `Step ${i + 1}` }, h('i'), h('b', {}, String(i + 1)));
+    paintCell(c, pat.steps[t.id][i]);
+    cells.set(`${t.id}:${i}`, c);
+    return c;
+  }));
   grid(g);
-  return h('div', { class: 'grid-wrap' }, g);
+  const name = h('button', { type: 'button', class: 'ed-name', title: 'Tap to play · hold for sound settings', onclick: () => hitTrack(t.id, 0.9) }, h('span', { class: 'swatch' }), h('span', { class: 'tn' }, t.name));
+  onLongPress(name, () => editTrack(t.id));
+  return h('section', { class: 'editor', style: { '--tc': t.color } },
+    h('div', { class: 'ed-head' }, name,
+      n > PAGE ? segmented([[0, '1–16'], [1, '17–32']], page, (v) => { page = v; document.querySelector('.editor')?.replaceWith(editor()); }, 'compact') : null,
+      btn('Sound', () => editTrack(t.id), { icon: 'sliders', cls: 'ghost small' })),
+    g);
 }
 
-// Compact 4×4 pads under the grid: one per track, always on screen.
+// Finger drumming: 4×4 pads, one per track. Pressure (or where on the pad you hit) sets velocity.
 function padsView() {
-  const tracks = S.song.tracks.slice(0, 16);
-  const pads = tracks.map((t, i) => {
+  const pads = S.song.tracks.slice(0, 16).map((t, i) => {
     const pad = h('button', { type: 'button', class: `pad${S.selectedTrack === t.id ? ' selected' : ''}`, 'data-id': t.id, style: { '--tc': t.color }, 'aria-label': `Pad ${i + 1}: ${t.name}` },
       h('span', { class: 'pad-n' }, String(i + 1)), h('span', { class: 'pad-l' }, t.name));
     pad.addEventListener('pointerdown', (e) => {
       e.preventDefault();
-      // Pressure (or where on the pad you hit, on screens without pressure) sets velocity.
       const r = pad.getBoundingClientRect();
       const vel = e.pressure && e.pressure !== 0.5 ? 0.3 + e.pressure * 0.7 : 0.55 + 0.45 * (1 - (e.clientY - r.top) / r.height);
       hitTrack(t.id, vel);
       S.selectedTrack = t.id;
-      markSelected();
+      document.querySelectorAll('.track-row').forEach((el) => el.classList.toggle('selected', el.dataset.id === t.id));
+      document.querySelectorAll('.pads.beat-pads .pad').forEach((el) => el.classList.toggle('selected', el.dataset.id === t.id));
       pad.classList.remove('hit'); void pad.offsetWidth; pad.classList.add('hit');
     });
     onLongPress(pad, () => editTrack(t.id));
     return pad;
   });
-  if (pads.length < 16 && S.song.tracks.length < MAX_TRACKS) pads.push(h('button', { type: 'button', class: 'pad empty', onclick: addTrackSheet, 'aria-label': 'Add track' }, icon('plus')));
-  // Only as many rows as there are tracks (plus the add pad), so the grid keeps the space.
-  while (pads.length % 4) pads.push(h('div', { class: 'pad empty' }));
-  return h('div', { class: 'pads beat-pads' }, pads);
+  if (pads.length < 16 && S.song.tracks.length < MAX_TRACKS) pads.push(h('button', { type: 'button', class: 'pad add', onclick: addTrackSheet, 'aria-label': 'Add track' }, icon('plus')));
+  return h('section', { class: 'pads beat-pads' }, pads);
 }
 
 function arrangement() {
@@ -137,38 +155,48 @@ function arrangement() {
     h('button', { type: 'button', class: 'arr-chip add', title: 'Add the current pattern', 'aria-label': 'Add the current pattern to the song', onclick: () => { a.push(S.song.current); changed('song'); } }, icon('plus'))));
 }
 
+function patternSheet() {
+  const pat = pattern(), name = PATTERN_NAMES[S.song.current];
+  const act = (ic, label, fn, sub) => h('button', { type: 'button', class: 'menu-item', onclick: () => { s.close(); fn(); } }, icon(ic), h('span', {}, label, sub ? h('small', {}, sub) : null));
+  const s = sheet(`Pattern ${name}`, h('div', { class: 'menu' },
+    h('div', { class: 'row' }, h('span', { class: 'grow' }, 'Steps per pattern'), segmented(STEP_OPTIONS.map((n) => [n, String(n)]), S.song.steps, (v) => { setStepCount(S.song, v); s.close(); changed('song'); })),
+    act('copy', 'Copy pattern', () => { clip = JSON.stringify(pat); toast(`Pattern ${name} copied`); }),
+    act('paste', 'Paste pattern', () => { if (!clip) return toast('Copy a pattern first'); Object.assign(S.song.patterns[S.song.current], JSON.parse(clip)); changed('song'); }, clip ? 'Replaces this pattern' : 'Copy one first'),
+    act('dice', 'Randomize', randomize, 'A new beat on every track'),
+    act('trash', 'Clear pattern', () => { for (const id of Object.keys(pat.steps)) pat.steps[id].fill(0); changed('song'); }),
+    S.song.tracks.length < MAX_TRACKS ? act('plus', 'Add track', addTrackSheet) : null));
+}
+
 export function renderBeat(root) {
-  rootEl = root;
-  const pat = pattern();
+  cells.clear(); minis.clear();
   if (S.song.steps <= PAGE) page = 0;
+  const steps = mode === 'steps';
   const tools = h('div', { class: 'toolbar beat-tools' },
-    segmented([['toggle', 'Draw'], ['velocity', 'Velocity']], edit, (v) => { edit = v; }, 'compact'),
-    segmented(STEP_OPTIONS.map((n) => [n, String(n)]), S.song.steps, (v) => { setStepCount(S.song, v); changed('song'); }, 'compact'),
-    S.song.steps > PAGE ? segmented([[0, '1–16'], [1, '17–32']], page, (v) => { page = v; renderBeat(root); }, 'compact') : null,
-    h('div', { class: 'spacer' }),
-    S.song.tracks.length < MAX_TRACKS ? iconBtn('plus', 'Add track', addTrackSheet) : null,
-    iconBtn('copy', 'Copy pattern', () => { clip = JSON.stringify(pat); toast(`Pattern ${PATTERN_NAMES[S.song.current]} copied`); }),
-    iconBtn('paste', 'Paste pattern', () => { if (!clip) return toast('Copy a pattern first'); Object.assign(S.song.patterns[S.song.current], JSON.parse(clip)); changed('song'); }),
-    iconBtn('dice', 'Randomize', randomize),
-    iconBtn('trash', 'Clear pattern', () => { for (const id of Object.keys(pat.steps)) pat.steps[id].fill(0); changed('song'); }));
-  root.replaceChildren(h('div', { class: 'deck beat' }, tools, S.song.mode === 'song' ? arrangement() : null,
-    h('div', { class: 'beat-body' }, stepsView(), padsView())));
+    segmented([['steps', 'Steps'], ['pads', 'Pads']], mode, (v) => { mode = v; try { localStorage.setItem('gs-beat-mode', v); } catch {} renderBeat(root); }),
+    steps ? segmented([['toggle', 'Draw'], ['velocity', 'Velocity']], edit, (v) => { edit = v; document.querySelector('.step-grid')?.classList.toggle('vel', v === 'velocity'); }) : null,
+    h('div', { class: 'tools-end' }, h('button', { type: 'button', class: 'chip-toggle', 'aria-pressed': String(S.song.mode === 'song'), title: 'Play the song arrangement instead of one pattern',
+      onclick: () => { S.song.mode = S.song.mode === 'song' ? 'pattern' : 'song'; changed('song'); } }, 'Song'),
+    iconBtn('more', 'Pattern actions', patternSheet)));
+  root.replaceChildren(h('div', { class: `deck beat mode-${mode}` }, tools, S.song.mode === 'song' ? arrangement() : null,
+    steps ? editor() : padsView(),
+    h('section', { class: 'tracks' }, h('p', { class: 'eyebrow' }, `Tracks · pattern ${PATTERN_NAMES[S.song.current]}`), S.song.tracks.map(trackRow),
+      S.song.tracks.length < MAX_TRACKS ? h('button', { type: 'button', class: 'track-add', onclick: addTrackSheet }, icon('plus'), 'Add track') : null)));
 }
 
 // Repaints step cells from the song (after a recorded hit or undo of a step edit) without rebuilding the grid.
 export function refreshCells() {
   const pat = pattern();
   for (const [k, el] of cells) { const [id, i] = k.split(':'); paintCell(el, pat.steps[id]?.[+i] || 0); }
+  for (const [k, el] of minis) { const [id, i] = k.split(':'); paintMini(el, pat.steps[id]?.[+i] || 0); }
 }
 
 export function beatPlayhead(p) {
-  document.querySelectorAll('.led.now, .step.now').forEach((el) => el.classList.remove('now'));
+  document.querySelectorAll('.step.now, .mini .now').forEach((el) => el.classList.remove('now'));
   if (!p) return;
   if (S.song.mode === 'song' && p.pattern !== S.song.current) return;
   // Follow the playhead across pages of a 32-step pattern.
-  if (S.song.steps > PAGE && Math.floor(p.step / PAGE) !== page && rootEl?.isConnected) { page = Math.floor(p.step / PAGE); renderBeat(rootEl); }
-  document.querySelector(`.led[data-step="${p.step}"]`)?.classList.add('now');
-  for (const t of S.song.tracks) cells.get(`${t.id}:${p.step}`)?.classList.add('now');
+  if (S.song.steps > PAGE && Math.floor(p.step / PAGE) !== page && document.querySelector('.editor')) { page = Math.floor(p.step / PAGE); document.querySelector('.editor').replaceWith(editor()); }
+  for (const t of S.song.tracks) { cells.get(`${t.id}:${p.step}`)?.classList.add('now'); minis.get(`${t.id}:${p.step}`)?.classList.add('now'); }
 }
 
 function randomize() {

@@ -39,14 +39,15 @@ try {
   check(await cell.evaluate((el) => el.classList.contains('on')), 'tapping a step turns it on');
   await page.click('.play-btn');
   await page.waitForTimeout(700);
-  check(await page.locator('.led.now').count() === 1, 'playhead moves while playing');
+  check(await page.locator('.step.now').count() === 1 && await page.locator('.mini .now').count() >= 8, 'playhead moves in the editor and the track list while playing');
   await shot('01-beat-playing');
   await page.click('.play-btn');
 
   // Responsiveness: no main-thread task over 50 ms while painting steps, turning a knob or switching decks,
   // and the transport is updated in place (same play button element), not rebuilt.
   await page.evaluate(() => { window.__long = []; new PerformanceObserver((l) => l.getEntries().forEach((e) => window.__long.push(Math.round(e.duration)))).observe({ type: 'longtask' }); window.__play = document.querySelector('.play-btn'); });
-  for (const s of [5, 6, 7, 9, 10, 11]) await page.locator(`.step[data-step="${s}"]`).nth(3).click();
+  await page.locator('.track-sel').nth(3).click();
+  for (const s of [5, 6, 7, 9, 10, 11]) await page.locator(`.step[data-step="${s}"]`).click();
   const stepsInPlace = await page.evaluate(() => window.__play.isConnected);
   await nav('synth');
   await page.evaluate(() => { window.__play = document.querySelector('.play-btn'); });
@@ -116,13 +117,15 @@ try {
 
   // Sequence the chop and bounce.
   await nav('beat');
-  const fits = await page.evaluate(() => { const g = document.querySelector('.grid'), p = document.querySelector('.beat-pads');
-    return g.scrollWidth <= g.clientWidth + 1 && p.getBoundingClientRect().bottom <= document.querySelector('#main').getBoundingClientRect().bottom + 1; });
-  check(fits, 'beat grid fits the phone width and the pads are on screen without scrolling');
+  const fits = await page.evaluate(() => { const m = document.querySelector('#main'), cs = [...document.querySelectorAll('.step-grid .step, .track-sel, .ms, .pchip, .play-btn, .nav button')];
+    return m.scrollWidth <= m.clientWidth + 1 && cs.every((c) => { const r = c.getBoundingClientRect(); return r.width >= 44 && r.height >= 44; }); });
+  if (!fits) console.log(await page.evaluate(() => [...document.querySelectorAll('.step-grid .step, .track-sel, .ms, .pchip, .play-btn, .nav button')].map((c) => { const r = c.getBoundingClientRect(); return r.width < 44 || r.height < 44 ? c.className + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) : ''; }).filter(Boolean).join(' / ') + ' main ' + document.querySelector('#main').clientWidth + ' ' + [...document.querySelectorAll('#main *')].filter((e) => e.getBoundingClientRect().right > 413).slice(0, 6).map((e) => e.tagName + '.' + e.className + ':' + Math.round(e.getBoundingClientRect().right)).join(' ')));
+  check(fits, 'beat deck fits the phone width and every step, track, pattern and nav target is at least 44 px');
   const tracks = await page.locator('.track-row:not(.ruler):not(.add)').count();
   check(tracks === 9, 'chop became a 9th track');
-  const row = page.locator('.track-row:not(.ruler):not(.add)').last();
-  for (const s of [0, 4, 8, 12]) await row.locator(`.step[data-step="${s}"]`).click();
+  await page.locator('.track-sel').last().click();
+  for (const s of [0, 4, 8, 12]) await page.locator(`.step[data-step="${s}"]`).click();
+  check(await page.locator('.track-row').last().locator('.mini .on').count() === 4, 'steps drawn in the editor show in the track list');
   await shot('06-beat-with-chop');
 
   await page.click('#menu');
@@ -166,6 +169,10 @@ try {
   await page.setViewportSize({ width: 1280, height: 800 });
   await nav('beat');
   await shot('11-tablet-beat');
+  await page.setViewportSize(devices['Pixel 7'].viewport);
+  await page.click('.seg button:has-text("Pads")');
+  await shot('07-pads');
+  await page.click('.seg button:has-text("Steps")');
 
   // Low-latency pads: with a native host present, pad hits go to XanderHost.padTrigger after a one-time upload.
   const native = await browser.newPage({ ...devices['Pixel 7'] });
@@ -180,6 +187,7 @@ try {
   });
   await native.goto('http://localhost:8792/modules/studio/index.html');
   await native.click('.nav button[data-view=beat]');
+  await native.click('.seg button:has-text("Pads")');
   const pad = native.locator('.beat-pads .pad').first();
   await pad.dispatchEvent('pointerdown'); await pad.dispatchEvent('pointerup');
   await native.waitForFunction(() => window.__calls.some((c) => c[0] === 'load'), null, { timeout: 10000 });
