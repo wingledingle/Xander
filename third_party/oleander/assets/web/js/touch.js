@@ -170,8 +170,10 @@ export class TouchControls {
     input.touchTurbo = turbo;
     input.padHold('touch', 'fastForward', ff);
     input.padHold('touch', 'rewind', rw);
-    for (const id of taps) {
-      if (this.tapsDown?.has(id)) continue;
+    // One-shot buttons fire when the finger lifts (like a normal button), not when it lands: the menu used to
+    // open on touch and the release's click then hit the menu's own buttons and closed it again.
+    for (const id of this.tapsDown || []) {
+      if (taps.has(id)) continue;
       input.haptic(15);
       input.dispatchEvent(new CustomEvent('hotkey', { detail: { id } }));
     }

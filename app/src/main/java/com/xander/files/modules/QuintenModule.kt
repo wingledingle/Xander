@@ -13,8 +13,9 @@ object QuintenModule : ActivityModule(
     icon = Icons.AutoMirrored.Filled.MenuBook,
     activity = app.quinten.MainActivity::class.java,
     opens = setOf("epub", "pdf", "fb2", "mobi", "azw", "azw3", "djvu", "cbz", "cbr", "doc", "docx", "rtf", "txt", "zip"),
-    // Formats Xander has no viewer for open here on tap; the rest keep Xander's viewers and offer "Open in…".
-    defaultFor = setOf("txt", "mobi", "azw", "azw3", "djvu", "cbz", "cbr"),
+    // Quinten is the reader for every format it handles; Xander's own viewers stay under "Open with".
+    // (Plain .zip files go to Quinten only when they hold a book: Modules.forZip.)
+    defaultFor = setOf("epub", "pdf", "fb2", "mobi", "azw", "azw3", "djvu", "cbz", "cbr", "doc", "docx", "rtf", "txt"),
 ) {
     override val minSdk = 26
 

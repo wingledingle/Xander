@@ -48,7 +48,7 @@ export const DEFAULTS = {
   powerSaver: false,
   touchScale: 1,
   avoidCutout: true, // keep the game picture clear of the camera cutout
-  handheldFrame: 'auto',
+  handheldFrame: 'edge', // no bezel by default (Xander)
   uiSounds: true,
   accent: '',
   // Video
@@ -127,6 +127,8 @@ class Settings extends EventTarget {
     const renamed = { dark: 'indigo', gba: 'indigo', light: 'glacier', oled: 'black' };
     if (renamed[this.global.theme]) this.global.theme = renamed[this.global.theme];
     // The boot animation used to be on/off and played on every start.
+    // No bezel became the default: move players still on the old default over once.
+    if (!saved.frameDefault2) { if (this.global.handheldFrame === 'auto') this.global.handheldFrame = 'edge'; this.global.frameDefault2 = true; setSetting('all', this.global).catch(() => {}); }
     if (typeof this.global.bootAnimation === 'boolean') this.global.bootAnimation = this.global.bootAnimation ? 'first' : 'never';
     this.applyTheme();
   }

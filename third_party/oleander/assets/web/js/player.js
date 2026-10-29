@@ -199,6 +199,25 @@ export class Player extends EventTarget {
     return this.speed;
   }
 
+  /**
+   * Frames to run this refresh when the display runs at a common rate (60/90/120/144 Hz), or null. Counting
+   * elapsed milliseconds (the fallback) turns normal timing jitter into 0- and 2-frame refreshes, which looks
+   * choppy; here each refresh adds a fixed share of a frame (1, 2/3, 1/2, 5/12), so the cadence is even. The
+   * GBA's 59.73 Hz vs 60 is absorbed by the audio rate control (+/-0.5%). Missed refreshes are caught up.
+   */
+  vsyncFrames(dt) {
+    if (dt > 0 && dt < 100) this.refreshMs = this.refreshMs ? this.refreshMs * 0.95 + dt * 0.05 : dt;
+    const hz = 1000 / (this.refreshMs || 16.7);
+    const nominal = [60, 90, 120, 144].find((r) => Math.abs(hz - r) / r < 0.04);
+    if (!nominal || settings.get('syncMode') === 'audio') return null;
+    const ticks = Math.max(1, Math.min(4, Math.round(dt * nominal / 1000)));
+    this.vacc = (this.vacc || 0) + ticks * (60 / nominal);
+    const frames = Math.floor(this.vacc + 1e-6);
+    this.vacc -= frames;
+    if (window.__pace) window.__pace.push(frames);
+    return frames;
+  }
+
   loop(now) {
     if (!this.running) { this.looping = false; return; }
     // Battery: no frame callbacks at all while paused; setPaused(false) starts the loop again.
@@ -229,6 +248,8 @@ export class Player extends EventTarget {
       const want = this.audio.latencyMs;
       frames = this.audio.bufferedMs() < want ? Math.ceil((want - this.audio.bufferedMs()) / (1000 / FRAME_RATE)) : 0;
       frames = Math.min(frames, 4);
+    } else if (speed === 1 && (frames = this.vsyncFrames(dt)) != null) {
+      // Locked to the screen's refresh (see vsyncFrames): an even cadence, no 0/2 judder.
     } else {
       this.acc += (dt / 1000) * FRAME_RATE * speed;
       frames = Math.floor(this.acc);

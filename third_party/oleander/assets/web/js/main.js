@@ -161,8 +161,10 @@ async function boot() {
   // ---------------- player menu ----------------
   const menu = $('player-menu');
   let stopNav = null;
+  let menuOpenedAt = 0;
   const showMenu = () => {
     if (!menu.classList.contains('hidden')) return;
+    menuOpenedAt = performance.now();
     menu.classList.remove('hidden');
     input.enabled = false;
     player.wasRunningBeforeMenu = !player.paused;
@@ -191,6 +193,8 @@ async function boot() {
   $('menu-button').onclick = showMenu;
   menu.querySelector('.close-menu').onclick = hideMenu;
   $('speed').oninput = (e) => { player.setSpeed(Number(e.target.value)); $('speed-label').textContent = `${e.target.value}×`; };
+  // A click arriving right after the menu opened belongs to the tap that opened it, not to a menu button.
+  menu.addEventListener('click', (e) => { if (performance.now() - menuOpenedAt < 350) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
   menu.addEventListener('click', async (e) => {
     const act = e.target.closest('button')?.dataset.act;
     if (!act) return;

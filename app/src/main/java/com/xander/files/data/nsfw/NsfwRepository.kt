@@ -71,6 +71,12 @@ class NsfwRepository @Inject constructor(
     suspend fun scan(rescanAll: Boolean = false) {
         val s = settings.settings.first()
         if (!s.nsfwEnabled) return
+        // Scores from an older scoring pipeline (earlier builds) are redone once, so nobody has to rescan by hand.
+        val prefs = context.getSharedPreferences("nsfw_scan", Context.MODE_PRIVATE)
+        if (prefs.getInt("pipeline", 0) < PIPELINE) {
+            prefs.edit().putInt("pipeline", PIPELINE).apply()
+            if (!rescanAll) return scan(rescanAll = true)
+        }
         val req = OneTimeWorkRequestBuilder<NsfwScanWorker>()
             .setInputData(workDataOf("all" to rescanAll))
             .setConstraints(Constraints.Builder().setRequiresCharging(s.nsfwChargingOnly).setRequiresBatteryNotLow(true).build())
@@ -84,6 +90,8 @@ class NsfwRepository @Inject constructor(
 
     companion object {
         const val WORK = "nsfw-scan"
+        /** Bump when the way files are scored changes; stored scores are then redone once. */
+        const val PIPELINE = 2
 
         /** Photo folders first (where adult photos usually are), comic/manga folders last. */
         fun priority(path: String): Int {
