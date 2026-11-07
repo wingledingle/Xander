@@ -79,7 +79,9 @@ class CopyEngine @Inject constructor(private val registry: FileSystemRegistry) {
             if (src.path == target) {
                 // Copy onto itself => create "name (1)".
                 targetName = uniqueName(dstP, destDir, name); target = destDir.child(targetName)
-            } else if (ctx.options.resumed && !src.isDirectory && existing.size == src.size) {
+            } else if (ctx.options.resumed && !src.isDirectory && existing.size == src.size && sameContent(src.path, srcP, target, dstP)) {
+                // Finished before the app was stopped: only skip (and, for a move, delete the source) when the copy is
+                // byte-for-byte identical. Same size alone can be a different file or a preallocated half-written one.
                 ctx.bytes(src.size); ctx.itemDone()
                 if (move) srcP.delete(src.path)
                 return
@@ -122,6 +124,25 @@ class CopyEngine @Inject constructor(private val registry: FileSystemRegistry) {
             if (move) srcP.delete(src.path)
             ctx.itemDone()
         }
+    }
+
+    private suspend fun sameContent(a: FsPath, ap: FileSystemProvider, b: FsPath, bp: FileSystemProvider): Boolean = runCatching {
+        ap.openInput(a).use { x -> bp.openInput(b).use { y ->
+            val bx = ByteArray(64 * 1024); val by = ByteArray(64 * 1024)
+            while (true) {
+                val n = x.readNBytesCompat(bx)
+                if (n != y.readNBytesCompat(by)) return@runCatching false
+                if (n <= 0) return@runCatching true
+                for (i in 0 until n) if (bx[i] != by[i]) return@runCatching false
+            }
+        } }
+    }.getOrDefault(false)
+
+    /** Fills [buf] as far as the stream allows (read() may return short counts); -1 at end. */
+    private fun InputStream.readNBytesCompat(buf: ByteArray): Int {
+        var n = 0
+        while (n < buf.size) { val r = read(buf, n, buf.size - n); if (r < 0) break; n += r }
+        return if (n == 0) -1 else n
     }
 
     private suspend fun skipTree(src: FileEntry, p: FileSystemProvider, ctx: TransferContext) {

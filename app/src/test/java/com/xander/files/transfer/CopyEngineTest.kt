@@ -67,6 +67,22 @@ class CopyEngineTest {
         assertEquals(1000L, b.mtimes["/dst/one.txt"])
     }
 
+    // A resumed move must not trust "same size" alone: a different file of the same size (or a half-written copy
+    // the destination preallocated to full size) would lose the source.
+    @Test fun resumedMoveKeepsSourceWhenSameSizeFileDiffers() = runTest {
+        b.put("/dst/one.txt", "9999")
+        engine.transfer(listOf(pa("/src/one.txt")), pb("/dst"), move = true, ctx = ctx(TransferOptions(resumed = true, defaultConflict = ConflictChoice.SKIP)))
+        assertEquals("1111", a.read("/src/one.txt"))
+        assertEquals("9999", b.read("/dst/one.txt"))
+    }
+
+    @Test fun resumedMoveFinishesWhenCopyIsIdentical() = runTest {
+        b.put("/dst/one.txt", "1111")
+        engine.transfer(listOf(pa("/src/one.txt")), pb("/dst"), move = true, ctx = ctx(TransferOptions(resumed = true)))
+        assertNull(a.read("/src/one.txt"))
+        assertEquals("1111", b.read("/dst/one.txt"))
+    }
+
     @Test fun conflictSkipKeepsExisting() = runTest {
         b.put("/dst/one.txt", "old")
         engine.transfer(listOf(pa("/src/one.txt")), pb("/dst"), false, ctx(TransferOptions(defaultConflict = ConflictChoice.SKIP)))
