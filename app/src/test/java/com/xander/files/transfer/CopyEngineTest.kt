@@ -137,6 +137,20 @@ class CopyEngineTest {
         assertEquals("/a/a/b", com.xander.files.data.archive.ArchiveFormats.norm("a\\..\\..\\a/./b"))
     }
 
+    // A folder symlink pointing back at its parent must not be followed: the copy would never end.
+    @Test fun copyDoesNotFollowFolderSymlinkLoops() = runTest {
+        val looped = object : com.xander.files.domain.fs.FileSystemProvider by a {
+            override suspend fun list(dir: FsPath) = a.list(dir).let { l ->
+                if (dir.path == "/src") l + com.xander.files.domain.fs.FileEntry(pa("/src/loop"), isDirectory = true, isSymlink = true, linkTarget = "/src") else l
+            }
+            override suspend fun stat(path: FsPath) = if (path.path.endsWith("/loop")) com.xander.files.domain.fs.FileEntry(path, true, isSymlink = true, linkTarget = "/src") else a.stat(path)
+        }
+        val e = CopyEngine(FileSystemRegistry(setOf(looped, b)))
+        kotlinx.coroutines.withTimeout(10_000) { e.transfer(listOf(pa("/src")), pb("/dst"), move = false, ctx = ctx()) }
+        assertEquals("1111", b.read("/dst/src/one.txt"))
+        assertTrue("nothing copied through the link", b.files.keys.none { it.contains("/loop/") })
+    }
+
     @Test fun conflictSkipKeepsExisting() = runTest {
         b.put("/dst/one.txt", "old")
         engine.transfer(listOf(pa("/src/one.txt")), pb("/dst"), false, ctx(TransferOptions(defaultConflict = ConflictChoice.SKIP)))

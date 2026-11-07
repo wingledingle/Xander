@@ -119,6 +119,11 @@ class CopyEngine @Inject constructor(private val registry: FileSystemRegistry) {
             }
         }
 
+        if (src.isDirectory && src.isSymlink) {
+            // A link to a folder is not followed (a link to its own parent would copy forever and fill the disk);
+            // it stays where it is, so a move keeps its folder too.
+            ctx.itemDone(); return
+        }
         if (src.isDirectory) {
             if (!merge) dstP.mkdir(destDir, targetName)
             ctx.itemDone()
