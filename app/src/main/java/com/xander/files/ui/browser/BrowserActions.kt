@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.DriveFileMove
 import androidx.compose.material.icons.filled.FolderZip
 import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.automirrored.filled.ManageSearch
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Unarchive
@@ -89,6 +90,8 @@ fun entryActions(
         if (single != null) com.xander.files.modules.Modules.forFile(single).forEach { m ->
             add(SheetAction(m.icon, stringResource(R.string.open_in, stringResource(m.title))) { vm.openInModule(single, m) })
         }
+        if (single != null && !single.isDirectory && com.xander.files.modules.QuickLookModule !in com.xander.files.modules.Modules.forFile(single))
+            add(SheetAction(Icons.AutoMirrored.Filled.ManageSearch, stringResource(R.string.quick_look)) { vm.openInModule(single, com.xander.files.modules.QuickLookModule) })
         if (single != null && !single.isDirectory && single.extension == "txt") add(SheetAction(Icons.AutoMirrored.Filled.MenuBook, stringResource(R.string.read_as_book)) { vm.openAs(single, com.xander.files.data.open.ViewerKind.BOOK) })
         if (single != null && !single.isDirectory && com.xander.files.data.open.ViewerRouter.kindOf(single) !in setOf(com.xander.files.data.open.ViewerKind.TEXT, com.xander.files.data.open.ViewerKind.IMAGE, com.xander.files.data.open.ViewerKind.VIDEO, com.xander.files.data.open.ViewerKind.AUDIO))
             add(SheetAction(Icons.Filled.Description, stringResource(R.string.open_as_text)) { vm.openAs(single, com.xander.files.data.open.ViewerKind.TEXT) })

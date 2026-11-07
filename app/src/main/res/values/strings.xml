@@ -595,4 +595,9 @@
     <string name="loop">Loop</string>
     <string name="volume">Volume</string>
     <string name="sound_layers_hint">Plays on top of the music, each with its own volume.</string>
+    <string name="module_model3d">3D Viewer</string>
+    <string name="module_model3d_summary">GLB, glTF, STL, OBJ, PLY, 3MF, FBX and other 3D models</string>
+    <string name="module_quicklook">Quick Look</string>
+    <string name="module_quicklook_summary">SVG, font, Markdown and HTML previews, hex view and checksums</string>
+    <string name="quick_look">Quick look (hex, info)</string>
 </resources>

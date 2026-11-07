@@ -593,4 +593,9 @@
     <string name="loop">Ripeti</string>
     <string name="volume">Volume</string>
     <string name="sound_layers_hint">Suonano sopra la musica, ognuno con il suo volume.</string>
+    <string name="module_model3d">Visualizzatore 3D</string>
+    <string name="module_model3d_summary">GLB, glTF, STL, OBJ, PLY, 3MF, FBX e altri modelli 3D</string>
+    <string name="module_quicklook">Anteprima rapida</string>
+    <string name="module_quicklook_summary">Anteprima di SVG, font, Markdown e HTML, vista esadecimale e checksum</string>
+    <string name="quick_look">Anteprima rapida (hex, info)</string>
 </resources>

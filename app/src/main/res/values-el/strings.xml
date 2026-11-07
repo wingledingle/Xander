@@ -591,4 +591,9 @@
     <string name="loop">Επανάληψη</string>
     <string name="volume">Ένταση</string>
     <string name="sound_layers_hint">Παίζουν πάνω από τη μουσική, το καθένα με δική του ένταση.</string>
+    <string name="module_model3d">Προβολή 3D</string>
+    <string name="module_model3d_summary">GLB, glTF, STL, OBJ, PLY, 3MF, FBX και άλλα μοντέλα 3D</string>
+    <string name="module_quicklook">Γρήγορη προβολή</string>
+    <string name="module_quicklook_summary">Προεπισκόπηση SVG, γραμματοσειρών, Markdown και HTML, δεκαεξαδική προβολή και checksum</string>
+    <string name="quick_look">Γρήγορη προβολή (hex, πληροφορίες)</string>
 </resources>

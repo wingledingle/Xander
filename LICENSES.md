@@ -58,3 +58,9 @@ Proprietary Google SDKs (free of charge, closed source, no source-release obliga
 
 These cannot be replaced with Apache/MIT code if you want Play subscriptions, Google Drive and Chromecast.
 On devices without Google Play services the app still runs; those three features are simply unavailable.
+
+## three.js 0.169.0 (MIT)
+`modules-web/www/modules/model3d/vendor/three/` — 3D rendering and model loaders (with fflate, MIT, and the Draco glTF decoder, Apache-2.0). License: `vendor/three/LICENSE`.
+
+## marked 14.1.4 (MIT)
+`modules-web/www/modules/quicklook/vendor/marked.esm.js` — Markdown rendering. License: `vendor/marked-LICENSE.md`.

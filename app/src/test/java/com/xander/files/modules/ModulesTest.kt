@@ -37,7 +37,7 @@ class ModulesTest {
     @Test fun registryOffersStudioForMediaAndOpensProjectsOnTap() {
         assertEquals(listOf(StudioModule), Modules.forFile(entry("beat.mp4")))
         assertEquals(listOf(StudioModule), Modules.forFile(entry("loop.WAV")))
-        assertTrue(Modules.forFile(entry("data.xyz")).isEmpty())
+        assertTrue(Modules.forFile(entry("data.qqq")).isEmpty())
         assertEquals(listOf(QuintenModule), Modules.forFile(entry("notes.txt")))
         assertTrue(Modules.forFile(entry("folder.mp4", dir = true)).isEmpty())
         assertEquals(StudioModule, Modules.defaultFor(entry("song.gsproj")))
@@ -46,7 +46,12 @@ class ModulesTest {
         assertEquals(OleanderModule, Modules.defaultFor(entry("pokemon.gba")))
         assertTrue(OleanderModule in Modules.forFile(entry("roms.zip")))
         assertEquals(QuintenModule, Modules.defaultFor(entry("novel.mobi")))
-        assertNull("EPUBs keep Xander's own reader on tap", Modules.defaultFor(entry("novel.epub")))
+        assertEquals("Quinten opens every format it reads", QuintenModule, Modules.defaultFor(entry("novel.epub")))
+        assertEquals(Model3dModule, Modules.defaultFor(entry("part.stl")))
+        assertEquals(Model3dModule, Modules.defaultFor(entry("scene.glb")))
+        assertEquals(QuickLookModule, Modules.defaultFor(entry("logo.svg")))
+        assertTrue(QuickLookModule in Modules.forFile(entry("README.md")))
+        assertNotNull(ctx.assets.open("modules/model3d/vendor/three/build/three.module.min.js"))
         assertTrue(QuintenModule in Modules.forFile(entry("novel.epub")))
         assertTrue(ctx.assets.list("web")!!.contains("oleander.wasm"))
         for (m in Modules.all) {

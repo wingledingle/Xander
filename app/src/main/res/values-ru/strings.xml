@@ -597,4 +597,9 @@
     <string name="loop">Повтор</string>
     <string name="volume">Громкость</string>
     <string name="sound_layers_hint">Играют поверх музыки, у каждого своя громкость.</string>
+    <string name="module_model3d">3D-просмотр</string>
+    <string name="module_model3d_summary">GLB, glTF, STL, OBJ, PLY, 3MF, FBX и другие 3D-модели</string>
+    <string name="module_quicklook">Быстрый просмотр</string>
+    <string name="module_quicklook_summary">Просмотр SVG, шрифтов, Markdown и HTML, шестнадцатеричный вид и контрольные суммы</string>
+    <string name="quick_look">Быстрый просмотр (hex, сведения)</string>
 </resources>

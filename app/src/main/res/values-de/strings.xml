@@ -591,4 +591,9 @@
     <string name="loop">Schleife</string>
     <string name="volume">Lautstärke</string>
     <string name="sound_layers_hint">Läuft über der Musik, jede mit eigener Lautstärke.</string>
+    <string name="module_model3d">3D-Viewer</string>
+    <string name="module_model3d_summary">GLB, glTF, STL, OBJ, PLY, 3MF, FBX und andere 3D-Modelle</string>
+    <string name="module_quicklook">Schnellansicht</string>
+    <string name="module_quicklook_summary">Vorschau für SVG, Schriften, Markdown und HTML, Hex-Ansicht und Prüfsummen</string>
+    <string name="quick_look">Schnellansicht (Hex, Info)</string>
 </resources>

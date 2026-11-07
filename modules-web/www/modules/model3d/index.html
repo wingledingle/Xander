@@ -1,0 +1,29 @@
+<!doctype html>
+<!-- Copyright 2026 Xander contributors · SPDX-License-Identifier: Apache-2.0 -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101114">
+<title>3D Viewer</title>
+<script type="importmap">{ "imports": { "three": "./vendor/three/build/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }</script>
+<link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+<header class="bar">
+  <button id="back" class="icon" aria-label="Back">←</button>
+  <div class="title"><strong id="name">3D Viewer</strong><small id="info"></small></div>
+  <button id="open" class="icon" aria-label="Open a model">⋯</button>
+</header>
+<main id="stage"><canvas id="view"></canvas><div id="msg" class="msg">Opening…</div></main>
+<nav class="tools" aria-label="View">
+  <button id="reset" type="button"><span class="ic">⟲</span>Reset</button>
+  <button id="spin" type="button" aria-pressed="false"><span class="ic">↻</span>Spin</button>
+  <button id="wire" type="button" aria-pressed="false"><span class="ic">◇</span>Wire</button>
+  <button id="light" type="button"><span class="ic">☀</span><span id="light-l">Studio</span></button>
+  <button id="bg" type="button"><span class="ic">◐</span>Backdrop</button>
+  <button id="anim" type="button" aria-pressed="false" hidden><span class="ic">▶</span>Animate</button>
+</nav>
+<script type="module" src="viewer.js"></script>
+</body>
+</html>

@@ -43,6 +43,8 @@ object Modules {
         StudioModule,
         OleanderModule,
         QuintenModule,
+        Model3dModule,
+        QuickLookModule,
     ).filter { it.minSdk <= android.os.Build.VERSION.SDK_INT }
 
     /** The module that opens what a plain .zip holds (GBA game, book), or null. Blocks briefly: call off the main thread. */

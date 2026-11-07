@@ -593,4 +593,9 @@
     <string name="loop">Boucle</string>
     <string name="volume">Volume</string>
     <string name="sound_layers_hint">Joués par-dessus la musique, chacun avec son volume.</string>
+    <string name="module_model3d">Visionneuse 3D</string>
+    <string name="module_model3d_summary">GLB, glTF, STL, OBJ, PLY, 3MF, FBX et autres modèles 3D</string>
+    <string name="module_quicklook">Aperçu rapide</string>
+    <string name="module_quicklook_summary">Aperçu SVG, polices, Markdown et HTML, vue hexadécimale et sommes de contrôle</string>
+    <string name="quick_look">Aperçu rapide (hex, infos)</string>
 </resources>

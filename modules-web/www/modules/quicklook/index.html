@@ -1,0 +1,25 @@
+<!doctype html>
+<!-- Copyright 2026 Xander contributors · SPDX-License-Identifier: Apache-2.0 -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101114">
+<title>Quick Look</title>
+<link rel="stylesheet" href="quicklook.css">
+</head>
+<body>
+<header class="bar">
+  <button id="back" class="icon" aria-label="Back">←</button>
+  <div class="title"><strong id="name">Quick Look</strong><small id="sub"></small></div>
+  <button id="open" class="icon" aria-label="Open a file">⋯</button>
+</header>
+<nav class="tabs" role="tablist">
+  <button role="tab" data-tab="preview" aria-selected="true">Preview</button>
+  <button role="tab" data-tab="hex" aria-selected="false">Hex</button>
+  <button role="tab" data-tab="info" aria-selected="false">Info</button>
+</nav>
+<main id="main"></main>
+<script type="module" src="quicklook.js"></script>
+</body>
+</html>

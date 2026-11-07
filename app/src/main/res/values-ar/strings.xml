@@ -603,4 +603,9 @@
     <string name="loop">تكرار</string>
     <string name="volume">مستوى الصوت</string>
     <string name="sound_layers_hint">تعمل فوق الموسيقى، ولكل منها مستوى صوت خاص.</string>
+    <string name="module_model3d">عارض ثلاثي الأبعاد</string>
+    <string name="module_model3d_summary">نماذج GLB وglTF وSTL وOBJ وPLY و3MF وFBX وغيرها</string>
+    <string name="module_quicklook">نظرة سريعة</string>
+    <string name="module_quicklook_summary">معاينة SVG والخطوط وMarkdown وHTML وعرض سداسي عشري ومجاميع تحقق</string>
+    <string name="quick_look">نظرة سريعة (سداسي، معلومات)</string>
 </resources>
