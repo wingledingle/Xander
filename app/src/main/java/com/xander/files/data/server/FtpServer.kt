@@ -179,6 +179,7 @@ class FtpServer(
                     val parent = root.toFs(v.substringBeforeLast('/').ifEmpty { "/" })
                     val name = v.substringAfterLast('/')
                     val offset = rest; rest = 0
+                    val existed = runBlocking { runCatching { fs.exists(parent.child(name)) }.getOrDefault(false) }
                     val target = runBlocking { fs.createFileOrReplace(parent, name) }
                     if (cmd == "APPE" || offset > 0) {
                         // Backends cannot append in place: rebuild the file from the kept prefix plus the upload.
@@ -189,6 +190,12 @@ class FtpServer(
                             dataIn(java.io.FileOutputStream(tmp, true))
                             runBlocking { fs.openOutput(target, tmp.length()) }.use { o -> tmp.inputStream().use { it.copyTo(o, 64 * 1024) } }
                         } finally { tmp.delete() }
+                    } else if (existed) {
+                        // Replacing a file: upload beside it and swap only when the upload completed, so a dropped
+                        // connection doesn't leave half a file where the old one was.
+                        val part = runBlocking { fs.createFileOrReplace(parent, ".$name.xander-part") }
+                        if (dataIn(runBlocking { fs.openOutput(part) })) runBlocking { fs.delete(target); fs.rename(part, name) }
+                        else runCatching { runBlocking { fs.delete(part) } }
                     } else {
                         dataIn(runBlocking { fs.openOutput(target) })
                     }
@@ -242,11 +249,12 @@ class FtpServer(
             catch (e: IOException) { reply(426, "Transfer aborted") }
         }
 
-        private fun dataIn(target: OutputStream) {
+        /** Receives an upload into [target]; true when it completed. */
+        private fun dataIn(target: OutputStream): Boolean {
             reply(150, "Ready to receive")
-            val s = connectData() ?: run { target.close(); reply(425, "Use PASV or PORT first"); return }
-            try { s.use { sock -> target.use { o -> sock.getInputStream().copyTo(o, 64 * 1024) } }; reply(226, "Transfer complete") }
-            catch (e: IOException) { reply(426, "Transfer aborted") }
+            val s = connectData() ?: run { target.close(); reply(425, "Use PASV or PORT first"); return false }
+            return try { s.use { sock -> target.use { o -> sock.getInputStream().copyTo(o, 64 * 1024) } }; reply(226, "Transfer complete"); true }
+            catch (e: IOException) { reply(426, "Transfer aborted"); false }
         }
     }
 

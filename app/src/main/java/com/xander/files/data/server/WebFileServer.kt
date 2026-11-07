@@ -61,8 +61,13 @@ class WebFileServer(
                             Multipart.read(r.body, b) { headers, content ->
                                 val name = Multipart.disposition(headers, "filename")?.substringAfterLast('/')?.substringAfterLast('\\')
                                 if (!name.isNullOrBlank()) kotlinx.coroutines.runBlocking {
-                                    val target = fs.createFileOrReplace(p, safeName(name))
-                                    fs.openOutput(target).use { content.copyTo(it, 64 * 1024) }
+                                    // Upload beside the target and swap when complete: a dropped upload keeps the old file.
+                                    val n = safeName(name)
+                                    val part = fs.createFileOrReplace(p, ".$n.xander-part")
+                                    try { fs.openOutput(part).use { content.copyTo(it, 64 * 1024) } }
+                                    catch (e: Exception) { runCatching { fs.delete(part) }; throw e }
+                                    if (fs.exists(p.child(n))) fs.delete(p.child(n))
+                                    fs.rename(part, n)
                                 }
                             }
                         }

@@ -51,6 +51,10 @@ class ServersTest {
         c.setRestartOffset(6); val part = ByteArrayOutputStream(); assertTrue(c.retrieveFile("a.txt", part)); assertEquals("world", part.toString())
         assertTrue(c.storeFile("b.bin", "uploaded".byteInputStream()))
         assertEquals("uploaded", mem.read("/share/docs/b.bin"))
+        // Replacing an existing file goes through a temporary file and leaves nothing behind.
+        assertTrue(c.storeFile("a.txt", "replaced".byteInputStream()))
+        assertEquals("replaced", mem.read("/share/docs/a.txt"))
+        assertTrue(mem.files.keys.none { it.endsWith(".xander-part") })
         assertTrue(c.appendFile("b.bin", "+more".byteInputStream()))
         assertEquals("uploaded+more", mem.read("/share/docs/b.bin"))
         assertTrue(c.rename("b.bin", "c.bin"))
