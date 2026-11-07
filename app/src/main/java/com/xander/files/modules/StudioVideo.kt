@@ -55,8 +55,10 @@ class StudioVideo(private val context: Context, private val registry: FileSystem
     private var file: HostFile? = null
     private var announced = false
     private var seeking = false
-    /** GPU effects pipeline on; switched off for good if this phone's player fails with it (see onPlayerError). */
+    /** GPU effects on (our own GL renderer); switched off for good if it fails on this phone (see fallBack). */
     private var gpuFx = true
+    private var renderer: FxRenderer? = null
+    private var fxSurface: android.view.Surface? = null
 
     fun command(json: String) = main.post {
         val o = runCatching { JSONObject(json) }.getOrNull() ?: return@post
@@ -89,8 +91,9 @@ class StudioVideo(private val context: Context, private val registry: FileSystem
         val p = player ?: ExoPlayer.Builder(context)
             .setMediaSourceFactory(DefaultMediaSourceFactory(RoutingDataSourceFactory(context, registry)))
             .build().also { p ->
-                if (gpuFx) runCatching { p.setVideoEffects(listOf<Effect>(FxEffect(fx))) }.onFailure { gpuFx = false }
-                p.setVideoTextureView(view)
+                if (gpuFx && renderer == null) renderer = runCatching { FxRenderer(view, fx, { s -> fxSurface = s; player?.setVideoSurface(s) }, { e -> fallBack(e) }) }
+                    .onFailure { ModuleLog.write(context, "studio", "fx renderer: $it") }.getOrNull()
+                if (gpuFx && renderer != null) fxSurface?.let { p.setVideoSurface(it) } else { gpuFx = false; p.setVideoTextureView(view) }
                 p.addListener(listener)
                 player = p
             }
@@ -103,7 +106,7 @@ class StudioVideo(private val context: Context, private val registry: FileSystem
     }
 
     private val watchdog = Runnable {
-        if (!announced && gpuFx && file != null) listener.onPlayerError(PlaybackException("not ready after 8 s with GPU effects", null, PlaybackException.ERROR_CODE_TIMEOUT))
+        if (!announced && gpuFx && file != null) listener.onPlayerError(PlaybackException("not ready after 8 s with video FX", null, PlaybackException.ERROR_CODE_TIMEOUT))
     }
 
     private val ticker = object : Runnable {
@@ -128,18 +131,9 @@ class StudioVideo(private val context: Context, private val registry: FileSystem
         override fun onPlayerError(e: PlaybackException) {
             ModuleLog.write(context, "studio", "native video error ${e.errorCodeName} (gpu fx $gpuFx): ${android.util.Log.getStackTraceString(e).take(3000)}")
             val f = file
-            // The GPU effect pipeline is the only part Xander's own (working) video player doesn't use: if the phone
-            // rejects it, play the same file plainly, with colour effects as a layer filter instead.
-            if (gpuFx && f != null) {
-                gpuFx = false
-                val at = player?.currentPosition ?: 0L
-                player?.release(); player = null
-                open(f.token)
-                if (at > 0) player?.seekTo(at)
-                applyLayerFx()
-                state("fxoff")
-                return
-            }
+            // The FX renderer is the only part Xander's own (working) video player doesn't use: if the phone rejects
+            // it, play the same file plainly, with colour effects as a layer filter instead.
+            if (gpuFx && f != null) { fallBack(e); return }
             state("error", JSONObject().put("error", e.errorCodeName).put("message", e.message ?: ""))
         }
     }
@@ -157,8 +151,21 @@ class StudioVideo(private val context: Context, private val registry: FileSystem
     private fun setFx(o: JSONObject) {
         FX_KEYS.forEachIndexed { i, k -> if (o.has(k)) fx[i] = o.getDouble(k).toFloat() }
         if (!gpuFx) { applyLayerFx(); return }
-        // A paused frame is not redrawn by itself; re-seek to show the new look.
-        player?.let { if (!it.isPlaying && announced) it.seekTo(it.currentPosition) }
+        renderer?.redraw()
+    }
+
+    private fun fallBack(e: Throwable) {
+        if (!gpuFx) return
+        ModuleLog.write(context, "studio", "video FX off on this phone: ${android.util.Log.getStackTraceString(e).take(2000)}")
+        gpuFx = false
+        renderer?.release(); renderer = null; fxSurface = null
+        val f = file ?: return
+        val at = player?.currentPosition ?: 0L
+        player?.release(); player = null
+        open(f.token)
+        if (at > 0) player?.seekTo(at)
+        applyLayerFx()
+        state("fxoff")
     }
 
     /** Without the GPU pipeline: brightness, contrast, saturation, hue and invert as a colour matrix on the view. */
@@ -202,12 +209,13 @@ class StudioVideo(private val context: Context, private val registry: FileSystem
     fun release() {
         main.removeCallbacks(ticker); main.removeCallbacks(watchdog)
         player?.release(); player = null; file = null; rect.value = null
+        renderer?.release(); renderer = null; fxSurface = null
     }
 
     companion object {
         // Same order and defaults as VIDEO_FX in modules-web/www/modules/studio/videofx.js.
         val FX_KEYS = listOf("brightness", "contrast", "saturation", "hue", "rgbShift", "pixelate", "scanlines", "noise",
-            "glitch", "posterize", "vignette", "invert", "mirror", "thermal", "zoom", "strobe")
+            "glitch", "posterize", "vignette", "invert", "mirror", "thermal", "zoom", "strobe", "wave")
         fun defaults(a: FloatArray) { a.fill(0f); a[1] = 1f; a[2] = 1f; a[14] = 1f }
     }
 }
@@ -220,7 +228,7 @@ class FxEffect(private val params: FloatArray) : GlEffect {
 
 @UnstableApi
 private class FxShaderProgram(private val params: FloatArray, useHdr: Boolean) : BaseGlShaderProgram(useHdr, 1) {
-    private val program = GlProgram(VERT, FRAG).apply {
+    private val program = GlProgram(VERT, FX_FRAG).apply {
         setBufferAttribute("aFramePosition", GlUtil.getNormalizedCoordinateBounds(), GlUtil.HOMOGENEOUS_COORDINATE_VECTOR_SIZE)
     }
     private var w = 1; private var h = 1
@@ -242,10 +250,13 @@ private class FxShaderProgram(private val params: FloatArray, useHdr: Boolean) :
     companion object {
         const val VERT = "attribute vec4 aFramePosition; varying vec2 uv;\n" +
             "void main(){ gl_Position = aFramePosition; uv = vec2(aFramePosition.x * 0.5 + 0.5, 0.5 - aFramePosition.y * 0.5); }"
-        // Port of FRAG in videofx.js; uv runs top-down like the page's, and texture reads flip it back to GL's.
-        const val FRAG = """precision mediump float;
+    }
+}
+
+// Port of FRAG in videofx.js; uv runs top-down like the page's, and texture reads flip it back to GL's.
+internal const val FX_FRAG = """precision mediump float;
 varying vec2 uv; uniform sampler2D tex; uniform vec2 res; uniform float time;
-uniform float brightness, contrast, saturation, hue, rgbShift, pixelate, scanlines, noise, glitch, posterize, vignette, invert, mirror, thermal, zoom, strobe;
+uniform float brightness, contrast, saturation, hue, rgbShift, pixelate, scanlines, noise, glitch, posterize, vignette, invert, mirror, thermal, zoom, strobe, wave;
 float rnd(vec2 c){ return fract(sin(dot(c, vec2(12.9898, 78.233))) * 43758.5453); }
 vec4 at(vec2 t){ return texture2D(tex, vec2(t.x, 1.0 - t.y)); }
 vec3 hueRot(vec3 c, float a){ float s = sin(a), k = cos(a); vec3 w = vec3(0.299, 0.587, 0.114);
@@ -255,6 +266,7 @@ vec3 hueRot(vec3 c, float a){ float s = sin(a), k = cos(a); vec3 w = vec3(0.299,
 void main(){
   vec2 t = (uv - 0.5) / zoom + 0.5;
   if (mirror > 0.5) { t.x = t.x > 0.5 ? 1.0 - t.x : t.x; t.y = mirror > 0.75 && t.y > 0.5 ? 1.0 - t.y : t.y; }
+  if (wave > 0.0) { float bd = smoothstep(0.44, 0.48, abs(fract(t.y - time * 0.12) - 0.5)); t.x += wave * (sin(t.y * 18.0 + time * 6.0) * 0.006 + sin(t.y * 3.0 - time * 2.3) * 0.005 + bd * (rnd(vec2(floor(t.y * 240.0), floor(time * 30.0))) - 0.5) * 0.06); }
   if (pixelate > 0.0) { float n = mix(res.x, 24.0, pixelate); vec2 b = vec2(n, n * res.y / res.x); t = (floor(t * b) + 0.5) / b; }
   if (glitch > 0.0) { float row = floor(t.y * 24.0); float g = step(1.0 - glitch * 0.35, rnd(vec2(row, floor(time * 12.0)))); t.x += g * (rnd(vec2(time, row)) - 0.5) * 0.25 * glitch; }
   float sh = rgbShift * 0.02 + glitch * 0.01 * sin(time * 40.0);
@@ -274,5 +286,3 @@ void main(){
   if (t.x < 0.0 || t.x > 1.0 || t.y < 0.0 || t.y > 1.0) c = vec3(0.0);
   gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
 }"""
-    }
-}

@@ -9,7 +9,7 @@ export const VIDEO_FX = {
   brightness: [-1, 1, 0, 'Bright'], contrast: [0, 2, 1, 'Contrast'], saturation: [0, 2, 1, 'Sat'], hue: [-180, 180, 0, 'Hue'],
   rgbShift: [0, 1, 0, 'RGB split'], pixelate: [0, 1, 0, 'Pixelate'], scanlines: [0, 1, 0, 'Scanlines'], noise: [0, 1, 0, 'Grain'],
   glitch: [0, 1, 0, 'Glitch'], posterize: [0, 1, 0, 'Posterize'], vignette: [0, 1, 0, 'Vignette'], invert: [0, 1, 0, 'Invert'],
-  mirror: [0, 1, 0, 'Mirror'], thermal: [0, 1, 0, 'Thermal'], zoom: [1, 3, 1, 'Zoom'], strobe: [0, 1, 0, 'Strobe'],
+  mirror: [0, 1, 0, 'Mirror'], thermal: [0, 1, 0, 'Thermal'], zoom: [1, 3, 1, 'Zoom'], strobe: [0, 1, 0, 'Strobe'], wave: [0, 1, 0, 'VHS wave'],
 };
 export const FX_KEYS = Object.keys(VIDEO_FX);
 export const defaultVideoFx = () => Object.fromEntries(FX_KEYS.map((k) => [k, VIDEO_FX[k][2]]));
@@ -20,7 +20,7 @@ export function normalizeVideoFx(o) {
 }
 export const VIDEO_PRESETS = {
   Clean: {},
-  VHS: { saturation: 1.3, rgbShift: 0.35, scanlines: 0.55, noise: 0.35, vignette: 0.5, contrast: 1.1 },
+  VHS: { saturation: 1.3, rgbShift: 0.35, scanlines: 0.55, noise: 0.35, vignette: 0.5, contrast: 1.1, wave: 0.6 },
   Glitch: { rgbShift: 0.7, glitch: 0.75, pixelate: 0.15, contrast: 1.2 },
   Noir: { saturation: 0, contrast: 1.45, noise: 0.3, vignette: 0.8, brightness: -0.05 },
   Thermal: { thermal: 1, contrast: 1.2 },
@@ -32,7 +32,7 @@ export const VIDEO_PRESETS = {
 const VERT = `attribute vec2 p; varying vec2 uv; void main(){ uv = p * 0.5 + 0.5; uv.y = 1.0 - uv.y; gl_Position = vec4(p, 0.0, 1.0); }`;
 const FRAG = `precision mediump float;
 varying vec2 uv; uniform sampler2D tex; uniform vec2 res; uniform float time;
-uniform float brightness, contrast, saturation, hue, rgbShift, pixelate, scanlines, noise, glitch, posterize, vignette, invert, mirror, thermal, zoom, strobe;
+uniform float brightness, contrast, saturation, hue, rgbShift, pixelate, scanlines, noise, glitch, posterize, vignette, invert, mirror, thermal, zoom, strobe, wave;
 float rnd(vec2 c){ return fract(sin(dot(c, vec2(12.9898, 78.233))) * 43758.5453); }
 vec3 hueRot(vec3 c, float a){ float s = sin(a), k = cos(a); vec3 w = vec3(0.299, 0.587, 0.114);
   mat3 m = mat3(w.x+k*(1.-w.x)+s*(-w.x), w.x+k*(-w.x)+s*(0.143), w.x+k*(-w.x)+s*(-(1.-w.x)),
@@ -41,6 +41,7 @@ vec3 hueRot(vec3 c, float a){ float s = sin(a), k = cos(a); vec3 w = vec3(0.299,
 void main(){
   vec2 t = (uv - 0.5) / zoom + 0.5;
   if (mirror > 0.5) { t.x = t.x > 0.5 ? 1.0 - t.x : t.x; t.y = mirror > 0.75 && t.y > 0.5 ? 1.0 - t.y : t.y; }
+  if (wave > 0.0) { float bd = smoothstep(0.44, 0.48, abs(fract(t.y - time * 0.12) - 0.5)); t.x += wave * (sin(t.y * 18.0 + time * 6.0) * 0.006 + sin(t.y * 3.0 - time * 2.3) * 0.005 + bd * (rnd(vec2(floor(t.y * 240.0), floor(time * 30.0))) - 0.5) * 0.06); }
   if (pixelate > 0.0) { float n = mix(res.x, 24.0, pixelate); vec2 b = vec2(n, n * res.y / res.x); t = (floor(t * b) + 0.5) / b; }
   if (glitch > 0.0) { float row = floor(t.y * 24.0); float g = step(1.0 - glitch * 0.35, rnd(vec2(row, floor(time * 12.0)))); t.x += g * (rnd(vec2(time, row)) - 0.5) * 0.25 * glitch; }
   float sh = rgbShift * 0.02 + glitch * 0.01 * sin(time * 40.0);
@@ -101,7 +102,7 @@ export function createVideoRenderer(canvas, video) {
 // Colour adjustments can be shown with a CSS filter on the <video> itself (no frame copies, safe on every phone).
 // Everything else needs the WebGL shader, which copies each frame to the GPU; that path only runs when one of
 // these effects is actually turned up.
-export const SHADER_KEYS = ['rgbShift', 'pixelate', 'scanlines', 'noise', 'glitch', 'posterize', 'vignette', 'mirror', 'thermal', 'strobe', 'zoom'];
+export const SHADER_KEYS = ['rgbShift', 'pixelate', 'scanlines', 'noise', 'glitch', 'posterize', 'vignette', 'mirror', 'thermal', 'strobe', 'zoom', 'wave'];
 export const needsShader = (fx) => SHADER_KEYS.some((k) => (k === 'zoom' ? fx.zoom > 1.001 : fx[k] > 0.001));
 export const cssFilter = (fx) =>
   `brightness(${(1 + fx.brightness).toFixed(3)}) contrast(${fx.contrast.toFixed(3)}) saturate(${fx.saturation.toFixed(3)}) hue-rotate(${Math.round(fx.hue)}deg)${fx.invert > 0.5 ? ' invert(1)' : ''}`;
