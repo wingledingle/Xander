@@ -151,7 +151,32 @@ class EncryptOperation @Inject constructor(private val registry: FileSystemRegis
                     FileCrypto.encrypt(i, o, pwd, onBytes = { ctx.bytes(it) }, checkpoint = { runBlocking { ctx.checkpoint() } })
                 } }
             } catch (e: Throwable) { runCatching { p.delete(out) }; throw e }
-            if (ctx.options.deleteOriginal) p.delete(f)
+            // Before the only plain copy goes, prove the encrypted file decrypts back to exactly the original.
+            if (ctx.options.deleteOriginal) {
+                if (!decryptsTo(p, out, f, pwd)) throw FsException.Generic("Couldn't verify ${out.name}, so ${f.name} was kept")
+                p.delete(f)
+            }
+        }
+    }
+
+    private fun decryptsTo(p: FileSystemProvider, encrypted: FsPath, original: FsPath, pwd: CharArray): Boolean = runCatching {
+        runBlocking { p.openInput(encrypted) }.use { enc -> runBlocking { p.openInput(original) }.use { orig ->
+            val cmp = MatchingOutput(orig)
+            FileCrypto.decrypt(enc, cmp, pwd)
+            cmp.matched && orig.read() == -1
+        } }
+    }.getOrDefault(false)
+
+    /** Compares everything written to it with [expected]; [matched] turns false at the first difference. */
+    private class MatchingOutput(private val expected: java.io.InputStream) : java.io.OutputStream() {
+        var matched = true
+        override fun write(b: Int) { if (matched && expected.read() != (b and 0xff)) matched = false }
+        override fun write(b: ByteArray, off: Int, len: Int) {
+            if (!matched) return
+            val buf = ByteArray(len); var n = 0
+            while (n < len) { val r = expected.read(buf, n, len - n); if (r < 0) break; n += r }
+            if (n != len) { matched = false; return }
+            for (i in 0 until len) if (buf[i] != b[off + i]) { matched = false; return }
         }
     }
 }
