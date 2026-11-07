@@ -119,6 +119,24 @@ class CopyEngineTest {
         assertNull("moved file is gone from the source", a.read("/src/sub/two.txt"))
     }
 
+    // Overwrite must not lose the file that was there when the new copy fails part-way.
+    @Test fun failedOverwriteKeepsTheOldDestinationFile() = runTest {
+        b.put("/dst/one.txt", "old!")
+        val short = object : com.xander.files.domain.fs.FileSystemProvider by a {
+            override suspend fun openInput(path: FsPath, offset: Long) = java.io.ByteArrayInputStream(a.read(path.path)!!.toByteArray().copyOf(2))
+        }
+        val e = CopyEngine(FileSystemRegistry(setOf(short, b)))
+        val r = runCatching { e.transfer(listOf(pa("/src/one.txt")), pb("/dst"), move = false, ctx = ctx(TransferOptions(defaultConflict = ConflictChoice.OVERWRITE))) }
+        assertTrue(r.isFailure)
+        assertEquals("old file kept", "old!", b.read("/dst/one.txt"))
+        assertTrue("no leftover temp file", b.files.keys.none { it.endsWith(".xander-part") })
+    }
+
+    @Test fun archiveEntryNamesCannotClimbOutOfTheTarget() {
+        assertEquals("/etc/passwd", com.xander.files.data.archive.ArchiveFormats.norm("../../etc/passwd"))
+        assertEquals("/a/a/b", com.xander.files.data.archive.ArchiveFormats.norm("a\\..\\..\\a/./b"))
+    }
+
     @Test fun conflictSkipKeepsExisting() = runTest {
         b.put("/dst/one.txt", "old")
         engine.transfer(listOf(pa("/src/one.txt")), pb("/dst"), false, ctx(TransferOptions(defaultConflict = ConflictChoice.SKIP)))

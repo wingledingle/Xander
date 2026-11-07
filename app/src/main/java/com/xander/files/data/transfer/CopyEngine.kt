@@ -1,5 +1,6 @@
 package com.xander.files.data.transfer
 
+import com.xander.files.domain.fs.Capability
 import com.xander.files.domain.fs.FileEntry
 import com.xander.files.domain.fs.FileSystemProvider
 import com.xander.files.domain.fs.FileSystemRegistry
@@ -75,6 +76,9 @@ class CopyEngine @Inject constructor(private val registry: FileSystemRegistry) {
         var target = destDir.child(targetName)
         val existing = runCatching { dstP.stat(target) }.getOrNull()
         var merge = false
+        // Overwriting one file with another: write the new copy beside it first and swap only once it's complete,
+        // so a failed copy never costs the file that was there.
+        var replace = false
         if (existing != null) {
             if (src.path == target) {
                 // Copy onto itself => create "name (1)".
@@ -92,13 +96,16 @@ class CopyEngine @Inject constructor(private val registry: FileSystemRegistry) {
                 when (choice) {
                     ConflictChoice.SKIP -> { skipTree(src, srcP, ctx); return }
                     ConflictChoice.RENAME -> { targetName = uniqueName(dstP, destDir, name); target = destDir.child(targetName) }
-                    ConflictChoice.MERGE -> if (src.isDirectory && existing.isDirectory) merge = true else { dstP.delete(target) }
-                    ConflictChoice.OVERWRITE -> if (src.isDirectory && existing.isDirectory) merge = true else dstP.delete(target)
+                    ConflictChoice.MERGE, ConflictChoice.OVERWRITE ->
+                        if (src.isDirectory && existing.isDirectory) merge = true
+                        else if (!src.isDirectory && !existing.isDirectory && Capability.RENAME in dstP.capabilities(target)) replace = true
+                        else dstP.delete(target)
                 }
             }
         }
 
         val sameBackend = srcP === dstP && src.path.authority == destDir.authority
+        if (sameBackend && replace) { dstP.delete(target); replace = false } // a server-side move/copy is one step anyway
         if (sameBackend && !merge) {
             // Size the subtree first so progress stays accurate when the backend does the work in one call.
             val subtree = if (src.isDirectory) measure(listOf(src.path), null) else Totals(src.size, 1)
@@ -120,6 +127,15 @@ class CopyEngine @Inject constructor(private val registry: FileSystemRegistry) {
             // Only remove the folder once it's empty: delete() is recursive, and anything still in it (skipped on a
             // conflict) was not moved.
             if (move && runCatching { srcP.list(src.path).isEmpty() }.getOrDefault(false)) runCatching { srcP.delete(src.path) }
+        } else if (replace) {
+            val part = destDir.child(".$targetName.xander-part")
+            runCatching { dstP.delete(part) }
+            streamWithRetry(src, srcP, part, dstP, ctx)
+            dstP.delete(target)
+            dstP.rename(part, targetName)
+            if (ctx.options.preserveTimestamps && src.lastModified > 0) runCatching { dstP.setLastModified(target, src.lastModified) }
+            if (move) srcP.delete(src.path)
+            ctx.itemDone()
         } else {
             streamWithRetry(src, srcP, target, dstP, ctx)
             if (ctx.options.preserveTimestamps && src.lastModified > 0) runCatching { dstP.setLastModified(target, src.lastModified) }
