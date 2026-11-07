@@ -83,6 +83,42 @@ class CopyEngineTest {
         assertEquals("1111", b.read("/dst/one.txt"))
     }
 
+    // Moving a folder must never delete a source file that wasn't moved (skipped on a conflict).
+    @Test fun folderMoveKeepsSkippedFilesInSource() = runTest {
+        b.put("/dst/src/one.txt", "old")
+        engine.transfer(listOf(pa("/src")), pb("/dst"), move = true, ctx = ctx(TransferOptions(defaultConflict = ConflictChoice.SKIP)))
+        // Skip on the folder conflict skips the whole folder: every source file must still be there.
+        assertEquals("skipped file stays in the source", "1111", a.read("/src/one.txt"))
+        assertEquals("22", a.read("/src/sub/two.txt"))
+        assertEquals("old", b.read("/dst/src/one.txt"))
+    }
+
+    // A source stream that ends early (dropped connection) must fail the move and keep the source.
+    @Test fun moveKeepsSourceWhenTheStreamEndsEarly() = runTest {
+        val short = object : com.xander.files.domain.fs.FileSystemProvider by a {
+            override suspend fun openInput(path: FsPath, offset: Long) = java.io.ByteArrayInputStream(a.read(path.path)!!.toByteArray().copyOf(2))
+        }
+        val e = CopyEngine(FileSystemRegistry(setOf(short, b)))
+        val r = runCatching { e.transfer(listOf(pa("/src/one.txt")), pb("/dst"), move = true, ctx = ctx()) }
+        assertTrue("the move fails", r.isFailure)
+        assertEquals("source kept", "1111", a.read("/src/one.txt"))
+        assertNull("partial copy removed", b.read("/dst/one.txt"))
+    }
+
+    // The real case: merge into an existing folder, skip one clashing file. The folder delete at the end of the
+    // move is recursive, so it must not run while the skipped file is still in it.
+    @Test fun folderMergeMoveKeepsTheFileYouSkipped() = runTest {
+        b.put("/dst/src/one.txt", "old")
+        val job = async { engine.transfer(listOf(pa("/src")), pb("/dst"), move = true, ctx = ctx(TransferOptions(defaultConflict = ConflictChoice.MERGE))) }
+        assertEquals("one.txt", broker.pending.filterNotNull().first().request.sourceName)
+        broker.answer(ConflictChoice.SKIP, false)
+        job.await()
+        assertEquals("skipped file stays in the source", "1111", a.read("/src/one.txt"))
+        assertEquals("old", b.read("/dst/src/one.txt"))
+        assertEquals("22", b.read("/dst/src/sub/two.txt"))
+        assertNull("moved file is gone from the source", a.read("/src/sub/two.txt"))
+    }
+
     @Test fun conflictSkipKeepsExisting() = runTest {
         b.put("/dst/one.txt", "old")
         engine.transfer(listOf(pa("/src/one.txt")), pb("/dst"), false, ctx(TransferOptions(defaultConflict = ConflictChoice.SKIP)))

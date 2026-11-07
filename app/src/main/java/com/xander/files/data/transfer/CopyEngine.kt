@@ -117,7 +117,9 @@ class CopyEngine @Inject constructor(private val registry: FileSystemRegistry) {
             ctx.itemDone()
             val children = srcP.list(src.path)
             for (c in children) copyEntry(c, srcP, target, dstP, c.name, move, ctx)
-            if (move) runCatching { srcP.delete(src.path) }
+            // Only remove the folder once it's empty: delete() is recursive, and anything still in it (skipped on a
+            // conflict) was not moved.
+            if (move && runCatching { srcP.list(src.path).isEmpty() }.getOrDefault(false)) runCatching { srcP.delete(src.path) }
         } else {
             streamWithRetry(src, srcP, target, dstP, ctx)
             if (ctx.options.preserveTimestamps && src.lastModified > 0) runCatching { dstP.setLastModified(target, src.lastModified) }
@@ -161,6 +163,9 @@ class CopyEngine @Inject constructor(private val registry: FileSystemRegistry) {
                 srcP.openInput(src.path).use { input ->
                     dstP.openOutput(target, src.size).use { output -> copied = pump(input, output, ctx) }
                 }
+                // A stream that ends early (dropped connection) must not count as a finished copy: a move would then
+                // delete the source. Sizes of 0 or less mean "unknown" for some backends.
+                if (src.size > 0 && copied != src.size) throw FsException.NetworkLost(java.io.IOException("Copied $copied of ${src.size} bytes of ${src.name}"))
                 return
             } catch (e: Exception) {
                 val fe = FsException.wrap(e, src.path)
