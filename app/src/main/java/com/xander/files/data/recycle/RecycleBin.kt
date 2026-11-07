@@ -40,7 +40,7 @@ class RecycleBin @Inject constructor(
     suspend fun moveToBin(path: FsPath, ctx: TransferContext?) {
         val p = registry.provider(path)
         val entry = p.stat(path)
-        if (path.path.contains("/$DIR")) { p.delete(path); return } // deleting inside the bin is permanent
+        if (DIR in path.path.split('/')) { p.delete(path); return } // deleting inside the bin is permanent (exact folder name only)
         val root = binRootFor(path)
         if (!p.exists(root)) {
             p.mkdir(root.parent!!, DIR)
@@ -80,8 +80,10 @@ class RecycleBin @Inject constructor(
             val c = ctx ?: throw FsException.Unsupported("restore")
             copy.transfer(listOf(bin), parent, move = true, ctx = c)
         }
-        // Clean the per-item folder used by copy-based recycling.
-        bin.parent?.takeIf { it.name == id }?.let { runCatching { p.delete(it) } }
+        // If the item is still in the bin (skipped on a name clash), keep it and its record: nothing was restored.
+        if (runCatching { p.exists(bin) }.getOrDefault(false)) return
+        // Clean the per-item folder used by copy-based recycling, only once it's empty (delete() is recursive).
+        bin.parent?.takeIf { it.name == id }?.let { d -> if (runCatching { p.list(d).isEmpty() }.getOrDefault(false)) runCatching { p.delete(d) } }
         dao.delete(id)
     }
 
