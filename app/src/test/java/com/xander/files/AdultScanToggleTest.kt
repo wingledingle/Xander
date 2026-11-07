@@ -34,7 +34,7 @@ class AdultScanToggleTest {
 
     @Test fun switchingDetectionOnQueuesAScan() {
         val ctx = ApplicationProvider.getApplicationContext<android.content.Context>()
-        scenario = ActivityScenario.launch(Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_ROUTE, "settings"))
+        scenario = ActivityScenario.launch(Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_TOKEN, MainActivity.INTERNAL_TOKEN).putExtra(MainActivity.EXTRA_ROUTE, "settings"))
         val label = ctx.getString(R.string.adult_detect)
         val deadline = System.currentTimeMillis() + 20_000
         while (rule.onAllNodesWithText(label).fetchSemanticsNodes().isEmpty()) { check(System.currentTimeMillis() < deadline) { "Settings not shown" }; idle() }

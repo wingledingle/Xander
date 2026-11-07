@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity() {
             val locked by appLock.locked.collectAsStateWithLifecycle()
             XanderTheme(settings, isPremium = premium) {
                 Surface(Modifier.fillMaxSize()) {
-                    XanderNavHost(hasAccess = StorageAccess.hasFullAccess(this), initialPath = initial, initialRoute = intent.getStringExtra(EXTRA_ROUTE), initialOpenFile = intent.getBooleanExtra(EXTRA_OPEN_FILE, false))
+                    XanderNavHost(hasAccess = StorageAccess.hasFullAccess(this), initialPath = initial, initialRoute = intent.getStringExtra(EXTRA_ROUTE), initialOpenFile = intent.getBooleanExtra(EXTRA_OPEN_FILE, false), trustedRoute = intent.getStringExtra(EXTRA_TOKEN) == INTERNAL_TOKEN)
                     if (locked && settings.appLockEnabled) com.xander.files.ui.lock.LockScreen(appLock, settings.appLockBiometric)
                 }
             }
@@ -63,5 +63,8 @@ class MainActivity : AppCompatActivity() {
         const val EXTRA_PATH = "com.xander.files.PATH"
         const val EXTRA_OPEN_FILE = "com.xander.files.OPEN_FILE"
         const val EXTRA_ROUTE = "com.xander.files.ROUTE"
+        const val EXTRA_TOKEN = "com.xander.files.TOKEN"
+        /** Known only inside this process: intents carrying it may open any screen, other apps only a few. */
+        val INTERNAL_TOKEN: String = java.util.UUID.randomUUID().toString()
     }
 }

@@ -88,6 +88,7 @@ fun XanderNavHost(
     initialPath: FsPath?,
     initialRoute: String?,
     initialOpenFile: Boolean = false,
+    trustedRoute: Boolean = false,
     nav: NavHostController = rememberNavController(),
     shell: ShellViewModel = hiltViewModel(),
 ) {
@@ -150,7 +151,7 @@ fun XanderNavHost(
                 LaunchedEffect(Unit) {
                     // Extras can come from any app (the launcher activity is exported): open only known screens, never crash.
                     if (initialPath != null) { if (initialOpenFile) openPath(initialPath) else nav.openFolder(initialPath) }
-                    else if (initialRoute in EXTERNAL_ROUTES) runCatching { nav.navigate(initialRoute!!) }
+                    else if (initialRoute != null && (trustedRoute || initialRoute in EXTERNAL_ROUTES)) runCatching { nav.navigate(initialRoute) }
                 }
             }
             composable(Routes.BROWSER, arguments = listOf(navArgument("path") { type = NavType.StringType; nullable = true })) {

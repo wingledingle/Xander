@@ -118,7 +118,7 @@ class ModulesTest {
 
     @Test fun studioRouteOpensTheWebModuleWithTheBridge() {
         StorageAccess.overrideForTests = true
-        val scenario = ActivityScenario.launch<MainActivity>(Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_ROUTE, Modules.route(StudioModule)))
+        val scenario = ActivityScenario.launch<MainActivity>(Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_TOKEN, MainActivity.INTERNAL_TOKEN).putExtra(MainActivity.EXTRA_ROUTE, Modules.route(StudioModule)))
         try {
             var web: WebView? = null
             val deadline = System.currentTimeMillis() + 20_000
@@ -138,7 +138,7 @@ class ModulesTest {
     @Test fun activityModulesLaunchTheirAppWithTheFile() {
         StorageAccess.overrideForTests = true
         val book = java.io.File(android.os.Environment.getExternalStorageDirectory(), "Books/novel.mobi").apply { parentFile!!.mkdirs(); writeBytes(ByteArray(64)) }
-        val scenario = ActivityScenario.launch<MainActivity>(Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_ROUTE, Modules.route(QuintenModule, FsPath.local(book.path))))
+        val scenario = ActivityScenario.launch<MainActivity>(Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_TOKEN, MainActivity.INTERNAL_TOKEN).putExtra(MainActivity.EXTRA_ROUTE, Modules.route(QuintenModule, FsPath.local(book.path))))
         try {
             var started: Intent? = null
             val deadline = System.currentTimeMillis() + 20_000

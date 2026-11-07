@@ -38,7 +38,7 @@ class ScreensSmokeTest {
 
     private fun launch(route: String) {
         val ctx = ApplicationProvider.getApplicationContext<android.content.Context>()
-        scenario = ActivityScenario.launch(Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_ROUTE, route))
+        scenario = ActivityScenario.launch(Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_TOKEN, MainActivity.INTERNAL_TOKEN).putExtra(MainActivity.EXTRA_ROUTE, route))
     }
 
     private fun waitFor(timeoutMs: Long = 20_000, desc: String, cond: () -> Boolean) {
