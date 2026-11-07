@@ -582,4 +582,15 @@
     <string name="restricted_body_per_app">Android ne laisse pas les applis ouvrir Android/data ou Android/obb en entier, mais vous pouvez donner à Xander le dossier d’une appli à la fois avec le sélecteur système (sans autre appli) : choisissez l’appli puis touchez « Utiliser ce dossier ». Ou utilisez Shizuku ou root pour tout.</string>
     <string name="grant_app_folder">Ouvrir le dossier d’une appli…</string>
     <string name="grant_this_app_folder">Autoriser l’accès au dossier de cette appli</string>
+    <string name="sound_layers">Calques sonores</string>
+    <plurals name="sound_layers_playing">
+        <item quantity="one">%d son en lecture</item>
+        <item quantity="other">%d sons en lecture</item>
+    </plurals>
+    <string name="add_sound">Ajouter un son</string>
+    <string name="play_alongside">Lire en plus de la musique</string>
+    <string name="pause_other_audio">Mettre en pause les autres sons</string>
+    <string name="loop">Boucle</string>
+    <string name="volume">Volume</string>
+    <string name="sound_layers_hint">Joués par-dessus la musique, chacun avec son volume.</string>
 </resources>

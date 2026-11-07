@@ -582,4 +582,15 @@
     <string name="restricted_body_per_app">Android no permite abrir Android/data ni Android/obb completos, pero puedes dar a Xander la carpeta de una app cada vez con el selector del sistema (sin otra app): elige la app y toca «Usar esta carpeta». O usa Shizuku o root para todo.</string>
     <string name="grant_app_folder">Abrir la carpeta de una app…</string>
     <string name="grant_this_app_folder">Dar acceso a la carpeta de esta app</string>
+    <string name="sound_layers">Capas de sonido</string>
+    <plurals name="sound_layers_playing">
+        <item quantity="one">%d sonido en reproducción</item>
+        <item quantity="other">%d sonidos en reproducción</item>
+    </plurals>
+    <string name="add_sound">Añadir sonido</string>
+    <string name="play_alongside">Reproducir junto a la música</string>
+    <string name="pause_other_audio">Pausar otros audios</string>
+    <string name="loop">Repetir</string>
+    <string name="volume">Volumen</string>
+    <string name="sound_layers_hint">Suenan sobre la música, cada una con su volumen.</string>
 </resources>

@@ -584,4 +584,17 @@
     <string name="restricted_body_per_app">Android не даёт открыть Android/data и Android/obb целиком, но можно дать Xander доступ к папке одного приложения через системный выбор (без других приложений): выберите приложение и нажмите «Использовать эту папку». Или используйте Shizuku либо root.</string>
     <string name="grant_app_folder">Открыть папку приложения…</string>
     <string name="grant_this_app_folder">Разрешить доступ к папке этого приложения</string>
+    <string name="sound_layers">Звуковые слои</string>
+    <plurals name="sound_layers_playing">
+        <item quantity="one">Играет %d звук</item>
+        <item quantity="other">Играет звуков: %d</item>
+        <item quantity="few">Играет звуков: %d</item>
+        <item quantity="many">Играет звуков: %d</item>
+    </plurals>
+    <string name="add_sound">Добавить звук</string>
+    <string name="play_alongside">Играть вместе с музыкой</string>
+    <string name="pause_other_audio">Ставить другое аудио на паузу</string>
+    <string name="loop">Повтор</string>
+    <string name="volume">Громкость</string>
+    <string name="sound_layers_hint">Играют поверх музыки, у каждого своя громкость.</string>
 </resources>

@@ -106,6 +106,7 @@ class BrowserViewModel @Inject constructor(
     private val sftp: com.xander.files.data.net.sftp.SftpFileSystemProvider,
     private val folderPrefs: com.xander.files.data.db.FolderPrefDao,
     private val launcher: com.xander.files.data.open.ViewerLauncher,
+    private val mixer: com.xander.files.data.music.AudioMixer,
     private val bluetooth: com.xander.files.data.bluetooth.BluetoothRepository,
     private val nsfw: com.xander.files.data.nsfw.NsfwRepository,
     private val nsfwScorer: com.xander.files.data.nsfw.NsfwScorer,
@@ -288,6 +289,11 @@ class BrowserViewModel @Inject constructor(
 
     /** Opens with a specific built-in viewer (e.g. "Read as book" for .txt, "Open as text"). */
     fun openAs(entry: FileEntry, kind: com.xander.files.data.open.ViewerKind) = viewModelScope.launch { launcher.open(entry, kind) }
+    /** Adds an audio file as a sound layer (plays on top of the music and other layers) and shows the mixer. */
+    fun playAlongside(entry: FileEntry) = viewModelScope.launch {
+        mixer.add(entry.path, entry.name.substringBeforeLast('.'))
+        launcher.navigate(com.xander.files.data.open.ViewerLauncher.NOW_PLAYING)
+    }
     fun openInModule(entry: FileEntry, m: com.xander.files.modules.XanderModule) = viewModelScope.launch { launcher.navigate(com.xander.files.modules.Modules.route(m, entry.path)) }
 
     private fun archiveOf(p: FsPath): FsPath = if (p.scheme == FsPath.SCHEME_ARCHIVE) FsPath.parse(FsPath.decodeAuthority(p.authority)) else p

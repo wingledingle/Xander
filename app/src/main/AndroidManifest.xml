@@ -98,6 +98,10 @@
                 android:value="Runs the user-started FTP and web file servers so a computer on the same network can browse and transfer files." />
         </service>
         <service
+            android:name=".data.music.MixService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+        <service
             android:name=".data.music.PlaybackService"
             android:exported="true"
             android:foregroundServiceType="mediaPlayback">

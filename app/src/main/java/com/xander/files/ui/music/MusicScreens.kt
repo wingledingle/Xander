@@ -1,5 +1,15 @@
 package com.xander.files.ui.music
 
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.IconToggleButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -84,7 +94,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class MusicViewModel @Inject constructor(private val lib: MusicLibrary, val player: MusicController) : ViewModel() {
+class MusicViewModel @Inject constructor(private val lib: MusicLibrary, val player: MusicController, val mixer: com.xander.files.data.music.AudioMixer) : ViewModel() {
     val songs = MutableStateFlow<List<Song>>(emptyList())
     val albums = MutableStateFlow<List<Album>>(emptyList())
     val artists = MutableStateFlow<List<Artist>>(emptyList())
@@ -151,7 +161,7 @@ fun MusicScreen(onBack: () -> Unit, onNowPlaying: () -> Unit, vm: MusicViewModel
                 }
             }
         },
-        bottomBar = { if (state.active) MiniPlayer(vm, onNowPlaying) }
+        bottomBar = { if (state.active || vm.mixer.layers.collectAsStateWithLifecycle().value.isNotEmpty()) MiniPlayer(vm, onNowPlaying) }
     ) { pad ->
         Box(Modifier.padding(pad).fillMaxSize()) {
             val pl = openPlaylist
@@ -255,6 +265,46 @@ fun MiniPlayer(vm: MusicViewModel, onOpen: () -> Unit) {
     }
 }
 
+/** Sound layers: extra audio files playing at the same time, each with play/pause, volume, loop and remove. */
+@Composable
+private fun SoundLayers(vm: MusicViewModel) {
+    val layers by vm.mixer.layers.collectAsStateWithLifecycle()
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val pick = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        uris.forEach { u ->
+            val name = runCatching { ctx.contentResolver.query(u, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c -> if (c.moveToFirst()) c.getString(0) else null } }.getOrNull()
+            vm.mixer.add(u, (name ?: u.lastPathSegment ?: "Sound").substringBeforeLast('.'))
+        }
+    }
+    Column(Modifier.fillMaxWidth().padding(top = 24.dp)) {
+        Text(stringResource(R.string.sound_layers), style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.sound_layers_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        layers.forEach { l ->
+            Surface(tonalElevation = 2.dp, shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
+                Column(Modifier.padding(horizontal = 8.dp, vertical = 6.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        FilledTonalIconButton(onClick = { vm.mixer.toggle(l.id) }, modifier = Modifier.size(52.dp)) {
+                            Icon(if (l.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow, stringResource(R.string.play), Modifier.size(30.dp))
+                        }
+                        Text(l.title, Modifier.weight(1f).padding(horizontal = 12.dp), maxLines = 2, style = MaterialTheme.typography.bodyLarge)
+                        IconToggleButton(checked = l.loop, onCheckedChange = { vm.mixer.setLoop(l.id, it) }, modifier = Modifier.size(48.dp)) {
+                            Icon(Icons.Filled.Repeat, stringResource(R.string.loop), tint = if (l.loop) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        IconButton(onClick = { vm.mixer.remove(l.id) }, modifier = Modifier.size(48.dp)) { Icon(Icons.Filled.Close, stringResource(R.string.remove)) }
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp)) {
+                        Icon(Icons.AutoMirrored.Filled.VolumeUp, stringResource(R.string.volume), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Slider(value = l.volume, onValueChange = { vm.mixer.setVolume(l.id, it) }, modifier = Modifier.weight(1f).padding(horizontal = 8.dp))
+                    }
+                }
+            }
+        }
+        OutlinedButton(onClick = { pick.launch(arrayOf("audio/*")) }, modifier = Modifier.padding(top = 12.dp).fillMaxWidth().heightIn(min = 52.dp)) {
+            Icon(Icons.Filled.Add, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.add_sound))
+        }
+    }
+}
+
 @Composable
 fun NowPlayingScreen(onBack: () -> Unit, castButton: @Composable () -> Unit = {}, vm: MusicViewModel = hiltViewModel()) {
     val s by vm.state.collectAsStateWithLifecycle()
@@ -264,8 +314,8 @@ fun NowPlayingScreen(onBack: () -> Unit, castButton: @Composable () -> Unit = {}
         TopAppBar(navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back)) } }, title = { Text(stringResource(R.string.now_playing)) },
             actions = { castButton(); IconButton(onClick = { queue = true }) { Icon(Icons.AutoMirrored.Filled.QueueMusic, stringResource(R.string.queue)) } })
     }) { pad ->
-        Column(Modifier.padding(pad).fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(Modifier.fillMaxWidth().aspectRatio(1f)) { AlbumArt(s.path, 320, Modifier.align(Alignment.Center)) }
+        Column(Modifier.padding(pad).fillMaxSize().verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            if (s.active) Box(Modifier.fillMaxWidth().aspectRatio(1f)) { AlbumArt(s.path, 320, Modifier.align(Alignment.Center)) }
             Text(s.title, style = MaterialTheme.typography.headlineSmall, maxLines = 2, modifier = Modifier.padding(top = 24.dp))
             Text(listOf(s.artist, s.album).filter { it.isNotEmpty() }.joinToString(" · "), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Slider(value = dragPos ?: (if (s.durationMs > 0) s.positionMs.toFloat() / s.durationMs else 0f), onValueChange = { dragPos = it },
@@ -286,6 +336,10 @@ fun NowPlayingScreen(onBack: () -> Unit, castButton: @Composable () -> Unit = {}
                         tint = if (s.repeat != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+            val focus by vm.player.focus.collectAsStateWithLifecycle()
+            FilterChip(selected = focus, onClick = { vm.player.setAudioFocus(!focus) }, label = { Text(stringResource(R.string.pause_other_audio)) },
+                leadingIcon = { if (focus) Icon(Icons.Filled.Check, null, Modifier.size(18.dp)) }, modifier = Modifier.padding(top = 12.dp).heightIn(min = 48.dp))
+            SoundLayers(vm)
         }
     }
     if (queue) ModalBottomSheet(onDismissRequest = { queue = false }) {

@@ -584,4 +584,15 @@
     <string name="module_oleander_summary">Game Boy Advance emulator</string>
     <string name="module_quinten" translatable="false">Quinten Reader</string>
     <string name="module_quinten_summary">E-books, PDFs, comics and scans with reflow, OCR and read-aloud</string>
+    <string name="sound_layers">Sound layers</string>
+    <plurals name="sound_layers_playing">
+        <item quantity="one">%d sound playing</item>
+        <item quantity="other">%d sounds playing</item>
+    </plurals>
+    <string name="add_sound">Add sound</string>
+    <string name="play_alongside">Play alongside music</string>
+    <string name="pause_other_audio">Pause other audio</string>
+    <string name="loop">Loop</string>
+    <string name="volume">Volume</string>
+    <string name="sound_layers_hint">Plays on top of the music, each with its own volume.</string>
 </resources>

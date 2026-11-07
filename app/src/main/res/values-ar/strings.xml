@@ -588,4 +588,19 @@
     <string name="restricted_body_per_app">لا يسمح Android بفتح Android/data أو Android/obb بالكامل، لكن يمكنك منح Xander مجلد تطبيق واحد في كل مرة عبر منتقي النظام (دون تطبيق إضافي): اختر التطبيق ثم اضغط «استخدام هذا المجلد». أو استخدم Shizuku أو الروت للكل.</string>
     <string name="grant_app_folder">فتح مجلد تطبيق…</string>
     <string name="grant_this_app_folder">منح الوصول إلى مجلد هذا التطبيق</string>
+    <string name="sound_layers">طبقات الصوت</string>
+    <plurals name="sound_layers_playing">
+        <item quantity="one">يعمل %d صوت</item>
+        <item quantity="other">تعمل %d أصوات</item>
+        <item quantity="zero">تعمل %d أصوات</item>
+        <item quantity="two">تعمل %d أصوات</item>
+        <item quantity="few">تعمل %d أصوات</item>
+        <item quantity="many">تعمل %d أصوات</item>
+    </plurals>
+    <string name="add_sound">إضافة صوت</string>
+    <string name="play_alongside">تشغيل مع الموسيقى</string>
+    <string name="pause_other_audio">إيقاف الصوت الآخر مؤقتًا</string>
+    <string name="loop">تكرار</string>
+    <string name="volume">مستوى الصوت</string>
+    <string name="sound_layers_hint">تعمل فوق الموسيقى، ولكل منها مستوى صوت خاص.</string>
 </resources>

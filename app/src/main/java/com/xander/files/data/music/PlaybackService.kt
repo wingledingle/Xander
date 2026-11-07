@@ -30,7 +30,7 @@ class PlaybackService : MediaSessionService() {
         super.onCreate()
         val player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(DefaultMediaSourceFactory(RoutingDataSourceFactory(this, registry)))
-            .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(), true)
+            .setAudioAttributes(ATTRS, MusicController.audioFocus(this))
             .setHandleAudioBecomingNoisy(true)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
@@ -45,9 +45,19 @@ class PlaybackService : MediaSessionService() {
                     Futures.immediateFuture(mediaItems.map { it.buildUpon().setUri(it.requestMetadata.mediaUri ?: it.localConfiguration?.uri).build() }.toMutableList())
             })
             .build()
+        MusicController.prefs(this).registerOnSharedPreferenceChangeListener(focusListener)
+    }
+
+    // The "Pause other audio" switch: with focus off, music plays alongside other apps instead of stopping them.
+    private val focusListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == MusicController.KEY_FOCUS) (session?.player as? ExoPlayer)?.setAudioAttributes(ATTRS, MusicController.audioFocus(this))
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
+
+    private companion object {
+        val ATTRS: AudioAttributes = AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build()
+    }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         val p = session?.player
@@ -55,6 +65,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        MusicController.prefs(this).unregisterOnSharedPreferenceChangeListener(focusListener)
         session?.run { player.release(); release() }
         session = null
         super.onDestroy()

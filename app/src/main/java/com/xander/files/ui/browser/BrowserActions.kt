@@ -42,6 +42,7 @@ import com.xander.files.ui.ops.SheetAction
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.DriveFileMove
 import androidx.compose.material.icons.filled.FolderZip
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Unarchive
@@ -91,6 +92,7 @@ fun entryActions(
         if (single != null && !single.isDirectory && single.extension == "txt") add(SheetAction(Icons.AutoMirrored.Filled.MenuBook, stringResource(R.string.read_as_book)) { vm.openAs(single, com.xander.files.data.open.ViewerKind.BOOK) })
         if (single != null && !single.isDirectory && com.xander.files.data.open.ViewerRouter.kindOf(single) !in setOf(com.xander.files.data.open.ViewerKind.TEXT, com.xander.files.data.open.ViewerKind.IMAGE, com.xander.files.data.open.ViewerKind.VIDEO, com.xander.files.data.open.ViewerKind.AUDIO))
             add(SheetAction(Icons.Filled.Description, stringResource(R.string.open_as_text)) { vm.openAs(single, com.xander.files.data.open.ViewerKind.TEXT) })
+        if (single != null && single.category == FileCategory.AUDIO) add(SheetAction(Icons.Filled.Layers, stringResource(R.string.play_alongside)) { vm.playAlongside(single) })
         if (single != null && single.category in setOf(FileCategory.IMAGE, FileCategory.AUDIO))
             add(SheetAction(Icons.Filled.Wallpaper, stringResource(R.string.set_as)) { vm.setAs(single) })
         if (single != null && writable) add(SheetAction(Icons.Filled.FileCopy, stringResource(R.string.duplicate)) { vm.duplicate(single) })

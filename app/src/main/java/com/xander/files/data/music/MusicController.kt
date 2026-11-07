@@ -36,6 +36,9 @@ class MusicController @Inject constructor(
     @AppScope private val scope: CoroutineScope,
 ) {
     private var controller: MediaController? = null
+    /** Whether music takes audio focus (pauses other apps, and is paused by calls). Off = plays alongside them. */
+    val focus = MutableStateFlow(audioFocus(context))
+    fun setAudioFocus(on: Boolean) { prefs(context).edit().putBoolean(KEY_FOCUS, on).apply(); focus.value = on }
     private val _state = MutableStateFlow(NowPlaying())
     val state: StateFlow<NowPlaying> = _state
 
@@ -97,6 +100,12 @@ class MusicController @Inject constructor(
         c.repeatMode = when (c.repeatMode) { Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL; Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE; else -> Player.REPEAT_MODE_OFF }
     }
     fun stop() = scope.launch(kotlinx.coroutines.Dispatchers.Main) { ctrl().let { it.stop(); it.clearMediaItems() } }
+
+    companion object {
+        const val KEY_FOCUS = "audio_focus"
+        fun prefs(c: Context): android.content.SharedPreferences = c.getSharedPreferences("music", Context.MODE_PRIVATE)
+        fun audioFocus(c: Context) = prefs(c).getBoolean(KEY_FOCUS, true)
+    }
 
     /** Ensures the state flow is live (e.g. when the music screen opens while the service already plays). */
     fun connect() = scope.launch(kotlinx.coroutines.Dispatchers.Main) { ctrl() }
