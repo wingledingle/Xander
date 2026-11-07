@@ -127,16 +127,18 @@ class CopyEngine @Inject constructor(private val registry: FileSystemRegistry) {
     }
 
     private suspend fun sameContent(a: FsPath, ap: FileSystemProvider, b: FsPath, bp: FileSystemProvider): Boolean = runCatching {
-        ap.openInput(a).use { x -> bp.openInput(b).use { y ->
-            val bx = ByteArray(64 * 1024); val by = ByteArray(64 * 1024)
-            while (true) {
-                val n = x.readNBytesCompat(bx)
-                if (n != y.readNBytesCompat(by)) return@runCatching false
-                if (n <= 0) return@runCatching true
-                for (i in 0 until n) if (bx[i] != by[i]) return@runCatching false
-            }
-        } }
+        ap.openInput(a).use { x -> bp.openInput(b).use { y -> streamsEqual(x, y) } }
     }.getOrDefault(false)
+
+    private fun streamsEqual(x: InputStream, y: InputStream): Boolean {
+        val bx = ByteArray(64 * 1024); val by = ByteArray(64 * 1024)
+        while (true) {
+            val n = x.readNBytesCompat(bx)
+            if (n != y.readNBytesCompat(by)) return false
+            if (n <= 0) return true
+            for (i in 0 until n) if (bx[i] != by[i]) return false
+        }
+    }
 
     /** Fills [buf] as far as the stream allows (read() may return short counts); -1 at end. */
     private fun InputStream.readNBytesCompat(buf: ByteArray): Int {
