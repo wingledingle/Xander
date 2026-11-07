@@ -86,7 +86,7 @@ async function info() {
     h('dt', {}, 'Type'), h('dd', {}, sniff(head)), h('dt', {}, 'MIME'), h('dd', {}, file.mime || '?'),
     file.path ? [h('dt', {}, 'Path'), h('dd', {}, decodeURIComponent(file.path))] : null, h('dt', {}, 'SHA-256'), sha);
   if (!crypto.subtle) sha.textContent = 'unavailable';
-  else if ((file.size ?? 0) > 512 * 1048576) sha.textContent = 'file too large (over 512 MB)';
+  else if ((file.size ?? Infinity) > 64 * 1048576) sha.textContent = 'not calculated for files over 64 MB (it would need the whole file in memory)';
   else whole().then((b) => crypto.subtle.digest('SHA-256', b)).then((d) => { sha.textContent = [...new Uint8Array(d)].map((x) => x.toString(16).padStart(2, '0')).join(''); }).catch((e) => { sha.textContent = e.message; });
   return h('div', { className: 'pad' }, dl);
 }

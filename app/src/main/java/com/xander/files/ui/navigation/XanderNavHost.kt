@@ -79,11 +79,15 @@ object NavMotion {
     val exit: androidx.compose.animation.ExitTransition = androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(OUT_MS, easing = androidx.compose.animation.core.FastOutLinearInEasing))
 }
 
+/** Screens a notification (or another app) may open directly. */
+private val EXTERNAL_ROUTES = setOf(Routes.NOW_PLAYING, Routes.TRANSFERS, Routes.SERVERS)
+
 @Composable
 fun XanderNavHost(
     hasAccess: Boolean,
     initialPath: FsPath?,
     initialRoute: String?,
+    initialOpenFile: Boolean = false,
     nav: NavHostController = rememberNavController(),
     shell: ShellViewModel = hiltViewModel(),
 ) {
@@ -144,8 +148,9 @@ fun XanderNavHost(
                     onRoute = { nav.navigate(it) },
                 )
                 LaunchedEffect(Unit) {
-                    if (initialPath != null) nav.openFolder(initialPath)
-                    else if (initialRoute != null) nav.navigate(initialRoute)
+                    // Extras can come from any app (the launcher activity is exported): open only known screens, never crash.
+                    if (initialPath != null) { if (initialOpenFile) openPath(initialPath) else nav.openFolder(initialPath) }
+                    else if (initialRoute in EXTERNAL_ROUTES) runCatching { nav.navigate(initialRoute!!) }
                 }
             }
             composable(Routes.BROWSER, arguments = listOf(navArgument("path") { type = NavType.StringType; nullable = true })) {

@@ -39,14 +39,14 @@ class MainActivity : AppCompatActivity() {
             requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 33)
         // Load the WebView engine once the app is idle, so the first Studio open doesn't pay its start-up.
         android.os.Looper.myQueue().addIdleHandler { window.decorView.postDelayed({ runCatching { android.webkit.WebSettings.getDefaultUserAgent(this) } }, 2500); false }
-        val initial = intent.getStringExtra(EXTRA_PATH)?.let(FsPath::parse)
+        val initial = intent.getStringExtra(EXTRA_PATH)?.let { runCatching { FsPath.parse(it) }.getOrNull() }
         setContent {
             val settings by settingsRepo.settings.collectAsStateWithLifecycle(AppSettings())
             val premium by billing.premium.collectAsStateWithLifecycle()
             val locked by appLock.locked.collectAsStateWithLifecycle()
             XanderTheme(settings, isPremium = premium) {
                 Surface(Modifier.fillMaxSize()) {
-                    XanderNavHost(hasAccess = StorageAccess.hasFullAccess(this), initialPath = initial, initialRoute = intent.getStringExtra(EXTRA_ROUTE))
+                    XanderNavHost(hasAccess = StorageAccess.hasFullAccess(this), initialPath = initial, initialRoute = intent.getStringExtra(EXTRA_ROUTE), initialOpenFile = intent.getBooleanExtra(EXTRA_OPEN_FILE, false))
                     if (locked && settings.appLockEnabled) com.xander.files.ui.lock.LockScreen(appLock, settings.appLockBiometric)
                 }
             }

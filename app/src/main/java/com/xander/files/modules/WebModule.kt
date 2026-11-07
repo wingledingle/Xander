@@ -46,6 +46,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -102,7 +103,11 @@ class WebModuleViewModel @Inject constructor(
     val video: StudioVideo get() = videoOrNull ?: StudioVideo(context, registry, files).also { videoOrNull = it }
     private val saves = ConcurrentHashMap<String, File>()
     private val decodeDir = File(context.cacheDir, "module-audio").apply { mkdirs(); listFiles()?.forEach { it.delete() } }
-    var launchJson: String = ""
+    /** The launch file's JSON, looked up off the main thread (a network file's stat can take seconds). */
+    private var launchJob: kotlinx.coroutines.Deferred<String>? = null
+    var launchJson: String
+        get() = launchJob?.let { j -> runCatching { runBlocking { j.await() } }.getOrDefault("") } ?: ""
+        set(v) { launchJob = kotlinx.coroutines.CompletableDeferred(v) }
     /** Times the page's renderer died this session (shown to the user, and stops auto-reopening the file). */
     var crashes = 0
     private var launched: FsPath? = null
@@ -110,7 +115,7 @@ class WebModuleViewModel @Inject constructor(
     fun launch(file: FsPath?) {
         if (file == null || file == launched) return
         launched = file
-        launchJson = runCatching { runBlocking(Dispatchers.IO) { files.register(file).toJson().toString() } }.getOrDefault("")
+        launchJob = viewModelScope.async(Dispatchers.IO) { runCatching { files.register(file).toJson().toString() }.getOrDefault("") }
     }
 
     fun openPath(path: String): String = runCatching { runBlocking(Dispatchers.IO) { files.register(FsPath.parse(path)).toJson().toString() } }.getOrDefault("")
