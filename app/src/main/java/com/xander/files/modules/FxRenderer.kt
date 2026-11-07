@@ -22,6 +22,7 @@ import java.nio.ByteOrder
  * path camera and video-filter apps use, and it doesn't depend on media3's effect pipeline (which some phones
  * reject, leaving only colour effects). [onInput] gets the Surface to give the player; [onError] means "play plainly".
  */
+@androidx.media3.common.util.UnstableApi
 class FxRenderer(
     private val view: TextureView,
     private val params: FloatArray,

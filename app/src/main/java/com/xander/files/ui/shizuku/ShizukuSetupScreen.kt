@@ -90,7 +90,7 @@ class ShizukuSetupViewModel @Inject constructor(
                 val asset = (0 until assets.length()).map { assets.getJSONObject(it) }.first { it.getString("name").endsWith(".apk") }
                 val out = File(context.cacheDir, "shizuku.apk")
                 val c = get(asset.getString("browser_download_url"))
-                val total = c.contentLengthLong.takeIf { it > 0 } ?: asset.optLong("size", -1)
+                val total = c.getHeaderField("Content-Length")?.toLongOrNull()?.takeIf { it > 0 } ?: asset.optLong("size", -1)
                 c.inputStream.use { inp -> out.outputStream().use { o ->
                     val buf = ByteArray(64 * 1024); var done = 0L
                     while (true) { val n = inp.read(buf); if (n < 0) break; o.write(buf, 0, n); done += n; if (total > 0) download.value = (done * 100 / total).toInt() }
