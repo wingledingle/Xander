@@ -174,8 +174,7 @@ export function renderBeat(root) {
   const tools = h('div', { class: 'toolbar beat-tools' },
     segmented([['steps', 'Steps'], ['pads', 'Pads']], mode, (v) => { mode = v; try { localStorage.setItem('gs-beat-mode', v); } catch {} renderBeat(root); }),
     steps ? segmented([['toggle', 'Draw'], ['velocity', 'Velocity']], edit, (v) => { edit = v; document.querySelector('.step-grid')?.classList.toggle('vel', v === 'velocity'); }) : null,
-    h('div', { class: 'tools-end' }, h('button', { type: 'button', class: 'chip-toggle', 'aria-pressed': String(S.song.mode === 'song'), title: 'Play the song arrangement instead of one pattern',
-      onclick: () => { S.song.mode = S.song.mode === 'song' ? 'pattern' : 'song'; changed('song'); } }, 'Song'),
+    h('div', { class: 'tools-end' },
     iconBtn('more', 'Pattern actions', patternSheet)));
   root.replaceChildren(h('div', { class: `deck beat mode-${mode}` }, tools, S.song.mode === 'song' ? arrangement() : null,
     steps ? editor() : padsView(),

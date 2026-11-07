@@ -5,7 +5,7 @@
 
 import { S, changed } from '../state.js';
 import { MASTER_PARAMS } from '../core.js';
-import { h, btn, knob, fader, sheet, fmt } from '../ui.js';
+import { h, btn, knob, sheet, fmt } from '../ui.js';
 import { editTrack } from './beat.js';
 
 const meters = new Map(); // channel id → canvas
@@ -28,27 +28,30 @@ function masterFx() {
     h('p', { class: 'hint' }, 'A brick-wall limiter after the master fader keeps the output from clipping.')));
 }
 
+// One row per channel, full width: name and level readout, a meter, big level and pan sliders, M/S/FX.
+// Nothing scrolls sideways; the list scrolls up and down like any phone list.
 function strip({ id, name, color, ch, onFx }) {
-  const meter = h('canvas', { class: 'meter', width: 12, height: 240 });
+  const meter = h('canvas', { class: 'meter', width: 240, height: 8 });
   meters.set(id, meter);
-  const f = fader({ value: ch.vol, label: `${name} level`, def: id === 'master' ? 0.85 : 0.8, onchange: (v) => { ch.vol = v; changed('param'); } });
-  return h('div', { class: `strip${id === 'master' ? ' master' : ''}`, style: { '--tc': color } },
-    h('button', { type: 'button', class: 'strip-name', onclick: onFx, title: 'Effects' }, h('span', { class: 'swatch' }), h('span', { class: 'ellipsis' }, name)),
-    id === 'master' ? h('div', { class: 'pan-ph' }) : knob({ label: 'Pan', min: -1, max: 1, def: 0, value: ch.pan, fmt: fmt.pan, onchange: (v) => { ch.pan = v; changed('param'); }, size: 'mini' }).el,
-    h('div', { class: 'strip-fader' }, meter, f.el),
-    h('span', { class: 'mono small' }, ch.vol > 0 ? `${(20 * Math.log10(ch.vol)).toFixed(1)}` : '-∞'),
-    id === 'master' ? h('div', { class: 'ms-row' }) : h('div', { class: 'ms-row' },
-      h('button', { type: 'button', class: `ms m${ch.mute ? ' on' : ''}`, 'aria-pressed': String(!!ch.mute), onclick: () => { ch.mute = !ch.mute; changed('song'); } }, 'M'),
-      h('button', { type: 'button', class: `ms s${ch.solo ? ' on' : ''}`, 'aria-pressed': String(!!ch.solo), onclick: () => { ch.solo = !ch.solo; changed('song'); } }, 'S')),
-    btn('FX', onFx, { cls: 'ghost xsmall' }));
+  const db = h('span', { class: 'mono small' });
+  const showDb = () => { db.textContent = ch.vol > 0 ? `${(20 * Math.log10(ch.vol)).toFixed(1)} dB` : '-∞ dB'; };
+  showDb();
+  const level = knob({ label: 'Level', min: 0, max: 1.2, def: id === 'master' ? 0.85 : 0.8, value: ch.vol, color, fmt: fmt.pct, onchange: (v) => { ch.vol = v; showDb(); changed('param'); } }).el;
+  const pan = id === 'master' ? null : knob({ label: 'Pan', min: -1, max: 1, def: 0, value: ch.pan, color, fmt: fmt.pan, onchange: (v) => { ch.pan = v; changed('param'); } }).el;
+  return h('section', { class: `strip${id === 'master' ? ' master' : ''}`, style: { '--tc': color } },
+    h('div', { class: 'strip-head' }, h('span', { class: 'swatch' }), h('strong', { class: 'ellipsis grow' }, name), db,
+      id === 'master' ? null : h('button', { type: 'button', class: `ms m${ch.mute ? ' on' : ''}`, 'aria-pressed': String(!!ch.mute), 'aria-label': `Mute ${name}`, onclick: () => { ch.mute = !ch.mute; changed('song'); } }, 'M'),
+      id === 'master' ? null : h('button', { type: 'button', class: `ms s${ch.solo ? ' on' : ''}`, 'aria-pressed': String(!!ch.solo), 'aria-label': `Solo ${name}`, onclick: () => { ch.solo = !ch.solo; changed('song'); } }, 'S'),
+      btn('FX', onFx, { cls: 'small' })),
+    meter, level, pan);
 }
 
 export function renderMixer(root) {
   meters.clear();
   const strips = [
+    strip({ id: 'master', name: 'Master', color: '#ffb02e', ch: S.song.master, onFx: masterFx }),
     ...S.song.tracks.map((t) => strip({ id: t.id, name: t.name, color: t.color, ch: t, onFx: () => editTrack(t.id) })),
     strip({ id: 'synth', name: 'Synth', color: '#9d7bff', ch: S.song.synth, onFx: synthFx }),
-    strip({ id: 'master', name: 'Master', color: '#ffb02e', ch: S.song.master, onFx: masterFx }),
   ];
   root.replaceChildren(h('div', { class: 'deck mixer' }, h('div', { class: 'strips' }, strips)));
 }
@@ -68,12 +71,12 @@ export function drawMeters() {
     const db = p > 0 ? 20 * Math.log10(p) : -60, lvl = Math.max(0, Math.min(1, (db + 60) / 60));
     const hold = Math.max(lvl, (held.get(id) || 0) - 0.01);
     held.set(id, hold);
-    const g = cv.getContext('2d'), H = cv.height;
-    g.clearRect(0, 0, 12, H);
-    g.fillStyle = 'rgba(255,255,255,.08)'; g.fillRect(0, 0, 12, H);
-    const grad = g.createLinearGradient(0, H, 0, 0);
+    const g = cv.getContext('2d'), W = cv.width, H = cv.height;
+    g.clearRect(0, 0, W, H);
+    g.fillStyle = 'rgba(255,255,255,.08)'; g.fillRect(0, 0, W, H);
+    const grad = g.createLinearGradient(0, 0, W, 0);
     grad.addColorStop(0, '#3ddc84'); grad.addColorStop(0.75, '#ffd166'); grad.addColorStop(1, '#ff4d4d');
-    g.fillStyle = grad; g.fillRect(0, H - lvl * H, 12, lvl * H);
-    g.fillStyle = hold > 0.95 ? '#ff4d4d' : '#fff'; g.fillRect(0, H - hold * H, 12, 2);
+    g.fillStyle = grad; g.fillRect(0, 0, lvl * W, H);
+    g.fillStyle = hold > 0.95 ? '#ff4d4d' : '#fff'; g.fillRect(hold * W - 2, 0, 2, H);
   }
 }

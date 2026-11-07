@@ -51,9 +51,9 @@ try {
   const stepsInPlace = await page.evaluate(() => window.__play.isConnected);
   await nav('synth');
   await page.evaluate(() => { window.__play = document.querySelector('.play-btn'); });
-  const k = await page.locator('.knob').first().boundingBox();
-  await page.mouse.move(k.x + k.width / 2, k.y + k.height / 2); await page.mouse.down();
-  for (let i = 0; i < 20; i++) await page.mouse.move(k.x + k.width / 2, k.y + k.height / 2 - i * 4);
+  const k = await page.locator('.ctl-track').first().boundingBox();
+  await page.mouse.move(k.x + 20, k.y + k.height / 2); await page.mouse.down();
+  for (let i = 0; i < 20; i++) await page.mouse.move(k.x + 20 + i * 8, k.y + k.height / 2);
   await page.mouse.up();
   const knobInPlace = await page.evaluate(() => window.__play.isConnected);
   for (const v of ['mixer', 'library', 'beat']) await nav(v);
@@ -117,10 +117,21 @@ try {
 
   // Sequence the chop and bounce.
   await nav('beat');
-  const fits = await page.evaluate(() => { const m = document.querySelector('#main'), cs = [...document.querySelectorAll('.step-grid .step, .track-sel, .ms, .pchip, .play-btn, .nav button')];
+  const fits = await page.evaluate(() => { const m = document.querySelector('#main'), cs = [...document.querySelectorAll('.step-grid .step, .track-sel, .ms, .pat-btn, .play-btn, .nav button')];
     return m.scrollWidth <= m.clientWidth + 1 && cs.every((c) => { const r = c.getBoundingClientRect(); return r.width >= 44 && r.height >= 44; }); });
-  if (!fits) console.log(await page.evaluate(() => [...document.querySelectorAll('.step-grid .step, .track-sel, .ms, .pchip, .play-btn, .nav button')].map((c) => { const r = c.getBoundingClientRect(); return r.width < 44 || r.height < 44 ? c.className + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) : ''; }).filter(Boolean).join(' / ') + ' main ' + document.querySelector('#main').clientWidth + ' ' + [...document.querySelectorAll('#main *')].filter((e) => e.getBoundingClientRect().right > 413).slice(0, 6).map((e) => e.tagName + '.' + e.className + ':' + Math.round(e.getBoundingClientRect().right)).join(' ')));
+  if (!fits) console.log(await page.evaluate(() => [...document.querySelectorAll('.step-grid .step, .track-sel, .ms, .pat-btn, .play-btn, .nav button')].map((c) => { const r = c.getBoundingClientRect(); return r.width < 44 || r.height < 44 ? c.className + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) : ''; }).filter(Boolean).join(' / ') + ' main ' + document.querySelector('#main').clientWidth + ' ' + [...document.querySelectorAll('#main *')].filter((e) => e.getBoundingClientRect().right > 413).slice(0, 6).map((e) => e.tagName + '.' + e.className + ':' + Math.round(e.getBoundingClientRect().right)).join(' ')));
   check(fits, 'beat deck fits the phone width and every step, track, pattern and nav target is at least 44 px');
+  // No deck scrolls sideways, and every slider, ± button and toggle is a full-size touch target.
+  for (const v of ['beat', 'synth', 'sampler', 'video', 'library', 'mixer']) {
+    await nav(v);
+    const bad = await page.evaluate(() => {
+      const m = document.querySelector('#main'), small = [...document.querySelectorAll('#main .ctl-track, #main .ctl-step, #main .seg button, #main .btn, #main .ms')]
+        .filter((c) => { const r = c.getBoundingClientRect(); return r.width && (r.height < 44 || r.width < 44); }).map((c) => c.className + ':' + c.textContent.slice(0, 12));
+      return { wide: m.scrollWidth > m.clientWidth + 1 ? [...m.querySelectorAll('*')].filter((e) => e.getBoundingClientRect().right > innerWidth + 1).slice(0, 3).map((e) => e.className) : null, small };
+    });
+    check(!bad.wide && !bad.small.length, `${v} deck: nothing scrolls sideways, all targets >= 44 px ${JSON.stringify(bad)}`);
+  }
+  await nav('beat');
   const tracks = await page.locator('.track-row:not(.ruler):not(.add)').count();
   check(tracks === 9, 'chop became a 9th track');
   await page.locator('.track-sel').last().click();

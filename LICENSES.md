@@ -64,3 +64,6 @@ On devices without Google Play services the app still runs; those three features
 
 ## marked 14.1.4 (MIT)
 `modules-web/www/modules/quicklook/vendor/marked.esm.js` — Markdown rendering. License: `vendor/marked-LICENSE.md`.
+
+## SkeuoCompose (Apache-2.0)
+The Studio's materials (palettes, bevel gradients, grain) follow io.github.quantum3600:skeuo-compose 0.1.1-alpha01. Colours and gradient stops are ported to CSS in `modules-web/www/modules/studio/studio.css`; no code is bundled.

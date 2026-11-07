@@ -55,19 +55,26 @@ function renderTransport() {
   $('#redo').disabled = !S.history.canRedo;
   const bpm = h('button', { type: 'button', class: 'lcd bpm', 'aria-label': `Tempo ${sg.bpm} BPM, tap to change`, onclick: tempoSheet },
     h('span', { class: 'lcd-v' }, String(Math.round(sg.bpm * 10) / 10)), h('span', { class: 'lcd-u' }, 'BPM'));
-  const pats = h('div', { class: 'pattern-chips', role: 'radiogroup', 'aria-label': 'Pattern' }, Array.from({ length: PATTERNS }, (_, i) => {
-    const used = Object.values(sg.patterns[i].steps).some((a) => a.some((v) => v > 0)) || sg.patterns[i].notes.some((n) => n >= 0);
-    const now = playing && S.playhead && S.playhead.pattern === i;
-    return h('button', { type: 'button', role: 'radio', class: `pchip p${i}${used ? ' used' : ''}${now ? ' now' : ''}`, 'aria-checked': String(sg.current === i),
-      onclick: () => { sg.current = i; changed('view'); } }, PATTERN_NAMES[i]);
-  }));
-  requestAnimationFrame(() => pats.querySelector('[aria-checked="true"]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' }));
+  // One big button for the pattern (tap: pick from 8 big tiles) instead of a strip you have to scroll.
+  const pats = h('button', { type: 'button', class: 'pat-btn', 'aria-label': `Pattern ${PATTERN_NAMES[sg.current]}${sg.mode === 'song' ? ', song mode' : ''}. Tap to change`, onclick: patternPicker },
+    h('small', {}, sg.mode === 'song' ? 'SONG' : 'PATTERN'), h('b', {}, PATTERN_NAMES[sg.current]));
   $('#transport').replaceChildren(
     h('button', { type: 'button', class: `play-btn${playing ? ' on' : ''}`, 'aria-label': playing ? 'Stop' : 'Play', onclick: togglePlay }, icon(playing ? 'stop' : 'play')),
     h('button', { type: 'button', class: `rec-btn${S.rec ? ' on' : ''}`, 'aria-label': 'Record pad hits', 'aria-pressed': String(S.rec), onclick: () => { S.rec = !S.rec; renderTransport(); toast(S.rec ? 'Recording: pad and track hits are written to the playing step' : 'Recording off'); } }, icon('rec')),
     bpm,
     pats,
     h('canvas', { id: 'scope', class: 'scope', width: 240, height: 64, 'aria-hidden': 'true' }));
+}
+
+function patternPicker() {
+  const sg = S.song;
+  const used = (i) => Object.values(sg.patterns[i].steps).some((a) => a.some((v) => v > 0)) || sg.patterns[i].notes.some((n) => n >= 0);
+  const s = sheet('Pattern', h('div', {},
+    h('div', { class: 'pat-grid', role: 'radiogroup', 'aria-label': 'Pattern' }, Array.from({ length: PATTERNS }, (_, i) =>
+      h('button', { type: 'button', role: 'radio', class: `pat-tile${used(i) ? ' used' : ''}`, 'aria-checked': String(sg.current === i),
+        onclick: () => { sg.current = i; s.close(); changed('view'); } }, PATTERN_NAMES[i], h('small', {}, used(i) ? 'has notes' : 'empty')))),
+    h('div', { class: 'row', style: { marginTop: '12px' } }, h('span', { class: 'grow' }, 'Play the song arrangement'),
+      h('button', { type: 'button', class: 'chip-toggle', 'aria-pressed': String(sg.mode === 'song'), onclick: () => { sg.mode = sg.mode === 'song' ? 'pattern' : 'song'; s.close(); changed('song'); } }, sg.mode === 'song' ? 'Song: on' : 'Song: off'))));
 }
 
 function tempoSheet() {
@@ -130,7 +137,7 @@ subscribe((kind) => {
     if (S.view === 'beat') beatPlayhead(p);
     if (S.view === 'synth') synthPlayhead(p);
     const pat = p?.pattern ?? -1;
-    if (pat !== lastPat) { lastPat = pat; document.querySelectorAll('.pchip').forEach((b, i) => b.classList.toggle('now', i === pat)); }
+    if (pat !== lastPat) { lastPat = pat; document.querySelector('.pat-btn')?.classList.toggle('playing', pat >= 0); }
     return;
   }
   // Knob moves and step edits update in place: rebuilding the deck on every change is what makes UIs stutter.

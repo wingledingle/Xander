@@ -7,7 +7,8 @@ import { S, changed, audio } from '../state.js';
 import { ROWS, SCALES, WAVES, NOTE_NAMES, SYNTH_PARAMS, degreeToMidi, noteFreq, noteName } from '../core.js';
 import { h, knob, segmented, iconBtn, fmt } from '../ui.js';
 
-let octave = 4;
+let octave = 4, page = 0;
+const PER = 8; // steps shown at once: wide enough cells to hit, and no sideways scrolling
 const held = new Map();
 
 function noteOn(key, midi) {
@@ -24,11 +25,13 @@ function noteOff(key, midi) {
 
 function roll() {
   const n = S.song.steps, pat = S.song.patterns[S.song.current], sy = S.song.synth;
+  page = Math.min(page, n / PER - 1);
+  const from = page * PER;
   const rows = [];
   for (let r = ROWS - 1; r >= 0; r--) {
     const midi = degreeToMidi(r, sy.root, sy.scale), tonic = (midi - sy.root) % 12 === 0;
     rows.push(h('div', { class: `roll-row${tonic ? ' tonic' : ''}` }, h('span', { class: 'roll-label' }, noteName(midi)),
-      h('div', { class: 'steps', style: { '--n': n } }, Array.from({ length: n }, (_, i) => h('div', {
+      h('div', { class: 'steps', style: { '--n': PER } }, Array.from({ length: PER }, (_, k) => from + k).map((i) => h('div', {
         class: `note b${Math.floor(i / 4) % 4}${pat.notes[i] === r ? ' on' : ''}`, 'data-step': i, 'data-row': r,
       })))));
   }
@@ -56,12 +59,15 @@ function roll() {
   const end = () => { if (paint) { paint = null; changed('song'); } };
   el.addEventListener('pointerup', end);
   el.addEventListener('pointercancel', end);
-  return h('div', { class: 'roll-scroll' }, el);
+  const pages = Array.from({ length: n / PER }, (_, i) => [i, `${i * PER + 1}–${(i + 1) * PER}`]);
+  return h('section', { class: 'roll-wrap' },
+    h('div', { class: 'roll-pages' }, segmented(pages, page, (v) => { page = v; document.querySelector('.roll-wrap')?.replaceWith(roll()); })),
+    h('div', { class: 'roll-scroll' }, el));
 }
 
 function keyboard() {
   const base = 12 * (octave + 1), keys = [];
-  for (let i = 0; i < 25; i++) {
+  for (let i = 0; i < 13; i++) { // one octave plus the next C: keys wide enough to play, no scrolling
     const midi = base + i, black = [1, 3, 6, 8, 10].includes(i % 12);
     const k = h('div', { class: `key ${black ? 'black' : 'white'}`, 'data-midi': midi, role: 'button', 'aria-label': noteName(midi) }, !black && i % 12 === 0 ? h('span', {}, noteName(midi)) : null);
     k.addEventListener('pointerdown', (e) => { e.preventDefault(); k.releasePointerCapture?.(e.pointerId); noteOn(`p${e.pointerId}`, midi); });
@@ -107,6 +113,9 @@ export function renderSynth(root) {
 
 export function synthPlayhead(p) {
   document.querySelectorAll('.note.now').forEach((el) => el.classList.remove('now'));
+  if (p && Math.floor(p.step / PER) !== page && document.querySelector('.roll-wrap') && (S.song.mode !== 'song' || p.pattern === S.song.current)) {
+    page = Math.floor(p.step / PER); document.querySelector('.roll-wrap').replaceWith(roll());
+  }
   if (p && (S.song.mode !== 'song' || p.pattern === S.song.current)) document.querySelectorAll(`.note[data-step="${p.step}"]`).forEach((el) => el.classList.add('now'));
 }
 

@@ -23,77 +23,62 @@ export const btn = (label, onclick, { icon: ic, cls = '', title, pressed } = {})
   h('button', { type: 'button', class: `btn ${cls}`, onclick, title, 'aria-label': title || null, 'aria-pressed': pressed == null ? null : String(pressed) }, ic ? icon(ic) : null, label ? h('span', {}, label) : null);
 export const iconBtn = (ic, title, onclick, cls = '') => h('button', { type: 'button', class: `icon-btn ${cls}`, title, 'aria-label': title, onclick }, icon(ic));
 
-// Knob: a range input (keyboard + screen reader) under a drawn dial. Drag up/down; double-tap resets.
-export function knob({ label, min, max, value, def = value, exp = false, fmt = (v) => v.toFixed(2), onchange, color, size = '' }) {
+// Slider control (was a rotary knob). Touch rules it follows: a full-width track with a 48 px hit area (small
+// rotary knobs are hard to turn on glass), the value shown beside the control instead of under the finger,
+// − and + buttons for fine steps, tap the value to type an exact number, double-tap the track to reset.
+// Vertical swipes still scroll the page: a drag changes the value only once it moves sideways.
+export function knob({ label, min, max, value, def = value, exp = false, fmt = (v) => v.toFixed(2), onchange, color }) {
   const toPos = (v) => (exp ? Math.log(v / min) / Math.log(max / min) : (v - min) / (max - min));
   const fromPos = (p) => (exp ? min * (max / min) ** p : min + p * (max - min));
-  const input = h('input', { type: 'range', min: 0, max: 1000, 'aria-label': label });
-  const face = h('div', { class: 'knob' }, input);
-  const val = h('span', { class: 'knob-val' });
-  if (color) face.style.setProperty('--kc', color);
-  if (min < 0 && max > 0) face.classList.add('bipolar');
-  const set = (pos, emit) => {
-    pos = clamp(pos, 0, 1);
-    input.value = Math.round(pos * 1000);
-    face.style.setProperty('--v', pos);
+  const track = h('div', { class: 'ctl-track', role: 'slider', tabindex: 0, 'aria-label': label, 'aria-valuemin': 0, 'aria-valuemax': 100 },
+    h('div', { class: 'ctl-fill' }), h('div', { class: 'ctl-thumb' }));
+  const val = h('button', { type: 'button', class: 'ctl-val', title: 'Type a value' });
+  const el = h('div', { class: 'ctl' }, h('div', { class: 'ctl-head' }, h('span', { class: 'ctl-label' }, label), val),
+    h('div', { class: 'ctl-row' }, h('button', { type: 'button', class: 'ctl-step', 'aria-label': `${label} down`, onclick: () => nudge(-1) }, '−'), track,
+      h('button', { type: 'button', class: 'ctl-step', 'aria-label': `${label} up`, onclick: () => nudge(1) }, '+')));
+  if (color) el.style.setProperty('--kc', color);
+  if (min < 0 && max > 0 && !exp) el.classList.add('bipolar');
+  let pos = 0;
+  const set = (p, emit) => {
+    pos = clamp(p, 0, 1);
+    el.style.setProperty('--v', pos);
     const v = fromPos(pos);
     val.textContent = fmt(v);
-    input.setAttribute('aria-valuetext', fmt(v));
+    track.setAttribute('aria-valuenow', Math.round(pos * 100));
+    track.setAttribute('aria-valuetext', fmt(v));
     if (emit) onchange(v);
   };
+  const nudge = (d) => set(pos + d / 50, true);
   set(toPos(value), false);
-  input.addEventListener('input', () => set(input.value / 1000, true));
+  val.addEventListener('click', async () => {
+    const t = await prompt(label, String(Math.round(fromPos(pos) * 1000) / 1000), { ok: 'Set' });
+    const n = parseFloat(String(t ?? '').replace(',', '.'));
+    if (Number.isFinite(n)) set(toPos(clamp(n, Math.min(min, max), Math.max(min, max))), true);
+  });
   let lastTap = 0;
-  input.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
+  track.addEventListener('pointerdown', (e) => {
     const now = performance.now();
     if (now - lastTap < 300) { set(toPos(def), true); lastTap = 0; return; }
     lastTap = now;
-    input.setPointerCapture(e.pointerId);
-    const y0 = e.clientY, x0 = e.clientX, p0 = input.value / 1000;
-    face.classList.add('active');
-    const move = (m) => set(p0 + (y0 - m.clientY + (m.clientX - x0) * 0.5) / (e.shiftKey ? 600 : 180), true);
-    const up = () => { face.classList.remove('active'); input.removeEventListener('pointermove', move); input.removeEventListener('pointerup', up); input.removeEventListener('pointercancel', up); };
-    input.addEventListener('pointermove', move);
-    input.addEventListener('pointerup', up);
-    input.addEventListener('pointercancel', up);
+    const r = track.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY;
+    const at = (x) => (x - r.left - 14) / Math.max(1, r.width - 28);
+    let dragging = false;
+    const move = (m) => {
+      if (!dragging && Math.abs(m.clientX - x0) > 6 && Math.abs(m.clientX - x0) > Math.abs(m.clientY - y0)) { dragging = true; track.setPointerCapture(e.pointerId); el.classList.add('active'); }
+      if (dragging) set(at(m.clientX), true);
+    };
+    const up = (u) => {
+      if (!dragging && u.type === 'pointerup' && Math.abs(u.clientX - x0) < 6 && Math.abs(u.clientY - y0) < 6) set(at(u.clientX), true); // a tap jumps there
+      el.classList.remove('active');
+      track.removeEventListener('pointermove', move); track.removeEventListener('pointerup', up); track.removeEventListener('pointercancel', up);
+    };
+    track.addEventListener('pointermove', move); track.addEventListener('pointerup', up); track.addEventListener('pointercancel', up);
   });
-  const el = h('div', { class: `knob-wrap ${size}` }, face, val, h('span', { class: 'knob-label' }, label));
+  track.addEventListener('keydown', (e) => {
+    const d = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 5, PageDown: -5 }[e.key];
+    if (d) { e.preventDefault(); nudge(d); }
+  });
   return { el, set: (v) => set(toPos(v), false) };
-}
-
-// Vertical fader for the mixer. Drag anywhere on the track; double-tap resets.
-export function fader({ value, min = 0, max = 1.2, def = 0.8, onchange, label }) {
-  const thumb = h('div', { class: 'fader-thumb' });
-  const fill = h('div', { class: 'fader-fill' });
-  const el = h('div', { class: 'fader', role: 'slider', tabindex: 0, 'aria-label': label, 'aria-valuemin': min, 'aria-valuemax': max }, h('div', { class: 'fader-track' }, fill), thumb);
-  const set = (v, emit) => {
-    v = clamp(v, min, max);
-    const p = (v - min) / (max - min);
-    el.style.setProperty('--p', p);
-    el.setAttribute('aria-valuenow', v.toFixed(2));
-    el.setAttribute('aria-valuetext', v > 0 ? `${(20 * Math.log10(v)).toFixed(1)} dB` : '-inf dB');
-    if (emit) onchange(v);
-    value = v;
-  };
-  set(value, false);
-  let lastTap = 0;
-  el.addEventListener('pointerdown', (e) => {
-    const now = performance.now();
-    if (now - lastTap < 300) { set(def, true); return; }
-    lastTap = now;
-    el.setPointerCapture(e.pointerId);
-    const r = el.getBoundingClientRect(), y0 = e.clientY, v0 = value;
-    const move = (m) => set(v0 + ((y0 - m.clientY) / (r.height - 24)) * (max - min), true);
-    const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); };
-    el.addEventListener('pointermove', move);
-    el.addEventListener('pointerup', up);
-  });
-  el.addEventListener('keydown', (e) => {
-    const d = { ArrowUp: 0.02, ArrowDown: -0.02, PageUp: 0.1, PageDown: -0.1 }[e.key];
-    if (d) { e.preventDefault(); set(value + d, true); }
-  });
-  return { el, set: (v) => set(v, false) };
 }
 
 export function segmented(options, value, onchange, cls = '') {
