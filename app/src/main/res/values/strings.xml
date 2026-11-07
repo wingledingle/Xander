@@ -600,4 +600,25 @@
     <string name="module_quicklook">Quick Look</string>
     <string name="module_quicklook_summary">SVG, font, Markdown and HTML previews, hex view and checksums</string>
     <string name="quick_look">Quick look (hex, info)</string>
+    <string name="shizuku_setup">Set up Shizuku</string>
+    <string name="shizuku_setup_intro">Shizuku lets Xander open Android/data, Android/obb and other protected folders without root. Three steps, about two minutes.</string>
+    <string name="shizuku_step_install">Install Shizuku</string>
+    <string name="shizuku_install_download">Download and install</string>
+    <string name="shizuku_install_play">Get it on Google Play</string>
+    <string name="shizuku_downloading">Downloading Shizuku… %1$d%%</string>
+    <string name="shizuku_allow_installs">Allow installs</string>
+    <string name="shizuku_allow_installs_body">Android asks once before an app can install another app. Allow Xander, then come back.</string>
+    <string name="shizuku_step_start">Start Shizuku</string>
+    <string name="shizuku_start_body">Connect to Wi-Fi (no internet needed). In Shizuku, tap Pairing under “Start via Wireless debugging” and follow its steps: you type the pairing code from Wireless debugging into Shizuku’s notification. Then tap Start. Rooted phone? Tap Start under “Start (for rooted devices)” instead.</string>
+    <string name="shizuku_start_adb">On this Android version Shizuku is started once from a computer with adb, or with root. Open Shizuku: it shows the exact command.</string>
+    <string name="shizuku_dev_options">Developer options are off. Open About phone and tap Build number 7 times, then come back.</string>
+    <string name="open_about_phone">Open About phone</string>
+    <string name="open_developer_options">Open Developer options</string>
+    <string name="open_shizuku">Open Shizuku</string>
+    <string name="shizuku_after_reboot">After the phone restarts, open Shizuku and tap Start again.</string>
+    <string name="shizuku_step_allow">Allow Xander</string>
+    <string name="shizuku_allow">Allow</string>
+    <string name="shizuku_done">All set: Android/data and Android/obb open without root.</string>
+    <string name="open_android_data">Open Android/data</string>
+    <string name="shizuku_open_download_page">Open the download page</string>
 </resources>

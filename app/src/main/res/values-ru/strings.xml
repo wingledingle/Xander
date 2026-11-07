@@ -602,4 +602,25 @@
     <string name="module_quicklook">Быстрый просмотр</string>
     <string name="module_quicklook_summary">Просмотр SVG, шрифтов, Markdown и HTML, шестнадцатеричный вид и контрольные суммы</string>
     <string name="quick_look">Быстрый просмотр (hex, сведения)</string>
+    <string name="shizuku_setup">Настроить Shizuku</string>
+    <string name="shizuku_setup_intro">Shizuku позволяет Xander открывать Android/data, Android/obb и другие защищённые папки без root. Три шага, около двух минут.</string>
+    <string name="shizuku_step_install">Установить Shizuku</string>
+    <string name="shizuku_install_download">Скачать и установить</string>
+    <string name="shizuku_install_play">Скачать в Google Play</string>
+    <string name="shizuku_downloading">Загрузка Shizuku… %1$d%%</string>
+    <string name="shizuku_allow_installs">Разрешить установку</string>
+    <string name="shizuku_allow_installs_body">Android один раз спрашивает, прежде чем приложение сможет установить другое. Разрешите Xander и вернитесь.</string>
+    <string name="shizuku_step_start">Запустить Shizuku</string>
+    <string name="shizuku_start_body">Подключитесь к Wi-Fi (интернет не нужен). В Shizuku нажмите «Сопряжение» в разделе «Запуск через беспроводную отладку» и следуйте шагам: код сопряжения из «Отладки по Wi-Fi» вводится в уведомление Shizuku. Затем нажмите «Запустить». Есть root? Нажмите «Запустить» в разделе для устройств с root.</string>
+    <string name="shizuku_start_adb">В этой версии Android Shizuku запускается один раз с компьютера через adb или с root. Откройте Shizuku: там показана точная команда.</string>
+    <string name="shizuku_dev_options">Параметры разработчика выключены. Откройте «О телефоне» и 7 раз нажмите «Номер сборки», затем вернитесь.</string>
+    <string name="open_about_phone">Открыть «О телефоне»</string>
+    <string name="open_developer_options">Открыть параметры разработчика</string>
+    <string name="open_shizuku">Открыть Shizuku</string>
+    <string name="shizuku_after_reboot">После перезагрузки телефона откройте Shizuku и снова нажмите «Запустить».</string>
+    <string name="shizuku_step_allow">Разрешить Xander</string>
+    <string name="shizuku_allow">Разрешить</string>
+    <string name="shizuku_done">Готово: Android/data и Android/obb открываются без root.</string>
+    <string name="open_android_data">Открыть Android/data</string>
+    <string name="shizuku_open_download_page">Открыть страницу загрузки</string>
 </resources>

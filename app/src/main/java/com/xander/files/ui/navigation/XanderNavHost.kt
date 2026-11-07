@@ -49,6 +49,7 @@ object Routes {
     const val ANALYZER = "analyzer"
     const val PREMIUM = "premium"
     const val LICENSES = "licenses"
+    const val SHIZUKU = "shizuku"
     const val MUSIC = "music"
     const val SERVERS = "servers"
     const val BLUETOOTH = "bluetooth"
@@ -186,6 +187,10 @@ fun XanderNavHost(
                 com.xander.files.ui.settings.SettingsScreen(onBack = { nav.popBackStack() }, onPremium = { nav.navigate(Routes.PREMIUM) }, onLicenses = { nav.navigate(Routes.LICENSES) })
             }
             composable(Routes.PREMIUM) { com.xander.files.ui.premium.PaywallScreen(onBack = { nav.popBackStack() }) }
+            composable(Routes.SHIZUKU) {
+                com.xander.files.ui.shizuku.ShizukuSetupScreen(onBack = { nav.popBackStack() },
+                    onOpenData = { nav.popBackStack(); nav.openFolder(FsPath.local(android.os.Environment.getExternalStorageDirectory().absolutePath + "/Android/data")) })
+            }
             composable(Routes.LICENSES) { com.xander.files.ui.settings.LicensesScreen(onBack = { nav.popBackStack() }) }
             composable(Routes.ANALYZER) { com.xander.files.ui.analyzer.AnalyzerScreen(onBack = { nav.popBackStack() }, onOpenFolder = nav::openFolder) }
             composable(Routes.HISTORY) { HistoryScreen(onBack = { nav.popBackStack() }, onOpen = openPath) }

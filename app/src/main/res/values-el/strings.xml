@@ -596,4 +596,25 @@
     <string name="module_quicklook">Γρήγορη προβολή</string>
     <string name="module_quicklook_summary">Προεπισκόπηση SVG, γραμματοσειρών, Markdown και HTML, δεκαεξαδική προβολή και checksum</string>
     <string name="quick_look">Γρήγορη προβολή (hex, πληροφορίες)</string>
+    <string name="shizuku_setup">Ρύθμιση Shizuku</string>
+    <string name="shizuku_setup_intro">Το Shizuku επιτρέπει στο Xander να ανοίγει Android/data, Android/obb και άλλους προστατευμένους φακέλους χωρίς root. Τρία βήματα, περίπου δύο λεπτά.</string>
+    <string name="shizuku_step_install">Εγκατάσταση Shizuku</string>
+    <string name="shizuku_install_download">Λήψη και εγκατάσταση</string>
+    <string name="shizuku_install_play">Λήψη από το Google Play</string>
+    <string name="shizuku_downloading">Λήψη Shizuku… %1$d%%</string>
+    <string name="shizuku_allow_installs">Να επιτρέπονται οι εγκαταστάσεις</string>
+    <string name="shizuku_allow_installs_body">Το Android ρωτά μία φορά πριν μια εφαρμογή εγκαταστήσει άλλη. Επιτρέψτε το στο Xander και επιστρέψτε.</string>
+    <string name="shizuku_step_start">Έναρξη Shizuku</string>
+    <string name="shizuku_start_body">Συνδεθείτε σε Wi-Fi (δεν χρειάζεται internet). Στο Shizuku πατήστε Σύζευξη στο «Έναρξη μέσω ασύρματου εντοπισμού σφαλμάτων» και ακολουθήστε τα βήματα: πληκτρολογείτε τον κωδικό σύζευξης στην ειδοποίηση του Shizuku. Μετά πατήστε Έναρξη. Συσκευή με root; Πατήστε Έναρξη στο «Έναρξη (για συσκευές με root)».</string>
+    <string name="shizuku_start_adb">Σε αυτή την έκδοση Android το Shizuku ξεκινά μία φορά από υπολογιστή με adb ή με root. Ανοίξτε το Shizuku: δείχνει την ακριβή εντολή.</string>
+    <string name="shizuku_dev_options">Οι επιλογές για προγραμματιστές είναι κλειστές. Ανοίξτε «Σχετικά με το τηλέφωνο» και πατήστε 7 φορές τον Αριθμό έκδοσης, μετά επιστρέψτε.</string>
+    <string name="open_about_phone">Άνοιγμα «Σχετικά με το τηλέφωνο»</string>
+    <string name="open_developer_options">Άνοιγμα επιλογών προγραμματιστή</string>
+    <string name="open_shizuku">Άνοιγμα Shizuku</string>
+    <string name="shizuku_after_reboot">Μετά από επανεκκίνηση, ανοίξτε το Shizuku και πατήστε ξανά Έναρξη.</string>
+    <string name="shizuku_step_allow">Να επιτρέπεται στο Xander</string>
+    <string name="shizuku_allow">Επιτρέπεται</string>
+    <string name="shizuku_done">Έτοιμο: τα Android/data και Android/obb ανοίγουν χωρίς root.</string>
+    <string name="open_android_data">Άνοιγμα Android/data</string>
+    <string name="shizuku_open_download_page">Άνοιγμα σελίδας λήψης</string>
 </resources>

@@ -472,8 +472,9 @@ class BrowserViewModel @Inject constructor(
 
     fun useShizuku() = viewModelScope.launch {
         shizuku.refresh()
+        // Granted already (or now): use it. Otherwise the setup guide installs/starts Shizuku step by step.
         if (shizuku.requestPermission()) refresh()
-        else _events.send(BrowserEvent.Toast("Start the Shizuku app first, then try again"))
+        else launcher.navigate(com.xander.files.ui.navigation.Routes.SHIZUKU)
     }
 
     fun useRoot() = viewModelScope.launch {

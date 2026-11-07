@@ -140,7 +140,7 @@ fun HomeScreen(onOpen: (FsPath) -> Unit, onOpenFile: (com.xander.files.domain.fs
             Text(stringResource(R.string.privileged_access), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
             Card(shape = RoundedCornerShape(16.dp)) {
                 Column(Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(enabled = shizuku == ShizukuState.PERMISSION_NEEDED) { vm.requestShizuku() }) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { if (shizuku == ShizukuState.PERMISSION_NEEDED) vm.requestShizuku() else onRoute(com.xander.files.ui.navigation.Routes.SHIZUKU) }) {
                         Icon(Icons.Filled.Security, null)
                         Column(Modifier.weight(1f).padding(start = 12.dp)) {
                             Text("Shizuku", style = MaterialTheme.typography.bodyLarge)
