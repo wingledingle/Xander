@@ -11,7 +11,23 @@ val buildInfo = Properties().apply { rootProject.file("version.properties").inpu
 val buildNumber = buildInfo.getProperty("build").toInt()
 base.archivesName.set("quinten-build-$buildNumber")
 
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+fun cfg(key: String): String =
+    (localProps.getProperty(key) ?: providers.gradleProperty(key).orNull ?: System.getenv(key.replace('.', '_').uppercase()) ?: "")
+
 android {
+    // Release signing with your upload key, from local.properties (never committed) or the environment:
+    //   xander.keystore=/path/upload.jks  xander.keystorePassword=...  xander.keyAlias=...  xander.keyPassword=...
+    // Without it, release builds are signed with the debug key: fine for sideloading, not accepted by Play.
+    signingConfigs {
+        if (cfg("xander.keystore").isNotBlank()) create("upload") {
+            storeFile = file(cfg("xander.keystore")); storePassword = cfg("xander.keystorePassword")
+            keyAlias = cfg("xander.keyAlias"); keyPassword = cfg("xander.keyPassword")
+        }
+    }
     namespace = "app.quinten.standalone"
     compileSdk = 36
     defaultConfig {
@@ -28,7 +44,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("upload") ?: signingConfigs.getByName("debug")
         }
     }
     compileOptions {

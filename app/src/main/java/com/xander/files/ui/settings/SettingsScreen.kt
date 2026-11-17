@@ -227,6 +227,9 @@ fun SettingsScreen(onBack: () -> Unit, onPremium: () -> Unit, onLicenses: () -> 
             Section(R.string.about)
             Item(stringResource(R.string.app_name), "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})" + if (premium) " · Premium" else "") {}
             Item(stringResource(R.string.open_source_licenses), "") { onLicenses() }
+            Item(stringResource(R.string.privacy_policy), "") {
+                runCatching { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(BuildConfig.PRIVACY_POLICY_URL))) }
+            }
         }
     }
 

@@ -611,11 +611,7 @@
     <string name="shizuku_setup">إعداد Shizuku</string>
     <string name="shizuku_setup_intro">يتيح Shizuku لتطبيق Xander فتح Android/data وAndroid/obb ومجلدات محمية أخرى بدون روت. ثلاث خطوات، نحو دقيقتين.</string>
     <string name="shizuku_step_install">تثبيت Shizuku</string>
-    <string name="shizuku_install_download">تنزيل وتثبيت</string>
     <string name="shizuku_install_play">احصل عليه من Google Play</string>
-    <string name="shizuku_downloading">جارٍ تنزيل Shizuku… %1$d%%</string>
-    <string name="shizuku_allow_installs">السماح بالتثبيت</string>
-    <string name="shizuku_allow_installs_body">يسأل Android مرة واحدة قبل أن يثبّت تطبيق تطبيقًا آخر. اسمح لـ Xander ثم عُد.</string>
     <string name="shizuku_step_start">تشغيل Shizuku</string>
     <string name="shizuku_start_body">اتصل بشبكة Wi-Fi (لا حاجة للإنترنت). في Shizuku اضغط «إقران» تحت «البدء عبر تصحيح الأخطاء اللاسلكي» واتبع الخطوات: تكتب رمز الإقران من «تصحيح الأخطاء اللاسلكي» في إشعار Shizuku. ثم اضغط «بدء». هاتف مُروّت؟ اضغط «بدء» تحت «البدء (للأجهزة المروّتة)».</string>
     <string name="shizuku_start_adb">في إصدار Android هذا يُشغَّل Shizuku مرة واحدة من حاسوب عبر adb أو بالروت. افتح Shizuku: يعرض الأمر بالضبط.</string>
@@ -628,5 +624,5 @@
     <string name="shizuku_allow">سماح</string>
     <string name="shizuku_done">تم: يُفتح Android/data وAndroid/obb بدون روت.</string>
     <string name="open_android_data">فتح Android/data</string>
-    <string name="shizuku_open_download_page">فتح صفحة التنزيل</string>
+    <string name="privacy_policy">سياسة الخصوصية</string>
 </resources>

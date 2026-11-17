@@ -96,6 +96,7 @@ interface TransferDao {
     suspend fun setState(id: String, state: String, error: String? = null, now: Long = System.currentTimeMillis())
     @Query("UPDATE transfers SET state = 'QUEUED' WHERE state = 'RUNNING'") suspend fun requeueRunning()
     @Query("DELETE FROM transfers WHERE state IN ('DONE','FAILED','CANCELLED')") suspend fun clearFinished()
+    @Query("SELECT * FROM transfers") suspend fun all(): List<TransferEntity>
     @Query("DELETE FROM transfers WHERE id = :id") suspend fun delete(id: String)
     @Query("SELECT COUNT(*) FROM transfers WHERE state IN ('QUEUED','RUNNING','PAUSED','WAITING')") fun observeActiveCount(): Flow<Int>
 }

@@ -29,6 +29,7 @@ class XanderApp : Application(), SingletonImageLoader.Factory, Configuration.Pro
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var indexer: FileIndexer
     @Inject lateinit var nsfw: com.xander.files.data.nsfw.NsfwRepository
+    @Inject lateinit var transfers: com.xander.files.data.transfer.TransferManager
     @Inject @AppScope lateinit var appScope: CoroutineScope
     @Inject lateinit var appLock: com.xander.files.data.lock.AppLock
     @Inject lateinit var registry: com.xander.files.domain.fs.FileSystemRegistry
@@ -40,6 +41,7 @@ class XanderApp : Application(), SingletonImageLoader.Factory, Configuration.Pro
         super.onCreate()
         com.xander.files.modules.Modules.context = this
         Shell.enableVerboseLogging = BuildConfig.DEBUG
+        appScope.launch { runCatching { transfers.scrubPasswords() } }
         Shell.setDefaultBuilder(Shell.Builder.create().setFlags(Shell.FLAG_MOUNT_MASTER).setTimeout(10))
         TransferWorker.ensureChannel(this)
         MaintenanceWorker.schedule(this)

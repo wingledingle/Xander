@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Xander Files: Privacy Policy</title>
+<style>
+  :root { --bg: #ffffff; --text: #1b1d22; --muted: #5a6170; --line: #e3e5ea; --accent: #b86e00; color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #111317; --text: #eceef2; --muted: #a3aab6; --line: #2b303a; --accent: #ffb02e; } }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, -apple-system, Roboto, "Segoe UI", sans-serif; }
+  main { max-width: 46rem; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { font-size: 1.9rem; margin: 0 0 4px; } h2 { font-size: 1.2rem; margin: 2rem 0 .5rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+  .meta { color: var(--muted); margin: 0 0 1.5rem; }
+  .summary { border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px; padding: 12px 16px; }
+  table { border-collapse: collapse; width: 100%; font-size: .95rem; } th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; } code { font-size: .9em; } a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+<h1>Privacy Policy</h1>
+<p class="meta">Xander Files (<code>com.xander.files</code>) · Effective 17 November 2026</p>
+
+<div class="summary">
+  <p><strong>In short:</strong> Xander Files works on your phone. We (the developer) don't collect, receive or sell any of
+  your data: there are no accounts with us, no analytics, no advertising and no crash reporting. Your files, the file index,
+  thumbnails and settings stay on your device. Data only goes to a service when you connect that service yourself (for
+  example a cloud drive, a network share, or a Cast device), and then it goes directly between your phone and that service.</p>
+</div>
+
+<h2>1. Who we are</h2>
+<p>Xander Files is a file manager for Android, published on Google Play by its developer ("we"). Contact details are at the
+end of this policy.</p>
+
+<h2>2. Data we collect</h2>
+<p>None. Xander Files has no server of ours that it talks to, no analytics or tracking libraries, no advertising, and no crash
+or usage reporting. We never see your files, your accounts or how you use the app.</p>
+
+<h2>3. What the app does with data on your device</h2>
+<ul>
+  <li><strong>Your files.</strong> With your permission ("All files access"), the app lists, opens, copies, moves, compresses,
+    encrypts and deletes files you choose. It builds an index of file names, sizes and dates on the device so that search,
+    the Library categories and storage analysis are fast. The index is stored only in the app's private storage.</li>
+  <li><strong>Thumbnails and previews</strong> are made on the device and cached in the app's private storage.</li>
+  <li><strong>Adult-content detection (off by default).</strong> If you switch it on, a machine-learning model that is built
+    into the app classifies your photos and videos on the device to sort them into a private section. Nothing is uploaded;
+    the results are stored only on the device and can be cleared in Settings.</li>
+  <li><strong>Installed apps.</strong> The app manager lists the apps installed on your phone (to back up, share or uninstall
+    them) and, if you grant "Usage access", shows how much storage each one uses. This information is only shown to you.</li>
+  <li><strong>Encrypted files and protected archives</strong> use a password you choose. While such a job is waiting or
+    running, the password is kept only in encrypted form (so the job can resume) and it is erased when the job finishes.</li>
+  <li><strong>Settings, favourites, recent files and the recycle bin</strong> are stored on the device.</li>
+</ul>
+
+<h2>4. When data leaves your device (only when you choose)</h2>
+<table>
+  <tr><th>Feature</th><th>What is sent, and to whom</th></tr>
+  <tr><td>Cloud storage you sign in to (Dropbox, OneDrive, Box, Yandex Disk, MEGA, Nextcloud, and Google Drive where available)</td>
+      <td>Your files and folder listings are exchanged directly between your phone and that provider, using the sign-in you
+      give it. The access tokens are stored on the device, encrypted with a key held by Android's Keystore. The provider's
+      own privacy policy applies to data you store with it.</td></tr>
+  <tr><td>Network locations you add (SMB/Windows shares, FTP, SFTP, WebDAV, NFS)</td>
+      <td>Files go directly between your phone and that server. Saved passwords and keys are encrypted on the device with a
+      Keystore key. Connections to servers you configure without encryption (plain FTP or HTTP) are not encrypted in
+      transit; use SFTP or HTTPS where you can.</td></tr>
+  <tr><td>Built-in FTP and web servers (off until you start them)</td>
+      <td>While running, devices on your local network can browse and transfer the folder you share, with the password you
+      set (or without one if you choose anonymous access). Data goes directly between the devices.</td></tr>
+  <tr><td>Casting (Google Cast)</td>
+      <td>The media you cast is streamed from your phone over your local network to the Cast device you pick, using
+      Google's Cast software (<a href="https://policies.google.com/privacy">Google Privacy Policy</a>).</td></tr>
+  <tr><td>Bluetooth and the TV companion</td>
+      <td>Files you send go directly to the device you pick.</td></tr>
+  <tr><td>Premium subscription</td>
+      <td>Payments are handled entirely by Google Play. We receive only whether a subscription is active, never your payment
+      details (<a href="https://policies.google.com/privacy">Google Privacy Policy</a>).</td></tr>
+  <tr><td>Sharing and "Open with"</td>
+      <td>Files you share go to the app you pick.</td></tr>
+</table>
+
+<h2>5. Permissions and why they're needed</h2>
+<table>
+  <tr><th>Permission</th><th>Used for</th></tr>
+  <tr><td>All files access</td><td>Managing files anywhere in your storage, which is what a file manager does.</td></tr>
+  <tr><td>Photos, videos and audio</td><td>Showing media, thumbnails and the Library on Android versions that ask for these separately.</td></tr>
+  <tr><td>See installed apps; usage access (optional)</td><td>The app manager and per-app storage sizes.</td></tr>
+  <tr><td>Install and uninstall apps</td><td>Installing APK files you open, and uninstalling apps you choose in the app manager.</td></tr>
+  <tr><td>Internet, network and Wi-Fi state</td><td>Cloud drives, network shares, the built-in servers and casting.</td></tr>
+  <tr><td>Bluetooth</td><td>Sending files to nearby devices you pick.</td></tr>
+  <tr><td>Notifications; foreground services</td><td>Progress of copies and transfers, music playback and the running servers.</td></tr>
+  <tr><td>Modify system settings; set wallpaper</td><td>"Set as" ringtone or wallpaper, only when you ask.</td></tr>
+  <tr><td>Biometrics</td><td>The optional app lock. Fingerprint data never leaves Android's secure hardware.</td></tr>
+  <tr><td>Run at startup; wake lock</td><td>Finishing transfers and keeping the index up to date.</td></tr>
+  <tr><td>Shizuku (optional)</td><td>Reaching Android/data and Android/obb without root, if you install and allow Shizuku.</td></tr>
+</table>
+
+<h2>6. Backups</h2>
+<p>The app's data is excluded from Android backup and from phone-to-phone transfer, so the file index, detection results and
+saved logins are not copied to Google's backup or to another phone.</p>
+
+<h2>7. Keeping and deleting your data</h2>
+<p>Everything the app stores is on your device. You can remove accounts and network locations in the app, clear the index,
+cache and detection results in Settings, or delete everything by clearing the app's storage or uninstalling it. Files in
+cloud drives or on servers stay there; manage them with the provider.</p>
+
+<h2>8. Children</h2>
+<p>Xander Files is not directed to children under 13 and does not knowingly collect any data from anyone.</p>
+
+<h2>9. Changes</h2>
+<p>If this policy changes, the new version will be posted at this address with a new effective date.</p>
+
+<h2>10. Contact</h2>
+<p>Questions about this policy: <a href="mailto:CONTACT_EMAIL">CONTACT_EMAIL</a></p>
+</main>
+</body>
+</html>

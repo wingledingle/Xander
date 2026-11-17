@@ -24,7 +24,28 @@ class TransferManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val dao: TransferDao,
     val conflicts: ConflictBroker,
+    private val cipher: com.xander.files.data.security.SecretCipher,
 ) {
+    // A job's password (encrypt, decrypt, protected archives) is kept so the job can resume, but only encrypted with
+    // the Keystore key (never in plain text), and it's erased once the job has finished.
+    fun encodeOptions(o: TransferOptions): String =
+        json.encodeToString(TransferOptions.serializer(), if (o.password.isEmpty()) o else o.copy(password = ENC + cipher.encrypt(o.password)))
+
+    fun decodeOptions(s: String): TransferOptions {
+        val o = runCatching { json.decodeFromString(TransferOptions.serializer(), s) }.getOrDefault(TransferOptions())
+        return if (o.password.startsWith(ENC)) o.copy(password = cipher.decrypt(o.password.removePrefix(ENC))) else o
+    }
+
+    /** Erases the password of finished jobs, including plain-text ones saved by builds before this was fixed. */
+    suspend fun scrubPasswords() {
+        for (e in dao.all()) {
+            val o = runCatching { json.decodeFromString(TransferOptions.serializer(), e.optionsJson) }.getOrNull() ?: continue
+            if (o.password.isEmpty()) continue
+            val finished = e.state == TransferState.DONE.name
+            if (finished || !o.password.startsWith(ENC)) dao.upsert(e.copy(optionsJson = encodeOptions(if (finished) o.copy(password = "") else o)))
+        }
+    }
+
     internal val running = ConcurrentHashMap<String, TransferContext>()
 
     fun observeAll(): Flow<List<TransferEntity>> = dao.observeAll()
@@ -38,7 +59,7 @@ class TransferManager @Inject constructor(
                 id = id, type = req.type.name, state = TransferState.QUEUED.name, title = req.title,
                 sourcesJson = json.encodeToString(ListSerializer(String.serializer()), req.sources),
                 destination = req.destination,
-                optionsJson = json.encodeToString(TransferOptions.serializer(), req.options),
+                optionsJson = encodeOptions(req.options),
             )
         )
         kick()
@@ -73,9 +94,9 @@ class TransferManager @Inject constructor(
 
     suspend fun retry(id: String) {
         val e = dao.get(id) ?: return
-        val opts = runCatching { json.decodeFromString(TransferOptions.serializer(), e.optionsJson) }.getOrDefault(TransferOptions())
+        val opts = decodeOptions(e.optionsJson)
         dao.upsert(e.copy(state = TransferState.QUEUED.name, error = null, doneBytes = 0, doneItems = 0,
-            optionsJson = json.encodeToString(TransferOptions.serializer(), opts.copy(resumed = true))))
+            optionsJson = encodeOptions(opts.copy(resumed = true))))
         kick()
     }
 
@@ -83,6 +104,7 @@ class TransferManager @Inject constructor(
     suspend fun remove(id: String) = dao.delete(id)
 
     companion object {
+        private const val ENC = "enc:"
         const val UNIQUE = "xander-transfers"
         const val TAG = "transfer"
         val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }

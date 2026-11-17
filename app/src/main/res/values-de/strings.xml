@@ -599,11 +599,7 @@
     <string name="shizuku_setup">Shizuku einrichten</string>
     <string name="shizuku_setup_intro">Mit Shizuku öffnet Xander Android/data, Android/obb und andere geschützte Ordner ohne Root. Drei Schritte, etwa zwei Minuten.</string>
     <string name="shizuku_step_install">Shizuku installieren</string>
-    <string name="shizuku_install_download">Herunterladen und installieren</string>
     <string name="shizuku_install_play">Bei Google Play holen</string>
-    <string name="shizuku_downloading">Shizuku wird geladen… %1$d%%</string>
-    <string name="shizuku_allow_installs">Installieren erlauben</string>
-    <string name="shizuku_allow_installs_body">Android fragt einmal, bevor eine App eine andere installieren darf. Erlaube es Xander und komm zurück.</string>
     <string name="shizuku_step_start">Shizuku starten</string>
     <string name="shizuku_start_body">Verbinde dich mit WLAN (Internet nicht nötig). Tippe in Shizuku unter „Über kabelloses Debugging starten“ auf Koppeln und folge den Schritten: Den Kopplungscode aus „Kabelloses Debugging“ gibst du in Shizukus Benachrichtigung ein. Dann auf Starten tippen. Gerootet? Tippe stattdessen unter „Starten (für gerootete Geräte)“ auf Starten.</string>
     <string name="shizuku_start_adb">Auf dieser Android-Version wird Shizuku einmal von einem Computer mit adb oder mit Root gestartet. Öffne Shizuku: Dort steht der genaue Befehl.</string>
@@ -616,5 +612,5 @@
     <string name="shizuku_allow">Erlauben</string>
     <string name="shizuku_done">Fertig: Android/data und Android/obb öffnen sich ohne Root.</string>
     <string name="open_android_data">Android/data öffnen</string>
-    <string name="shizuku_open_download_page">Download-Seite öffnen</string>
+    <string name="privacy_policy">Datenschutzerklärung</string>
 </resources>

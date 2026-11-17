@@ -601,11 +601,7 @@
     <string name="shizuku_setup">Configurar o Shizuku</string>
     <string name="shizuku_setup_intro">O Shizuku permite ao Xander abrir Android/data, Android/obb e outras pastas protegidas sem root. Três passos, cerca de dois minutos.</string>
     <string name="shizuku_step_install">Instalar o Shizuku</string>
-    <string name="shizuku_install_download">Transferir e instalar</string>
     <string name="shizuku_install_play">Obter no Google Play</string>
-    <string name="shizuku_downloading">A transferir o Shizuku… %1$d%%</string>
-    <string name="shizuku_allow_installs">Permitir instalações</string>
-    <string name="shizuku_allow_installs_body">O Android pergunta uma vez antes de uma app instalar outra. Permita ao Xander e volte.</string>
     <string name="shizuku_step_start">Iniciar o Shizuku</string>
     <string name="shizuku_start_body">Ligue-se a uma rede Wi-Fi (não precisa de internet). No Shizuku, toque em Emparelhar em “Iniciar via depuração sem fios” e siga os passos: escreve o código de emparelhamento da Depuração sem fios na notificação do Shizuku. Depois toque em Iniciar. Telemóvel com root? Toque em Iniciar em “Iniciar (dispositivos com root)”.</string>
     <string name="shizuku_start_adb">Nesta versão do Android, o Shizuku é iniciado uma vez a partir de um computador com adb, ou com root. Abra o Shizuku: mostra o comando exato.</string>
@@ -618,5 +614,5 @@
     <string name="shizuku_allow">Permitir</string>
     <string name="shizuku_done">Pronto: Android/data e Android/obb abrem sem root.</string>
     <string name="open_android_data">Abrir Android/data</string>
-    <string name="shizuku_open_download_page">Abrir a página de transferência</string>
+    <string name="privacy_policy">Política de privacidade</string>
 </resources>

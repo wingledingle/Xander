@@ -22,6 +22,15 @@ fun cfg(key: String): String =
     (localProps.getProperty(key) ?: providers.gradleProperty(key).orNull ?: System.getenv(key.replace('.', '_').uppercase()) ?: "")
 
 android {
+    // Release signing with your upload key, from local.properties (never committed) or the environment:
+    //   xander.keystore=/path/upload.jks  xander.keystorePassword=...  xander.keyAlias=...  xander.keyPassword=...
+    // Without it, release builds are signed with the debug key: fine for sideloading, not accepted by Play.
+    signingConfigs {
+        if (cfg("xander.keystore").isNotBlank()) create("upload") {
+            storeFile = file(cfg("xander.keystore")); storePassword = cfg("xander.keystorePassword")
+            keyAlias = cfg("xander.keyAlias"); keyPassword = cfg("xander.keyPassword")
+        }
+    }
     namespace = "com.xander.files"
     compileSdk = 36
 
@@ -42,6 +51,10 @@ android {
         buildConfigField("String", "BOX_CLIENT_ID", "\"${cfg("xander.boxClientId")}\"")
         buildConfigField("String", "BOX_CLIENT_SECRET", "\"${cfg("xander.boxClientSecret")}\"")
         buildConfigField("String", "YANDEX_CLIENT_ID", "\"${cfg("xander.yandexClientId")}\"")
+        // Google Drive needs Google's OAuth verification for its restricted scope: -Pxander.googleDrive=true once approved.
+        // Where the privacy policy is published (docs/privacy-policy.html, e.g. on GitHub Pages).
+        buildConfigField("String", "PRIVACY_POLICY_URL", "\"${cfg("xander.privacyPolicyUrl").ifBlank { "https://wingledingle.github.io/Xander/privacy-policy.html" }}\"")
+        buildConfigField("boolean", "GOOGLE_DRIVE_ENABLED", cfg("xander.googleDrive").ifBlank { "false" })
         manifestPlaceholders["appAuthRedirectScheme"] = "com.xander.files"
     }
 
@@ -85,7 +98,7 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             testProguardFiles("test-proguard-rules.pro")
             buildConfigField("boolean", "ADS_ENABLED", cfg("xander.adsEnabled").ifBlank { "false" })
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("upload") ?: signingConfigs.getByName("debug")
         }
     }
 

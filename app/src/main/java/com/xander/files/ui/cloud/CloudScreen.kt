@@ -50,6 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.xander.files.R
 import com.xander.files.data.cloud.CloudAccount
 import com.xander.files.data.cloud.CloudService
+import com.xander.files.data.cloud.OAuthConfigs
 import com.xander.files.domain.fs.FsPath
 import com.xander.files.ui.common.ConfirmDialog
 import com.xander.files.ui.common.EmptyState
@@ -114,7 +115,7 @@ fun CloudScreen(onBack: () -> Unit, onBrowse: (FsPath) -> Unit, vm: CloudViewMod
         }
     }
 
-    if (picker) ActionSheet(stringResource(R.string.add_account), CloudService.entries.map { s ->
+    if (picker) ActionSheet(stringResource(R.string.add_account), CloudService.entries.filter(OAuthConfigs::isConfigured).map { s ->
         SheetAction(Icons.Filled.Cloud, s.label) {
             when (s) {
                 CloudService.MEGA -> megaDialog = true

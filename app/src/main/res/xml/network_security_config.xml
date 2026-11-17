@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Plain HTTP is allowed because the user connects to their own servers on their own network (WebDAV over http,
+     HTTP folder browsing, the TV companion). Android blocks it by default since Android 9, which broke those. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

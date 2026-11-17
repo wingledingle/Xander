@@ -60,7 +60,7 @@ class TransferWorker @AssistedInject constructor(
         val type = runCatching { TransferType.valueOf(job.type) }.getOrNull()
         val op = type?.let { operations[it] }
         if (op == null) { dao.setState(job.id, TransferState.FAILED.name, "Unsupported operation"); return }
-        val options = runCatching { TransferManager.json.decodeFromString(TransferOptions.serializer(), job.optionsJson) }.getOrDefault(TransferOptions())
+        val options = manager.decodeOptions(job.optionsJson)
         val sources = TransferManager.json.decodeFromString(ListSerializer(String.serializer()), job.sourcesJson).map(FsPath::parse)
         val dest = job.destination?.let(FsPath::parse)
         var latest = job
@@ -77,7 +77,8 @@ class TransferWorker @AssistedInject constructor(
         try {
             op.run(sources, dest, ctx)
             ctx.flush()
-            dao.get(job.id)?.let { dao.upsert(latest.copy(state = TransferState.DONE.name, doneBytes = latest.totalBytes, speedBps = 0, currentName = null)) }
+            dao.get(job.id)?.let { dao.upsert(latest.copy(state = TransferState.DONE.name, doneBytes = latest.totalBytes, speedBps = 0, currentName = null,
+                optionsJson = manager.encodeOptions(options.copy(password = "")))) } // the password isn't needed any more
             notifyFinished(job.title, null)
             updateIndex(type, sources, dest)
         } catch (e: Throwable) {

@@ -56,7 +56,9 @@ object OAuthConfigs {
     }
 
     fun isConfigured(s: CloudService): Boolean = when (s) {
-        CloudService.GOOGLE_DRIVE -> true // Android OAuth client is matched by package + signing certificate.
+        // Android OAuth client is matched by package + signing certificate. Full-Drive access is a restricted Google
+        // scope (OAuth verification + yearly security assessment), so it's off unless the build turns it on.
+        CloudService.GOOGLE_DRIVE -> BuildConfig.GOOGLE_DRIVE_ENABLED
         CloudService.MEGA, CloudService.NEXTCLOUD -> true
         else -> of(s)?.clientId?.isNotBlank() == true
     }
