@@ -14,6 +14,7 @@ object OleanderModule : ActivityModule(
     opens = setOf("gba", "agb", "mb", "zip"),
     defaultFor = setOf("gba", "agb"),
 ) {
+    override val zipKind = SharedIndex.ZipKind.GBA
     // Oleander's game list also shows ROMs from Xander's index (including inside zips).
     init { dev.oleander.app.ExternalRoms.provider = dev.oleander.app.ExternalRoms.Provider { c -> SharedIndex.gbaRoms(c) } }
 }

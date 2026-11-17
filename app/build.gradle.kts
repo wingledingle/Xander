@@ -48,8 +48,21 @@ android {
     // -Pxander.testRelease runs instrumentation tests against the minified release build (R8 problems show there).
     if (project.hasProperty("xander.testRelease")) testBuildType = "release"
 
-    flavorDimensions += "device"
+    flavorDimensions += listOf("device", "edition")
     productFlavors {
+        // Xander Files alone (what's published as com.xander.files); Groovesmith, Oleander and Quinten are separate
+        // apps (apps/*) that it hands files to when installed.
+        create("files") {
+            dimension = "edition"
+        }
+        // All-in-one: the Studio, Oleander and Quinten inside Xander, installable next to Xander Files.
+        create("suite") {
+            dimension = "edition"
+            applicationIdSuffix = ".suite"
+            versionNameSuffix = "-suite"
+            resValue("string", "app_name", "Xander Suite")
+            manifestPlaceholders["appAuthRedirectScheme"] = "com.xander.files.suite"
+        }
         create("mobile") {
             dimension = "device"
             buildConfigField("boolean", "IS_TV_BUILD", "false")
@@ -87,11 +100,11 @@ android {
         aidl = true
     }
     androidResources { noCompress += "tflite" }
-    // Web modules (modules-web/www/modules/<id>/) ship as assets/modules/<id>/.
+    // Web modules (modules-web/www/modules/<id>/) ship as assets/modules/<id>/ (the Studio only in the suite; see below).
     sourceSets["main"].assets.srcDir(rootProject.file("modules-web/www"))
-    // Oleander GBA emulator (third_party/oleander): its host Activity and web app with the wasm core.
-    sourceSets["main"].java.srcDir(rootProject.file("third_party/oleander/java"))
-    sourceSets["main"].assets.srcDir(rootProject.file("third_party/oleander/assets"))
+    // Oleander GBA emulator (third_party/oleander), suite only: its host Activity and web app with the wasm core.
+    sourceSets["suite"].java.srcDir(rootProject.file("third_party/oleander/java"))
+    sourceSets["suite"].assets.srcDir(rootProject.file("third_party/oleander/assets"))
 
     packaging {
         resources {
@@ -139,8 +152,8 @@ ksp {
 dependencies {
     coreLibraryDesugaring(libs.desugar)
     implementation(project(":modules-host")) // web module host, shared with the standalone Groovesmith app
-    implementation(project(":quinten:app")) // Quinten e-reader module
-    implementation(project(":quinten:android:data")) // ExternalBookIndex: Quinten reads Xander's file index
+    "suiteImplementation"(project(":quinten:app")) // Quinten e-reader module (all-in-one edition)
+    "suiteImplementation"(project(":quinten:android:data")) // ExternalBookIndex: Quinten reads Xander's file index
     // Installs the baseline profiles (ours in src/main/baseline-prof.txt, plus Compose's) on sideloaded APKs too.
     implementation(libs.profileinstaller)
 
@@ -250,4 +263,9 @@ configurations.matching { it.name.endsWith("RuntimeClasspath") }.configureEach {
 // commons-compress asks for xz 1.10 (0BSD); force the public-domain 1.9 release.
 configurations.configureEach {
     resolutionStrategy.force("org.tukaani:xz:${libs.versions.xz.get()}")
+}
+
+// Xander Files leaves out the Studio's web app (it's the separate Groovesmith app there).
+androidComponents {
+    onVariants(selector().withFlavor("edition" to "files")) { v -> v.androidResources.ignoreAssetsPatterns.add("studio") }
 }

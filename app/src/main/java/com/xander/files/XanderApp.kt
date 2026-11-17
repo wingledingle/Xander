@@ -38,6 +38,7 @@ class XanderApp : Application(), SingletonImageLoader.Factory, Configuration.Pro
 
     override fun onCreate() {
         super.onCreate()
+        com.xander.files.modules.Modules.context = this
         Shell.enableVerboseLogging = BuildConfig.DEBUG
         Shell.setDefaultBuilder(Shell.Builder.create().setFlags(Shell.FLAG_MOUNT_MASTER).setTimeout(10))
         TransferWorker.ensureChannel(this)

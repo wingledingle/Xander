@@ -31,6 +31,10 @@ interface XanderModule {
     val defaultFor: Set<String> get() = emptySet()
     /** Lowest Android version the module runs on; it is hidden below that. */
     val minSdk: Int get() = 23
+    /** What kind of plain .zip this module opens (a game, a book), if any; see [Modules.forZip]. */
+    val zipKind: SharedIndex.ZipKind? get() = null
+    /** False hides the module (e.g. a separate app that isn't installed). */
+    fun available(c: android.content.Context): Boolean = true
 
     /** Full-screen UI. [file] is the file the module was opened with, if any. */
     @Composable
@@ -38,22 +42,19 @@ interface XanderModule {
 }
 
 object Modules {
-    /** Every module in the app, in drawer order. */
-    val all: List<XanderModule> = listOf(
-        StudioModule,
-        OleanderModule,
-        QuintenModule,
-        Model3dModule,
-        QuickLookModule,
-    ).filter { it.minSdk <= android.os.Build.VERSION.SDK_INT }
+    /** Set by the Application, so availability (installed companion apps) can be checked anywhere. */
+    @Volatile var context: android.content.Context? = null
+
+    private val declared: List<XanderModule> =
+        (EditionModules.list + listOf(Model3dModule, QuickLookModule)).filter { it.minSdk <= android.os.Build.VERSION.SDK_INT }
+
+    /** Every module available right now, in drawer order (this edition's apps, then the built-in viewers). */
+    val all: List<XanderModule> get() = context?.let { c -> declared.filter { it.available(c) } } ?: declared
 
     /** The module that opens what a plain .zip holds (GBA game, book), or null. Blocks briefly: call off the main thread. */
     suspend fun forZip(c: android.content.Context, f: java.io.File): XanderModule? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-        when (SharedIndex.zipKind(c, f)) {
-            SharedIndex.ZipKind.GBA -> OleanderModule.takeIf { it in all }
-            SharedIndex.ZipKind.BOOK -> QuintenModule.takeIf { it in all }
-            SharedIndex.ZipKind.NONE -> null
-        }
+        val kind = SharedIndex.zipKind(c, f)
+        if (kind == SharedIndex.ZipKind.NONE) null else all.firstOrNull { it.zipKind == kind }
     }
 
     const val ROUTE = "module/{id}?path={path}"

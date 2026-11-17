@@ -17,6 +17,7 @@ object QuintenModule : ActivityModule(
     // (Plain .zip files go to Quinten only when they hold a book: Modules.forZip.)
     defaultFor = setOf("epub", "pdf", "fb2", "mobi", "azw", "azw3", "djvu", "cbz", "cbr", "doc", "docx", "rtf", "txt"),
 ) {
+    override val zipKind = SharedIndex.ZipKind.BOOK
     override val minSdk = 26
 
     init {

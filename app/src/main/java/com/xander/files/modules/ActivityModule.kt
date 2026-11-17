@@ -33,14 +33,18 @@ abstract class ActivityModule(
     @InstallIn(SingletonComponent::class)
     interface Deps { fun opener(): FileOpener }
 
-    suspend fun intent(context: Context, file: FsPath?): Intent {
-        val i = Intent(context, activity)
-        if (file != null) {
-            val uri = EntryPointAccessors.fromApplication(context, Deps::class.java).opener().shareableUri(file)
-            i.setAction(Intent.ACTION_VIEW).setDataAndType(uri, MimeTypes.fromName(file.name) ?: "application/octet-stream")
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    suspend fun intent(context: Context, file: FsPath?): Intent = withFile(context, Intent(context, activity), file)
+
+    companion object {
+        /** Hands [file] (from any backend) to [i] as a readable content Uri. */
+        suspend fun withFile(context: Context, i: Intent, file: FsPath?): Intent {
+            if (file != null) {
+                val uri = EntryPointAccessors.fromApplication(context, Deps::class.java).opener().shareableUri(file)
+                i.setAction(Intent.ACTION_VIEW).setDataAndType(uri, MimeTypes.fromName(file.name) ?: "application/octet-stream")
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            return i
         }
-        return i
     }
 
     @Composable

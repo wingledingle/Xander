@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Xander Files edition: sees whether the companion apps are installed, to hand files to them. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <queries>
+        <package android:name="dev.groovesmith.studio" />
+        <package android:name="dev.oleander.app" />
+        <package android:name="app.quinten" />
+    </queries>
+</manifest>
