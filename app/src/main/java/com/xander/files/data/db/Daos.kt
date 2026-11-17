@@ -108,20 +108,24 @@ interface FileIndexDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertAll(list: List<FileIndexEntity>)
     @Query("DELETE FROM file_index WHERE volume = :volume") suspend fun clearVolume(volume: String)
     @Query("DELETE FROM file_index WHERE volume = :volume AND seen < :stamp") suspend fun pruneStale(volume: String, stamp: Long)
+    /** Drops files of storage that isn't there any more (a removed SD card or USB drive). */
+    @Query("DELETE FROM file_index WHERE volume NOT IN (:mounted)") suspend fun pruneUnmounted(mounted: List<String>)
     @Query("SELECT COALESCE(SUM(size),0) FROM file_index WHERE isDirectory = 0 AND size >= :minSize") fun observeLargeSize(minSize: Long): Flow<Long>
     @Query("SELECT COUNT(*) FROM file_index WHERE isDirectory = 0 AND size >= :minSize") fun observeLargeCount(minSize: Long): Flow<Int>
     @Query("SELECT COUNT(*) FROM file_index WHERE isDirectory = 0 AND parent LIKE :downloadDir || '%'") fun observeDownloadCount(downloadDir: String): Flow<Int>
     @Query("SELECT COALESCE(SUM(size),0) FROM file_index WHERE isDirectory = 0 AND parent LIKE :downloadDir || '%'") fun observeDownloadSize(downloadDir: String): Flow<Long>
     @Query("SELECT * FROM file_index WHERE isDirectory = 0 AND parent LIKE :dir || '%' ORDER BY modified DESC") suspend fun under(dir: String): List<FileIndexEntity>
     @Query("DELETE FROM file_index WHERE path = :path OR path LIKE :path || '/%'") suspend fun deleteTree(path: String)
-    @Query("SELECT category, COUNT(*) AS count, COALESCE(SUM(size),0) AS size FROM file_index WHERE isDirectory = 0 GROUP BY category")
+    // Library counts and lists skip hidden folders and files (a path segment starting with "."), like gallery apps:
+    // DCIM/.thumbnails holds a copy of every photo and .trashed-* files are already deleted, so they double counts.
+    @Query("SELECT category, COUNT(*) AS count, COALESCE(SUM(size),0) AS size FROM file_index WHERE isDirectory = 0 AND path NOT LIKE '%/.%' GROUP BY category")
     fun observeCategoryStats(): Flow<List<CategoryStat>>
     @Query("SELECT COUNT(*) FROM file_index WHERE isDirectory = 0") fun observeFileCount(): Flow<Int>
     @Query("SELECT COUNT(*) AS count, COALESCE(SUM(size),0) AS size FROM file_index WHERE isDirectory = 0 AND name LIKE '%.obb'") fun observeObbStats(): Flow<CountSize>
     @Query("SELECT * FROM file_index WHERE isDirectory = 0 AND name LIKE '%.obb'") suspend fun obbFiles(): List<FileIndexEntity>
     @Query("SELECT * FROM file_index WHERE path = :path") suspend fun get(path: String): FileIndexEntity?
-    @Query("SELECT * FROM file_index WHERE isDirectory = 0 AND (category = 'IMAGE' OR category = 'VIDEO')") suspend fun media(): List<FileIndexEntity>
-    @Query("SELECT * FROM file_index WHERE category = :category AND isDirectory = 0 ORDER BY modified DESC")
+    @Query("SELECT * FROM file_index WHERE isDirectory = 0 AND (category = 'IMAGE' OR category = 'VIDEO') AND path NOT LIKE '%/.%'") suspend fun media(): List<FileIndexEntity>
+    @Query("SELECT * FROM file_index WHERE category = :category AND isDirectory = 0 AND path NOT LIKE '%/.%' ORDER BY modified DESC")
     suspend fun byCategory(category: String): List<FileIndexEntity>
     @Query("SELECT * FROM file_index WHERE isDirectory = 0 AND size >= :minSize ORDER BY size DESC LIMIT :limit")
     suspend fun large(minSize: Long, limit: Int = 500): List<FileIndexEntity>
@@ -187,8 +191,10 @@ interface TvDeviceDao {
 interface NsfwDao {
     @Query("SELECT * FROM nsfw_results WHERE path = :path") suspend fun get(path: String): NsfwScoreEntity?
     @Upsert suspend fun upsert(e: NsfwScoreEntity)
-    @Query("SELECT path FROM nsfw_results WHERE porn + :nude * sexy >= :t OR (:drawn AND hentai >= :t) ORDER BY MAX(porn + :nude * sexy, hentai) DESC") suspend fun flagged(t: Float, drawn: Boolean, nude: Boolean): List<String>
-    @Query("SELECT COUNT(*) AS count, COALESCE(SUM(size),0) AS size FROM nsfw_results WHERE porn + :nude * sexy >= :t OR (:drawn AND hentai >= :t)") fun observeFlagged(t: Float, drawn: Boolean, nude: Boolean): Flow<CountSize>
+    // Only files that still exist (in the index) and aren't hidden copies: old results for deleted files and for
+    // thumbnail caches made the adult count too high.
+    @Query("SELECT path FROM nsfw_results WHERE (porn + :nude * sexy >= :t OR (:drawn AND hentai >= :t)) AND path IN (SELECT path FROM file_index WHERE path NOT LIKE '%/.%') ORDER BY MAX(porn + :nude * sexy, hentai) DESC") suspend fun flagged(t: Float, drawn: Boolean, nude: Boolean): List<String>
+    @Query("SELECT COUNT(*) AS count, COALESCE(SUM(size),0) AS size FROM nsfw_results WHERE (porn + :nude * sexy >= :t OR (:drawn AND hentai >= :t)) AND path IN (SELECT path FROM file_index WHERE path NOT LIKE '%/.%')") fun observeFlagged(t: Float, drawn: Boolean, nude: Boolean): Flow<CountSize>
     @Query("SELECT COUNT(*) FROM nsfw_results") fun observeScanned(): Flow<Int>
     @Query("DELETE FROM nsfw_results WHERE path = :path") suspend fun delete(path: String)
     @Query("DELETE FROM nsfw_results") suspend fun clear()

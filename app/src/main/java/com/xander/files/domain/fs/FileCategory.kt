@@ -17,8 +17,7 @@ enum class FileCategory {
             "n64", "z64", "v64", "ndd", "gcm", "gcz", "rvz", "wbfs", "wad", "wia", "ciso", "dol", "xci", "nsp", "nsz", "xcz", "nro",
             "gen", "smd", "sms", "gg", "sg", "32x", "pce", "sgx", "a26", "a52", "a78", "lnx", "jag", "j64", "ws", "wsc", "ngp", "ngc", "vb", "vec",
             "cso", "zso", "chd", "pbp", "ecm", "gdi", "cdi", "cue", "mds", "ccd", "psv", "vpk", "xex",
-            "sav", "srm", "state", "mcr", "mcd", "dsv", "sgm",
-        )
+        ) // Save files (.sav, .srm, .state...) aren't games: counting them listed each game several times.
         private val ebook = setOf("epub", "mobi", "azw", "azw3", "fb2", "cbz", "cbr")
 
         fun of(name: String, mime: String? = null): FileCategory {

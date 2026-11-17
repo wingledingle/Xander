@@ -44,10 +44,14 @@ class FileIndexer @Inject constructor(
             _status.value = IndexStatus(true, 0, _status.value.lastRun)
             try {
                 if (dao.count() == 0) fromMediaStore(stamp)
-                if (full) for (v in volumes.volumes()) {
-                    val root = v.directPath ?: continue
-                    walk(File(root), v.id, stamp)
-                    dao.pruneStale(v.id, stamp)
+                if (full) {
+                    val mounted = volumes.volumes()
+                    for (v in mounted) {
+                        val root = v.directPath ?: continue
+                        walk(File(root), v.id, stamp)
+                        dao.pruneStale(v.id, stamp)
+                    }
+                    if (mounted.isNotEmpty()) dao.pruneUnmounted(mounted.map { it.id })
                 }
             } finally {
                 _status.value = IndexStatus(false, _status.value.indexed, stamp)

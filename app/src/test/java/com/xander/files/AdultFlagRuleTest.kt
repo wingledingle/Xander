@@ -4,6 +4,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.xander.files.data.db.AppDatabase
+import com.xander.files.data.db.FileIndexEntity
 import com.xander.files.data.db.NsfwScoreEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -20,6 +21,8 @@ class AdultFlagRuleTest {
         val db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), AppDatabase::class.java).allowMainThreadQueries().build()
         val dao = db.nsfw()
         fun row(p: String, porn: Float, sexy: Float, hentai: Float = 0f) = NsfwScoreEntity(p, 1, 1, 0f, hentai, 1 - porn - sexy - hentai, porn, sexy)
+        // Results count only for files still in the index.
+        db.fileIndex().insertAll(listOf("/nude.jpg", "/explicit.jpg", "/beach.jpg", "/manga.jpg").map { FileIndexEntity(it, it.drop(1), "", 1, 0, "IMAGE", false, "primary") })
         dao.upsert(row("/nude.jpg", porn = 0.25f, sexy = 0.70f))
         dao.upsert(row("/explicit.jpg", porn = 0.90f, sexy = 0.05f))
         dao.upsert(row("/beach.jpg", porn = 0.02f, sexy = 0.30f))
