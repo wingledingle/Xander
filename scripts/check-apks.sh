@@ -2,7 +2,7 @@
 # Checks what each published APK contains (and doesn't): package id, launcher, and that Xander Files carries none
 # of the separate apps. Run after: ./gradlew :app:assembleMobileFilesRelease :app:assembleMobileSuiteRelease
 #   :apps:groovesmith:assembleRelease :apps:oleander:assembleRelease :apps:quinten:assembleRelease
-set -euo pipefail
+set -eu
 cd "$(dirname "$0")/.."
 AAPT2=${AAPT2:-$(find "${ANDROID_HOME:-/opt/android-sdk}" ~/.gradle -name aapt2 -type f 2>/dev/null | head -1)}
 fail=0
