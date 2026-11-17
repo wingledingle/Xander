@@ -61,9 +61,11 @@ class NewFeaturesTest {
     }
 
     @Test fun gamesAreTheirOwnCategoryWithoutStealingOtherTypes() {
-        listOf("Zelda.sfc", "pokemon.gba", "mario.nes", "game.nsp", "gt.chd", "save.srm", "Crash.pbp", "disc.cue").forEach {
+        listOf("Zelda.sfc", "pokemon.gba", "mario.nes", "game.nsp", "gt.chd", "Crash.pbp", "disc.cue").forEach {
             assertEquals(it, FileCategory.GAME, FileCategory.of(it))
         }
+        // Saves and save states aren't games (counting them listed each game several times).
+        listOf("save.srm", "zelda.sav", "zelda.state").forEach { assertEquals(it, FileCategory.OTHER, FileCategory.of(it)) }
         assertEquals(FileCategory.TEXT, FileCategory.of("README.md"))
         assertEquals(FileCategory.ARCHIVE, FileCategory.of("backup.iso"))
         assertEquals(FileCategory.IMAGE, FileCategory.of("photo.jpg"))
