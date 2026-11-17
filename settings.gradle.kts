@@ -25,3 +25,6 @@ for (m in listOf("core:model", "core:formats", "core:analysis", "core:speech", "
     include(":quinten:$m")
     project(":quinten:$m").projectDir = file("quinten/${m.replace(':', '/')}")
 }
+
+// Standalone apps built from the same code (see apps/README.md).
+include(":apps:quinten")
