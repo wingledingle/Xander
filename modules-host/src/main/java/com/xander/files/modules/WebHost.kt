@@ -151,20 +151,50 @@ class WebModuleViewModel(private val context: Context, val storage: HostStorage)
         val tmp = saves.remove(id)
         val (name, folder) = saveTargets.remove(id) ?: return@launch done(null, "Unknown save")
         if (tmp == null || !tmp.exists()) return@launch done(null, "Nothing to save")
-        val roots = listOfNotNull(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC), context.getExternalFilesDir(Environment.DIRECTORY_MUSIC))
-        for (root in roots) {
-            val dir = File(root, folder)
-            if (!dir.isDirectory && !dir.mkdirs()) continue
-            val target = uniqueFile(dir, name)
-            val ok = runCatching { tmp.copyTo(target, overwrite = false); true }.getOrDefault(false)
-            if (ok) {
-                tmp.delete()
-                MediaScannerConnection.scanFile(context, arrayOf(target.absolutePath), null, null)
-                return@launch done(JSONObject().put("path", target.absolutePath), null)
-            }
-        }
+        // 1) The public Music folder directly (works with all-files access, as in Xander).
+        // 2) Otherwise (the standalone app; Android may refuse non-audio files there): MediaStore, so it's still shared.
+        // 3) Last resort: the app's own Music folder.
+        val public = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
+        copyInto(tmp, File(public, folder), name)?.let { return@launch done(JSONObject().put("path", it), null) }
+        publishToMediaStore(tmp, name, "Music/$folder")?.let { uri -> tmp.delete(); return@launch done(JSONObject().put("path", uri), null) }
+        context.getExternalFilesDir(Environment.DIRECTORY_MUSIC)?.let { root -> copyInto(tmp, File(root, folder), name) }
+            ?.let { return@launch done(JSONObject().put("path", it), null) }
         tmp.delete()
         done(null, "Could not write to storage")
+    }
+
+    private fun copyInto(tmp: File, dir: File, name: String): String? {
+        if (!dir.isDirectory && !dir.mkdirs()) return null
+        val target = uniqueFile(dir, name)
+        if (!runCatching { tmp.copyTo(target, overwrite = false); true }.getOrDefault(false)) { target.delete(); return null }
+        tmp.delete()
+        MediaScannerConnection.scanFile(context, arrayOf(target.absolutePath), null, null)
+        return target.absolutePath
+    }
+
+    /** Copies [file] into the shared collection under [relativePath] (Android 10+); returns its content URI. */
+    fun publishToMediaStore(file: File, name: String, relativePath: String): String? {
+        if (android.os.Build.VERSION.SDK_INT < 29) return null
+        val mime = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(name.substringAfterLast('.', "").lowercase()) ?: "application/octet-stream"
+        // Audio goes to Music/, video to Movies/; anything else (projects) to Download/ (the only place MediaStore takes it).
+        val (table, path) = when {
+            mime.startsWith("audio/") -> android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI to relativePath
+            mime.startsWith("video/") -> android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI to relativePath
+            else -> android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI to "Download/" + relativePath.substringAfter('/')
+        }
+        val values = android.content.ContentValues().apply {
+            put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, name)
+            put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mime)
+            put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, path)
+            put(android.provider.MediaStore.MediaColumns.IS_PENDING, 1)
+        }
+        val cr = context.contentResolver
+        val uri = runCatching { cr.insert(table, values) }.getOrNull() ?: return null
+        return try {
+            cr.openOutputStream(uri)!!.use { o -> file.inputStream().use { it.copyTo(o) } }
+            cr.update(uri, android.content.ContentValues().apply { put(android.provider.MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
+            uri.toString()
+        } catch (e: Exception) { runCatching { cr.delete(uri, null, null) }; null }
     }
 
     override fun onCleared() {

@@ -196,11 +196,28 @@ class StudioVideo(private val context: Context, private val storage: HostStorage
             MediaItem.ClippingConfiguration.Builder().setStartPositionMs((startSec * 1000).toLong()).setEndPositionMs((endSec * 1000).toLong()).build()).build()
         val edited = EditedMediaItem.Builder(item).setEffects(Effects(emptyList(), if (gpuFx) listOf<Effect>(FxEffect(fx.copyOf())) else emptyList())).build()
         Transformer.Builder(context).addListener(object : Transformer.Listener {
-            override fun onCompleted(composition: Composition, result: ExportResult) { done(JSONObject().put("path", out.absolutePath), null) }
+            override fun onCompleted(composition: Composition, result: ExportResult) {
+                // Written to the app's own folder (no access to Movies/): publish it to Movies/ through MediaStore.
+                val shared = if (out.canonicalPath.startsWith(context.getExternalFilesDir(null)?.canonicalPath ?: "\u0000")) publish(out) else null
+                done(JSONObject().put("path", shared ?: out.absolutePath), null)
+            }
             override fun onError(composition: Composition, result: ExportResult, e: ExportException) {
                 out.delete(); ModuleLog.write(context, "studio", "export failed: ${e.errorCodeName} ${e.message}"); done(null, e.message ?: "Export failed")
             }
         }).build().start(edited, out.absolutePath)
+    }
+
+    private fun publish(f: File): String? {
+        if (android.os.Build.VERSION.SDK_INT < 29) return null
+        val cr = context.contentResolver
+        val values = android.content.ContentValues().apply {
+            put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, f.name)
+            put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+            put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, "Movies/Groovesmith/Clips")
+        }
+        val uri = runCatching { cr.insert(android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values) }.getOrNull() ?: return null
+        return runCatching { cr.openOutputStream(uri)!!.use { o -> f.inputStream().use { it.copyTo(o) } }; f.delete(); uri.toString() }
+            .getOrElse { runCatching { cr.delete(uri, null, null) }; null }
     }
 
     fun release() {
