@@ -28,3 +28,4 @@ for (m in listOf("core:model", "core:formats", "core:analysis", "core:speech", "
 
 // Standalone apps built from the same code (see apps/README.md).
 include(":apps:quinten")
+include(":apps:oleander")

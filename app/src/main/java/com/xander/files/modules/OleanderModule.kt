@@ -13,4 +13,7 @@ object OleanderModule : ActivityModule(
     activity = dev.oleander.app.MainActivity::class.java,
     opens = setOf("gba", "agb", "mb", "zip"),
     defaultFor = setOf("gba", "agb"),
-)
+) {
+    // Oleander's game list also shows ROMs from Xander's index (including inside zips).
+    init { dev.oleander.app.ExternalRoms.provider = dev.oleander.app.ExternalRoms.Provider { c -> SharedIndex.gbaRoms(c) } }
+}

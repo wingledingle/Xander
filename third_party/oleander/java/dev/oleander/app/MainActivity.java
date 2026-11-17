@@ -302,10 +302,10 @@ public class MainActivity extends Activity {
     private void scanTrees(Set<String> list, boolean quiet) {
         new Thread(() -> {
             JSONArray out = new JSONArray();
-            // Xander change: games found by Xander's own storage index (including ROMs inside zips), so there's no
-            // separate folder scan to set up.
+            // Xander change: inside Xander, games also come from its storage index (including ROMs inside zips).
             try {
-                for (File f : com.xander.files.modules.SharedIndex.gbaRoms(this)) {
+                ExternalRoms.Provider extra = ExternalRoms.provider;
+                if (extra != null) for (File f : extra.roms(this)) {
                     String doc = Uri.fromFile(f).toString();
                     allowedDocs.add(doc);
                     JSONObject o = new JSONObject();
@@ -756,7 +756,7 @@ public class MainActivity extends Activity {
             ShortcutInfo info = new ShortcutInfo.Builder(MainActivity.this, "game-" + id)
                     .setShortLabel(title.length() > 24 ? title.substring(0, 24) : title)
                     .setLongLabel(title)
-                    .setIcon(Icon.createWithResource(MainActivity.this, com.xander.files.R.mipmap.ic_launcher))
+                    .setIcon(Icon.createWithResource(MainActivity.this, getApplicationInfo().icon))
                     .setIntent(launch)
                     .build();
             return sm.requestPinShortcut(info, null);
