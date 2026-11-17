@@ -47,5 +47,8 @@ class AdultScanToggleTest {
             queued = wm.getWorkInfosForUniqueWork(NsfwRepository.WORK).get().isNotEmpty()
         }
         assertTrue("the adult scan was not queued after switching detection on", queued)
+        // It must not wait for "battery not low": that stays set for a while after plugging in, so it never started.
+        val info = wm.getWorkInfosForUniqueWork(NsfwRepository.WORK).get().first()
+        assertTrue("the scan must not require battery-not-low", !info.constraints.requiresBatteryNotLow())
     }
 }

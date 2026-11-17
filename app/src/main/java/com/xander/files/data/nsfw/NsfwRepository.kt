@@ -77,11 +77,20 @@ class NsfwRepository @Inject constructor(
             prefs.edit().putInt("pipeline", PIPELINE).apply()
             if (!rescanAll) return scan(rescanAll = true)
         }
-        val req = OneTimeWorkRequestBuilder<NsfwScanWorker>()
-            .setInputData(workDataOf("all" to rescanAll))
-            .setConstraints(Constraints.Builder().setRequiresCharging(s.nsfwChargingOnly).setRequiresBatteryNotLow(true).build())
-            .build()
-        WorkManager.getInstance(context).enqueueUniqueWork(WORK, if (rescanAll) ExistingWorkPolicy.REPLACE else ExistingWorkPolicy.KEEP, req)
+        WorkManager.getInstance(context).enqueueUniqueWork(WORK, if (rescanAll) ExistingWorkPolicy.REPLACE else ExistingWorkPolicy.KEEP,
+            request(rescanAll, chargingOnly = s.nsfwChargingOnly))
+    }
+
+    // No "battery not low" constraint: Android keeps reporting a low battery for a while after it's plugged in, so
+    // the scan wouldn't start while charging. The worker itself pauses on a low battery that isn't charging.
+    private fun request(rescanAll: Boolean, chargingOnly: Boolean) = OneTimeWorkRequestBuilder<NsfwScanWorker>()
+        .setInputData(workDataOf("all" to rescanAll))
+        .setConstraints(Constraints.Builder().setRequiresCharging(chargingOnly).build())
+        .build()
+
+    /** Battery at or under 15% and not charging: the scan pauses and picks up again once the phone is plugged in. */
+    fun pauseUntilCharging() {
+        WorkManager.getInstance(context).enqueueUniqueWork(WORK, ExistingWorkPolicy.REPLACE, request(rescanAll = false, chargingOnly = true))
     }
 
     fun progress() = WorkManager.getInstance(context).getWorkInfosForUniqueWorkFlow(WORK)
@@ -118,7 +127,14 @@ class NsfwScanWorker @AssistedInject constructor(
     private val scorer: NsfwScorer,
     private val settings: SettingsRepository,
     private val indexer: com.xander.files.data.index.FileIndexer,
+    private val repo: NsfwRepository,
 ) : CoroutineWorker(context, params) {
+
+    private fun lowAndUnplugged(): Boolean {
+        val bm = applicationContext.getSystemService(android.os.BatteryManager::class.java) ?: return false
+        val level = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
+        return level in 0..15 && !bm.isCharging
+    }
 
     private fun notification(done: Int, total: Int): ForegroundInfo {
         val nm = applicationContext.getSystemService(NotificationManager::class.java)
@@ -144,6 +160,11 @@ class NsfwScanWorker @AssistedInject constructor(
         var failed = 0
         for (m in media) {
             if (isStopped) return Result.retry()
+            if (done % 25 == 0 && lowAndUnplugged()) {
+                log("paused at $done/${media.size}: battery low and not charging; continues when plugged in")
+                repo.pauseUntilCharging()
+                return Result.success()
+            }
             done++
             if (done % 25 == 0) {
                 setProgress(workDataOf("done" to done, "total" to media.size))
