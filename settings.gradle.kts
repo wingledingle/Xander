@@ -19,6 +19,7 @@ dependencyResolutionManagement {
 }
 rootProject.name = "XanderFiles"
 include(":app")
+include(":modules-host")
 
 // Quinten e-reader (vendored from wingledingle/Quinten): its modules build as part of Xander.
 for (m in listOf("core:model", "core:formats", "core:analysis", "core:speech", "android:data", "android:render", "android:pdf", "android:ocr", "app")) {

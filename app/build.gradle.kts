@@ -138,6 +138,7 @@ ksp {
 
 dependencies {
     coreLibraryDesugaring(libs.desugar)
+    implementation(project(":modules-host")) // web module host, shared with the standalone Groovesmith app
     implementation(project(":quinten:app")) // Quinten e-reader module
     implementation(project(":quinten:android:data")) // ExternalBookIndex: Quinten reads Xander's file index
     // Installs the baseline profiles (ours in src/main/baseline-prof.txt, plus Compose's) on sideloaded APKs too.

@@ -28,9 +28,6 @@ import androidx.media3.transformer.Effects
 import androidx.media3.transformer.ExportException
 import androidx.media3.transformer.ExportResult
 import androidx.media3.transformer.Transformer
-import com.xander.files.data.media.FsUri
-import com.xander.files.data.media.RoutingDataSourceFactory
-import com.xander.files.domain.fs.FileSystemRegistry
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.json.JSONObject
 import java.io.File
@@ -42,7 +39,7 @@ import java.io.File
  * no per-frame copies. The page drives it with JSON commands and gets state back in `window.__xanderVideo.state`.
  */
 @UnstableApi
-class StudioVideo(private val context: Context, private val registry: FileSystemRegistry, private val files: HostFiles) {
+class StudioVideo(private val context: Context, private val storage: HostStorage, private val files: HostFiles) {
     /** Pushes a state JSON to the page (set by the screen that owns the WebView). */
     @Volatile var push: (String) -> Unit = {}
     /** Where the page wants the video, in pixels relative to the WebView; null hides it. */
@@ -80,7 +77,7 @@ class StudioVideo(private val context: Context, private val registry: FileSystem
     }
 
     private fun uriOf(f: HostFile): Uri = when (val s = f.source) {
-        is HostSource.Fs -> if (s.path.isLocal) Uri.fromFile(File(s.path.path)) else FsUri.of(s.path)
+        is HostSource.Fs -> storage.localFile(s.path)?.let { Uri.fromFile(File(it)) } ?: storage.mediaUri(s.path)
         is HostSource.Content -> s.uri
         is HostSource.Local -> Uri.fromFile(s.file)
     }
@@ -89,7 +86,7 @@ class StudioVideo(private val context: Context, private val registry: FileSystem
         val f = files.get(token) ?: error("Unknown file")
         file = f; announced = false
         val p = player ?: ExoPlayer.Builder(context)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(RoutingDataSourceFactory(context, registry)))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(storage.dataSources(context)))
             .build().also { p ->
                 if (gpuFx && renderer == null) renderer = runCatching { FxRenderer(view, fx, { s -> fxSurface = s; player?.setVideoSurface(s) }, { e -> fallBack(e) }) }
                     .onFailure { ModuleLog.write(context, "studio", "fx renderer: $it") }.getOrNull()
@@ -190,7 +187,7 @@ class StudioVideo(private val context: Context, private val registry: FileSystem
     fun export(name: String, startSec: Double, endSec: Double, done: (JSONObject?, String?) -> Unit) = main.post {
         val f = file ?: return@post done(null, "No video open")
         val uri = uriOf(f)
-        if (uri.scheme == FsUri.SCHEME) return@post done(null, "Clip export works for videos stored on the phone")
+        if (uri.scheme != "file" && uri.scheme != "content") return@post done(null, "Clip export works for videos stored on the phone")
         val dir = listOfNotNull(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), context.getExternalFilesDir(Environment.DIRECTORY_MOVIES))
             .map { File(it, "Groovesmith/Clips") }.firstOrNull { it.isDirectory || it.mkdirs() } ?: return@post done(null, "No folder to save into")
         val safe = name.replace(Regex("[^\\w\\- ]+"), "").trim().replace(Regex("\\s+"), "-").ifEmpty { "clip" }

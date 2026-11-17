@@ -4,10 +4,6 @@ import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.webkit.WebResourceResponse
-import com.xander.files.domain.fs.FileSystemRegistry
-import com.xander.files.domain.fs.FsPath
-import com.xander.files.domain.fs.MimeTypes
-import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import java.io.File
 import java.io.FileInputStream
@@ -18,7 +14,8 @@ import java.util.concurrent.ConcurrentHashMap
 
 /** Where a file handed to a web module lives. */
 sealed interface HostSource {
-    data class Fs(val path: FsPath) : HostSource
+    /** A path in the app's own storage (see [HostStorage]). */
+    data class Fs(val path: String) : HostSource
     data class Content(val uri: Uri) : HostSource
     data class Local(val file: File) : HostSource
 }
@@ -26,27 +23,27 @@ sealed interface HostSource {
 data class HostFile(val token: String, val source: HostSource, val name: String, val mime: String, val size: Long) {
     val url: String get() = "${WebModuleHost.ORIGIN}/host/file/$token/${Uri.encode(name)}"
     fun toJson(): JSONObject = JSONObject().put("url", url).put("name", name).put("mime", mime).put("size", size).put("token", token)
-        .put("path", (source as? HostSource.Fs)?.path?.toString() ?: JSONObject.NULL)
+        .put("path", (source as? HostSource.Fs)?.path ?: JSONObject.NULL)
 }
 
 /**
  * Files a web module may read, addressed by unguessable tokens (the page never sees real paths it wasn't given).
  * Serves them to the WebView with HTTP Range support so <video> can seek and long files stream.
  */
-class HostFiles(private val context: Context, private val registry: FileSystemRegistry) {
+class HostFiles(private val context: Context, val storage: HostStorage) {
     private val files = ConcurrentHashMap<String, HostFile>()
 
     fun get(token: String): HostFile? = files[token]
 
     private fun add(source: HostSource, name: String, mime: String?, size: Long): HostFile {
-        val f = HostFile(UUID.randomUUID().toString().replace("-", ""), source, name, mime ?: MimeTypes.fromName(name) ?: "application/octet-stream", size)
+        val f = HostFile(UUID.randomUUID().toString().replace("-", ""), source, name, mime ?: android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(name.substringAfterLast('.', "").lowercase()) ?: "application/octet-stream", size)
         files[f.token] = f
         return f
     }
 
-    suspend fun register(path: FsPath): HostFile {
-        val e = registry.provider(path).stat(path)
-        return add(HostSource.Fs(path), e.name, e.mimeType, e.size)
+    suspend fun register(path: String): HostFile {
+        val e = storage.stat(path)
+        return add(HostSource.Fs(path), e.name, e.mime, e.size)
     }
 
     fun register(uri: Uri): HostFile {
@@ -68,7 +65,7 @@ class HostFiles(private val context: Context, private val registry: FileSystemRe
     /** Opens the file at [offset]. Blocking; callers are on WebView or IO threads. */
     fun open(f: HostFile, offset: Long): InputStream = when (val s = f.source) {
         is HostSource.Local -> FileInputStream(s.file).also { it.channel.position(offset) }
-        is HostSource.Fs -> runBlocking { registry.provider(s.path).openInput(s.path, offset) }
+        is HostSource.Fs -> storage.open(s.path, offset)
         is HostSource.Content -> {
             val afd = context.contentResolver.openAssetFileDescriptor(s.uri, "r") ?: error("cannot open ${f.name}")
             val input = afd.createInputStream()

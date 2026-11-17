@@ -30,8 +30,8 @@ class AudioExtractor(private val context: Context, private val files: HostFiles)
             when (val s = f.source) {
                 is HostSource.Local -> ex.setDataSource(s.file.absolutePath)
                 is HostSource.Content -> ex.setDataSource(context, s.uri, null)
-                is HostSource.Fs -> if (s.path.isLocal && File(s.path.path).canRead()) ex.setDataSource(s.path.path)
-                    else ex.setDataSource(StreamDataSource(f, files).also { dataSource = it })
+                is HostSource.Fs -> files.storage.localFile(s.path)?.let { ex.setDataSource(it) }
+                    ?: ex.setDataSource(StreamDataSource(f, files).also { dataSource = it })
             }
             val track = (0 until ex.trackCount).firstOrNull { ex.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true }
                 ?: throw IllegalArgumentException("No audio track in ${f.name}")

@@ -74,7 +74,7 @@ class ModulesTest {
 
     @Test fun servesFilesWithRangesForSeeking() {
         val f = tmp.newFile("clip.webm").apply { writeBytes(ByteArray(1000) { it.toByte() }) }
-        val files = HostFiles(ctx, FileSystemRegistry(emptySet()))
+        val files = HostFiles(ctx, XanderHostStorage(ctx, FileSystemRegistry(emptySet())))
         val h = files.register(f, "video/webm")
         assertTrue(h.url.startsWith("https://appassets.androidplatform.net/host/file/${h.token}/"))
         val full = files.respond(h.token, null)
