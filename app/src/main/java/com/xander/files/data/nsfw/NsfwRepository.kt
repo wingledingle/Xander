@@ -154,15 +154,23 @@ class NsfwScanWorker @AssistedInject constructor(
         val media = index.media().filter { s.nsfwVideos || it.category == "IMAGE" }.sortedBy { NsfwRepository.priority(it.path) }
         val log = { line: String -> com.xander.files.modules.ModuleLog.write(applicationContext, "adult", line) }
         log("scan start: ${media.size} files (all=$all, videos=${s.nsfwVideos}, threshold=${s.nsfwThreshold}%)")
+        // A file that crashes the phone's decoder takes the whole app down (no exception to catch). The file being
+        // scanned is noted first; if the last scan died on one, it's recorded as scanned (unflagged) and skipped.
+        val current = File(applicationContext.filesDir, "nsfw_current")
+        current.takeIf { it.exists() }?.readText()?.takeIf { it.isNotBlank() }?.let { bad ->
+            log("the last scan stopped on $bad (the app was closed or crashed there); skipping that file from now on")
+            index.get(bad)?.let { dao.upsert(NsfwScoreEntity(bad, it.size, it.modified, 0f, 0f, 1f, 0f, 0f)) }
+        }
         runCatching { setForeground(notification(0, media.size)) } // not allowed while the app is in the background on Android 12+; keep going
         var done = 0
         var scored = 0
         var failed = 0
         for (m in media) {
-            if (isStopped) return Result.retry()
+            if (isStopped) { current.delete(); return Result.retry() }
             if (done % 25 == 0 && lowAndUnplugged()) {
                 log("paused at $done/${media.size}: battery low and not charging; continues when plugged in")
                 repo.pauseUntilCharging()
+                current.delete()
                 return Result.success()
             }
             done++
@@ -173,12 +181,14 @@ class NsfwScanWorker @AssistedInject constructor(
             val f = File(m.path)
             if (!f.canRead()) continue
             if (!all) dao.get(m.path)?.let { if (it.size == m.size && it.modified == m.modified) continue }
+            runCatching { current.writeText(m.path) }
             val res = runCatching { if (m.category == "IMAGE") scorer.image(f) else scorer.video(f) }
             res.exceptionOrNull()?.let { e -> if (++failed <= 5) log("error on ${m.path}: ${android.util.Log.getStackTraceString(e).take(1500)}") }
             val r = res.getOrNull() ?: continue
             dao.upsert(NsfwScoreEntity(m.path, m.size, m.modified, r.drawings, r.hentai, r.neutral, r.porn, r.sexy))
             scored++
         }
+        current.delete()
         val flagged = dao.flagged(s.nsfwThreshold / 100f, s.nsfwDrawn, s.nsfwNude).size
         log("scan done: $scored scored, $failed errors, ${media.size - scored - failed} skipped (unchanged, unreadable or too small); $flagged flagged at ${s.nsfwThreshold}%")
         return Result.success()

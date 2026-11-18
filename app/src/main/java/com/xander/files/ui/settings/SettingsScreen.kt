@@ -227,6 +227,15 @@ fun SettingsScreen(onBack: () -> Unit, onPremium: () -> Unit, onLicenses: () -> 
             Section(R.string.about)
             Item(stringResource(R.string.app_name), "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})" + if (premium) " · Premium" else "") {}
             Item(stringResource(R.string.open_source_licenses), "") { onLicenses() }
+            var crashLog by remember { mutableStateOf<String?>(null) }
+            Item(stringResource(R.string.crash_reports), stringResource(R.string.crash_reports_summary)) {
+                scope.launch { crashLog = withContext(Dispatchers.IO) { com.xander.files.modules.ModuleLog.file(ctx, "crash")?.takeIf { it.exists() }?.readText()?.takeLast(6000) } ?: "" }
+            }
+            crashLog?.let { text ->
+                AlertDialog(onDismissRequest = { crashLog = null }, title = { Text(stringResource(R.string.crash_reports)) },
+                    text = { Text(text.ifBlank { stringResource(R.string.crash_reports_empty) }, style = MaterialTheme.typography.bodySmall, modifier = Modifier.verticalScroll(rememberScrollState())) },
+                    confirmButton = { TextButton(onClick = { crashLog = null }) { Text(stringResource(R.string.ok)) } })
+            }
             Item(stringResource(R.string.privacy_policy), "") {
                 runCatching { ctx.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(BuildConfig.PRIVACY_POLICY_URL))) }
             }

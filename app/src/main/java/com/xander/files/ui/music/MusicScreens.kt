@@ -1,5 +1,6 @@
 package com.xander.files.ui.music
 
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.OutlinedButton
@@ -254,7 +255,8 @@ private fun PlaylistDetail(p: PlaylistEntity, vm: MusicViewModel) {
 fun MiniPlayer(vm: MusicViewModel, onOpen: () -> Unit) {
     val s by vm.state.collectAsStateWithLifecycle()
     Surface(tonalElevation = 4.dp, modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen)) {
-        Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        // Content clears the system navigation bar; the surface colour still runs behind it.
+        Row(Modifier.navigationBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             AlbumArt(s.path, 44)
             Column(Modifier.weight(1f).padding(start = 12.dp)) {
                 Text(s.title, maxLines = 1, style = MaterialTheme.typography.bodyMedium); Text(s.artist, maxLines = 1, style = MaterialTheme.typography.bodySmall)

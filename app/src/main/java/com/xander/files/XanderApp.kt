@@ -42,6 +42,7 @@ class XanderApp : Application(), SingletonImageLoader.Factory, Configuration.Pro
         com.xander.files.modules.Modules.context = this
         Shell.enableVerboseLogging = BuildConfig.DEBUG
         appScope.launch { runCatching { transfers.scrubPasswords() } }
+        recordLastExit()
         Shell.setDefaultBuilder(Shell.Builder.create().setFlags(Shell.FLAG_MOUNT_MASTER).setTimeout(10))
         TransferWorker.ensureChannel(this)
         MaintenanceWorker.schedule(this)
@@ -51,6 +52,37 @@ class XanderApp : Application(), SingletonImageLoader.Factory, Configuration.Pro
     }
 
     /** Indexes storage in the background once storage access exists (called again after onboarding). */
+    /**
+     * Android 11+ keeps why the app's last process ended, native crashes included (which nothing in the app can
+     * catch). New crashes, ANRs and out-of-memory kills go to logs/crash.log, shown in Settings > Crash reports.
+     */
+    private fun recordLastExit() {
+        if (android.os.Build.VERSION.SDK_INT < 30) return
+        appScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching {
+                val prefs = getSharedPreferences("crash", MODE_PRIVATE)
+                val seen = prefs.getLong("seen", 0)
+                val am = getSystemService(android.app.ActivityManager::class.java)
+                val exits = am.getHistoricalProcessExitReasons(packageName, 0, 10).filter { it.timestamp > seen }
+                val bad = setOf(android.app.ApplicationExitInfo.REASON_CRASH, android.app.ApplicationExitInfo.REASON_CRASH_NATIVE,
+                    android.app.ApplicationExitInfo.REASON_ANR, android.app.ApplicationExitInfo.REASON_LOW_MEMORY)
+                for (e in exits.sortedBy { it.timestamp }.filter { it.reason in bad }) {
+                    val kind = when (e.reason) {
+                        android.app.ApplicationExitInfo.REASON_CRASH -> "crash"
+                        android.app.ApplicationExitInfo.REASON_CRASH_NATIVE -> "native crash"
+                        android.app.ApplicationExitInfo.REASON_ANR -> "not responding (ANR)"
+                        else -> "closed for low memory"
+                    }
+                    val trace = if (e.reason == android.app.ApplicationExitInfo.REASON_CRASH_NATIVE) "" // a binary tombstone; the description says enough
+                        else runCatching { e.traceInputStream?.bufferedReader()?.use { it.readText().take(3000) } }.getOrNull().orEmpty()
+                    com.xander.files.modules.ModuleLog.write(this@XanderApp, "crash",
+                        "${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).format(java.util.Date(e.timestamp))} $kind (${e.processName}): ${e.description ?: ""}\n$trace")
+                }
+                exits.maxOfOrNull { it.timestamp }?.let { prefs.edit().putLong("seen", it).apply() }
+            }
+        }
+    }
+
     fun startIndexing(delayMs: Long = 0) {
         if (StorageAccess.hasFullAccess(this)) appScope.launch {
             kotlinx.coroutines.delay(delayMs)

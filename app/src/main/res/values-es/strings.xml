@@ -615,4 +615,11 @@
     <string name="shizuku_done">Listo: Android/data y Android/obb se abren sin root.</string>
     <string name="open_android_data">Abrir Android/data</string>
     <string name="privacy_policy">Política de privacidad</string>
+    <string name="crash_reports">Informes de fallos</string>
+    <string name="crash_reports_summary">Por qué se cerró la app inesperadamente, si ocurrió</string>
+    <string name="crash_reports_empty">No hay fallos registrados.</string>
+    <string name="game_best">Récord %1$d</string>
+    <string name="game_over">¡Fallaste! Toca para volver a jugar</string>
+    <string name="game_start">Toca para saltar los archivos mientras se analiza el almacenamiento</string>
+    <string name="an_dup_pending">Aún buscando duplicados y copias de archivos comprimidos…</string>
 </resources>

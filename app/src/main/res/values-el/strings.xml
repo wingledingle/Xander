@@ -613,4 +613,11 @@
     <string name="shizuku_done">Έτοιμο: τα Android/data και Android/obb ανοίγουν χωρίς root.</string>
     <string name="open_android_data">Άνοιγμα Android/data</string>
     <string name="privacy_policy">Πολιτική απορρήτου</string>
+    <string name="crash_reports">Αναφορές σφαλμάτων</string>
+    <string name="crash_reports_summary">Γιατί έκλεισε απροσδόκητα η εφαρμογή, αν συνέβη</string>
+    <string name="crash_reports_empty">Δεν καταγράφηκαν σφάλματα.</string>
+    <string name="game_best">Ρεκόρ %1$d</string>
+    <string name="game_over">Αστοχία! Πάτησε για να ξαναπαίξεις</string>
+    <string name="game_start">Πάτα για να πηδάς πάνω από τα αρχεία όσο ελέγχεται ο χώρος</string>
+    <string name="an_dup_pending">Ακόμα ψάχνω για διπλότυπα και αντίγραφα αρχείων…</string>
 </resources>

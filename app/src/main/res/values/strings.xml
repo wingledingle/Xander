@@ -617,4 +617,11 @@
     <string name="shizuku_done">All set: Android/data and Android/obb open without root.</string>
     <string name="open_android_data">Open Android/data</string>
     <string name="privacy_policy">Privacy policy</string>
+    <string name="crash_reports">Crash reports</string>
+    <string name="crash_reports_summary">Why the app last closed unexpectedly, if it did</string>
+    <string name="crash_reports_empty">No crashes recorded.</string>
+    <string name="game_best">Best %1$d</string>
+    <string name="game_over">Missed! Tap to play again</string>
+    <string name="game_start">Tap to jump over the files while storage is scanned</string>
+    <string name="an_dup_pending">Still checking for duplicates and archive copies…</string>
 </resources>

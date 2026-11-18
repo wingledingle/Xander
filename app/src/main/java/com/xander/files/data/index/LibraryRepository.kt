@@ -12,6 +12,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -39,20 +41,28 @@ class LibraryRepository @Inject constructor(
         else -> emptySet()
     }
 
+    // The Games tile counts exactly what the Games list shows (ROMs, game zips, game APKs, disc images, OBBs), which
+    // needs zips and APKs looked into: worked out off the main thread whenever the index changes (zip answers are cached).
+    private val gameStats: Flow<LibraryStat?> = dao.observeFileCount().mapLatest { _ ->
+        withContext(Dispatchers.IO) { runCatching { gameRows() }.getOrNull()?.let { r -> LibraryStat(LibraryKind.GAMES, r.size, r.sumOf { it.size }) } }
+    }.onStart { emit(null) }
+
+    private suspend fun gameRows() = (dao.byCategory(FileCategory.GAME.name) + dao.obbFiles() + gameApks() + gameDiscImages() + romZips()).distinctBy { it.path }
+
     val stats: Flow<List<LibraryStat>> = combine(
         dao.observeCategoryStats(),
         combine(dao.observeDownloadCount(downloadDir), dao.observeDownloadSize(downloadDir)) { c, s -> c to s },
         dao.observeLargeCount(LARGE_FILE), dao.observeLargeSize(LARGE_FILE),
-        combine(dao.observeObbStats(), nsfw.observeFlagged()) { o, a -> o to a },
+        combine(dao.observeObbStats(), nsfw.observeFlagged(), gameStats) { o, a, g -> Triple(o, a, g) },
     ) { cats, dl, lc, ls, extra ->
         val (dc, ds) = dl
-        val (obb, adult) = extra
+        val (obb, adult, games) = extra
         val byCat = cats.associateBy { it.category }
         fun sum(k: LibraryKind) = categoriesOf(k).map { byCat[it.name] }.let { l -> LibraryStat(k, l.sumOf { it?.count ?: 0 }, l.sumOf { it?.size ?: 0 }) }
         listOf(
             sum(LibraryKind.IMAGES), sum(LibraryKind.VIDEOS), sum(LibraryKind.MUSIC), sum(LibraryKind.DOCUMENTS),
             sum(LibraryKind.APKS), sum(LibraryKind.ARCHIVES),
-            sum(LibraryKind.GAMES).let { it.copy(count = it.count + obb.count, size = it.size + obb.size) },
+            games ?: sum(LibraryKind.GAMES).let { it.copy(count = it.count + obb.count, size = it.size + obb.size) },
             LibraryStat(LibraryKind.ADULT, adult.count, adult.size),
             LibraryStat(LibraryKind.DOWNLOADS, dc, ds), LibraryStat(LibraryKind.LARGE, lc, ls),
         )
@@ -61,9 +71,10 @@ class LibraryRepository @Inject constructor(
     private val gameApkCache = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
 
     /** APK files whose manifest declares them as games (cached per path + mtime). */
-    /** Zips that hold a GBA game (they open in Oleander). */
+    /** Zips that hold a game for any console (GBA ones also open in Oleander). */
     private suspend fun romZips(): List<FileIndexEntity> = dao.byCategory(FileCategory.ARCHIVE.name)
-        .filter { it.name.endsWith(".zip", true) && com.xander.files.modules.SharedIndex.isGbaZip(context, java.io.File(it.path)) }
+        .filter { it.name.endsWith(".zip", true) && com.xander.files.modules.SharedIndex.zipKind(context, java.io.File(it.path)).let { k ->
+            k == com.xander.files.modules.SharedIndex.ZipKind.GBA || k == com.xander.files.modules.SharedIndex.ZipKind.GAME } }
 
     private fun gameApks(): List<FileIndexEntity> = kotlinx.coroutines.runBlocking { dao.byCategory(FileCategory.APK.name) }.filter { e ->
         gameApkCache.getOrPut("${e.path}|${e.modified}") {
@@ -92,7 +103,7 @@ class LibraryRepository @Inject constructor(
             LibraryKind.DOWNLOADS -> dao.under(downloadDir)
             LibraryKind.RECENT -> dao.recent(System.currentTimeMillis() - recentDays * 86_400_000L)
             LibraryKind.LARGE -> dao.large(LARGE_FILE)
-            LibraryKind.GAMES -> (dao.byCategory(FileCategory.GAME.name) + dao.obbFiles() + gameApks() + gameDiscImages() + romZips()).distinctBy { it.path }.sortedByDescending { it.modified }
+            LibraryKind.GAMES -> gameRows().sortedByDescending { it.modified }
             LibraryKind.ADULT -> nsfw.flaggedPaths().mapNotNull { dao.get(it) }
             else -> categoriesOf(kind).flatMap { dao.byCategory(it.name) }.sortedByDescending { it.modified }
         }

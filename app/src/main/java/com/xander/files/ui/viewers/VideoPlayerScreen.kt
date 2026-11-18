@@ -110,9 +110,13 @@ class VideoPlayerViewModel @Inject constructor(
             }
         })
         viewModelScope.launch {
-            val list = media.siblings(start, setOf(FileCategory.VIDEO)).ifEmpty { listOf(FileEntry(start, false)) }
+            // One listing of the folder gives both the playlist and every video's subtitles. (It used to list the
+            // folder again for each video, so a big folder or a network share took ages before anything played.)
+            val listing = media.folderOf(start)
+            val list = listing.filter { !it.isDirectory && it.category == FileCategory.VIDEO && !it.isHidden }
+                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name }).ifEmpty { listOf(FileEntry(start, false)) }
             playlist.value = list
-            val items = list.map { e -> item(e) }
+            val items = list.map { e -> item(e, listing) }
             val index = list.indexOfFirst { it.path == start }.coerceAtLeast(0)
             player.setMediaItems(items, index, media.position(start))
             player.prepare()
@@ -132,8 +136,8 @@ class VideoPlayerViewModel @Inject constructor(
         }
     }
 
-    private suspend fun item(e: FileEntry): MediaItem {
-        val subs = media.subtitlesFor(e.path).map { s ->
+    private fun item(e: FileEntry, listing: List<FileEntry>): MediaItem {
+        val subs = media.subtitlesIn(listing, e.path).map { s ->
             MediaItem.SubtitleConfiguration.Builder(FsUri.of(s.path))
                 .setMimeType(when (s.extension) { "srt" -> MimeTypes.APPLICATION_SUBRIP; "vtt" -> MimeTypes.TEXT_VTT; "ttml" -> MimeTypes.APPLICATION_TTML; else -> MimeTypes.TEXT_SSA })
                 .setLanguage(s.name.removePrefix(e.name.substringBeforeLast('.')).trim('.').substringBeforeLast('.').ifEmpty { null })

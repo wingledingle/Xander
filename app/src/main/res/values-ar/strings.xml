@@ -625,4 +625,11 @@
     <string name="shizuku_done">تم: يُفتح Android/data وAndroid/obb بدون روت.</string>
     <string name="open_android_data">فتح Android/data</string>
     <string name="privacy_policy">سياسة الخصوصية</string>
+    <string name="crash_reports">تقارير الأعطال</string>
+    <string name="crash_reports_summary">سبب إغلاق التطبيق بشكل غير متوقع إن حدث</string>
+    <string name="crash_reports_empty">لا توجد أعطال مسجّلة.</string>
+    <string name="game_best">الأفضل %1$d</string>
+    <string name="game_over">أخطأت! اضغط للعب مجددًا</string>
+    <string name="game_start">اضغط للقفز فوق الملفات أثناء فحص التخزين</string>
+    <string name="an_dup_pending">ما زال البحث جاريًا عن الملفات المكررة ونسخ الأرشيفات…</string>
 </resources>

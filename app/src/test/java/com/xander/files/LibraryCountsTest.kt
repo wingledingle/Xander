@@ -58,4 +58,14 @@ class LibraryCountsTest {
         dao.pruneUnmounted(listOf("primary"))
         assertEquals(1, count(FileCategory.IMAGE))
     }
+
+    @Test fun zipsOfAnyConsoleCountAsGames() {
+        val ctx = ApplicationProvider.getApplicationContext<android.content.Context>()
+        fun zip(name: String, entry: String) = java.io.File(ctx.cacheDir, name).apply {
+            java.util.zip.ZipOutputStream(outputStream()).use { z -> z.putNextEntry(java.util.zip.ZipEntry(entry)); z.write(ByteArray(64)); z.closeEntry() }
+        }
+        assertEquals(com.xander.files.modules.SharedIndex.ZipKind.GBA, com.xander.files.modules.SharedIndex.zipKind(ctx, zip("a.zip", "Zelda.gba")))
+        assertEquals(com.xander.files.modules.SharedIndex.ZipKind.GAME, com.xander.files.modules.SharedIndex.zipKind(ctx, zip("b.zip", "Mario.nes")))
+        assertEquals(com.xander.files.modules.SharedIndex.ZipKind.NONE, com.xander.files.modules.SharedIndex.zipKind(ctx, zip("c.zip", "notes.xyz")))
+    }
 }

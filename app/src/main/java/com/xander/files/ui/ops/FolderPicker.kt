@@ -1,5 +1,6 @@
 package com.xander.files.ui.ops
 
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -103,7 +104,7 @@ fun FolderPickerDialog(title: String, initial: FsPath?, onDismiss: () -> Unit, o
                 }
             )
         }, bottomBar = {
-            Row(Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp)) {
                 Button(onClick = { path?.let(onPick) }, enabled = path != null, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.select_this_folder)) }
             }
         }) { pad ->

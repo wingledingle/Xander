@@ -1,5 +1,6 @@
 package com.xander.files.ui.viewers
 
+import androidx.compose.foundation.layout.navigationBarsPadding
 import android.annotation.SuppressLint
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -164,7 +165,7 @@ fun BookReaderScreen(onBack: () -> Unit, vm: BookViewModel = hiltViewModel()) {
         )
     }, bottomBar = {
         book?.let { b ->
-            Row(Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(enabled = chapter > 0, onClick = { vm.go(chapter - 1) }) { Icon(Icons.AutoMirrored.Filled.NavigateBefore, stringResource(R.string.previous)) }
                 Text("${chapter + 1} / ${b.chapters.size}", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 IconButton(enabled = chapter < b.chapters.lastIndex, onClick = { vm.go(chapter + 1) }) { Icon(Icons.AutoMirrored.Filled.NavigateNext, stringResource(R.string.next)) }

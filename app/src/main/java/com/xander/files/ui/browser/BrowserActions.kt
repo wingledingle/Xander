@@ -1,5 +1,6 @@
 package com.xander.files.ui.browser
 
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -112,7 +113,7 @@ fun entryActions(
 @Composable
 fun PasteBar(top: ClipItem, count: Int, onPaste: () -> Unit, onMore: () -> Unit) {
     Surface(color = MaterialTheme.colorScheme.secondaryContainer, tonalElevation = 3.dp) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(if (top.op == ClipOp.CUT) Icons.Filled.ContentCut else Icons.Filled.ContentCopy, null)
             Column(Modifier.weight(1f).padding(start = 12.dp)) {
                 Text(top.label, style = MaterialTheme.typography.bodyMedium, maxLines = 1)

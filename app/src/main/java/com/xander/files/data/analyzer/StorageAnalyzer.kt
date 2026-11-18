@@ -55,6 +55,8 @@ data class AnalysisResult(
     /** Folders that could not be listed (permission, restricted Android/data, I/O errors). */
     val unreadable: List<Pair<FsPath, String>> = emptyList(),
     val finishedAt: Long = System.currentTimeMillis(),
+    /** True while duplicates and archive copies are still being worked out (everything else is final). */
+    val extrasPending: Boolean = false,
 ) {
     fun largestFolders(n: Int = 100) = folderTree.values.filter { it.path != root }.sortedByDescending { it.size }.take(n)
 }
@@ -75,7 +77,11 @@ class StorageAnalyzer @Inject constructor(
     @Volatile var last: AnalysisResult? = null
         private set
 
-    suspend fun analyze(root: FsPath): AnalysisResult = withContext(Dispatchers.IO) {
+    /**
+     * [onWalked] gets the result as soon as the walk is done (sizes, categories, largest, folders, junk), so it can be
+     * shown while duplicates (reads file contents) and archive copies (opens archives), the slow part, are found.
+     */
+    suspend fun analyze(root: FsPath, onWalked: (AnalysisResult) -> Unit = {}): AnalysisResult = withContext(Dispatchers.IO) {
         val provider = registry.provider(root)
         val cats = HashMap<FileCategory, LongArray>()
         val largest = PriorityQueue<FileEntry>(11, compareBy { it.size }) // (Comparator) alone is Android 7+
@@ -139,22 +145,27 @@ class StorageAnalyzer @Inject constructor(
             junk += runCatching { appCaches(provider, primary) }.getOrDefault(emptyList())
         }
         val tree = sizes.keys.associateWith { FolderNode(it, sizes[it] ?: 0, counts[it] ?: 0, kids[it].orEmpty().sortedByDescending { k -> sizes[k] ?: 0 }) }
-        val dups = duplicates(provider, bySize)
         val space = provider.spaceInfo(root)
-        val result = AnalysisResult(
+        val walked = AnalysisResult(
             root = root, totalBytes = total, files = files, folders = folders,
             volumeTotal = space?.total ?: 0, volumeFree = space?.free ?: 0,
             categories = cats.map { (c, v) -> CategoryUsage(c, v[0].toInt(), v[1]) }.sortedByDescending { it.size },
             largest = largest.toList().sortedByDescending { it.size },
             folderTree = tree,
             recent = recent.sortedByDescending { it.lastModified }.take(300),
-            duplicates = dups,
+            duplicates = emptyList(),
             emptyFolders = empty.sortedBy { it.path.path },
             junk = junk.distinctBy { it.entry.path }.sortedByDescending { it.size },
             oldApks = oldApks(apks),
             allFiles = all,
             unreadable = unreadable,
+            extrasPending = true,
+        )
+        onWalked(walked)
+        val result = walked.copy(
+            duplicates = duplicates(provider, bySize),
             archiveCopies = if (root.isLocal) runCatching { ArchiveCopyFinder.find(bySize.values.flatten(), sizes) { i, n, name -> _progress.value = AnalyzerProgress("archives", i, n.toLong(), name) } }.getOrDefault(emptyList()) else emptyList(),
+            extrasPending = false, finishedAt = System.currentTimeMillis(),
         )
         _progress.value = null
         last = result

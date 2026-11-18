@@ -34,14 +34,14 @@ object SharedIndex {
         return (plain + zips).filter { it.canRead() }
     }
 
-    /** What a zip holds that a module can open: a GBA game (Oleander) or a book (Quinten). */
-    enum class ZipKind { GBA, BOOK, NONE }
+    /** What a zip holds: a GBA game (Oleander), a game for another console, a book (Quinten), or nothing of those. */
+    enum class ZipKind { GBA, GAME, BOOK, NONE }
 
     private val BOOK = setOf("epub", "pdf", "mobi", "azw", "azw3", "kf8", "prc", "fb2", "djvu", "djv", "txt", "rtf", "doc", "docx", "cbz", "cbr")
 
     /** Answers are cached by path, size and date, so rescans and taps are cheap. */
     @JvmStatic fun zipKind(c: Context, f: File): ZipKind {
-        val prefs = c.getSharedPreferences("shared_index_zips2", Context.MODE_PRIVATE)
+        val prefs = c.getSharedPreferences("shared_index_zips3", Context.MODE_PRIVATE) // 3: adds GAME
         val stamp = "${f.length()}:${f.lastModified()}"
         prefs.getString(f.path, null)?.let { v -> if (v.substringBeforeLast(':') == stamp) return runCatching { ZipKind.valueOf(v.substringAfterLast(':')) }.getOrDefault(ZipKind.NONE) }
         val kind = runCatching {
@@ -51,6 +51,7 @@ object SharedIndex {
                 // A book zip: its largest file is the book (so a program's zip with a readme.txt is not one).
                 when {
                     files.any { ext(it) in GBA } -> ZipKind.GBA
+                    files.any { FileCategory.of(it.name.substringAfterLast('/')) == FileCategory.GAME } -> ZipKind.GAME
                     files.maxByOrNull { it.size }?.let { ext(it) in BOOK } == true -> ZipKind.BOOK
                     else -> ZipKind.NONE
                 }

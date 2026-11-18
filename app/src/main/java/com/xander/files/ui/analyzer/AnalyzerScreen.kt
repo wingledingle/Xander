@@ -127,7 +127,7 @@ class AnalyzerViewModel @Inject constructor(
         job?.cancel()
         job = viewModelScope.launch {
             running.value = true; selection.value = emptySet(); error.value = null
-            try { result.value = analyzer.analyze(r); folder.value = r }
+            try { result.value = analyzer.analyze(r) { walked -> result.value = walked; folder.value = r }; folder.value = r }
             catch (e: kotlinx.coroutines.CancellationException) { throw e }
             catch (e: Throwable) { error.value = e.message ?: e.javaClass.simpleName }
             finally { running.value = false }
@@ -193,6 +193,14 @@ fun AnalyzerScreen(onBack: () -> Unit, onOpenFolder: (FsPath) -> Unit, vm: Analy
                     val dev = FsPath(FsPath.SCHEME_ROOT, "", "/")
                     FilterChip(root == dev, { vm.setRoot(dev) }, label = { Text(stringResource(R.string.root_folder)) })
                 }
+            }
+            if (running && r == null) {
+                // The walk takes a while on a full phone: something to play meanwhile, with the progress above it.
+                Column(Modifier.fillMaxSize()) {
+                    progress?.let { p -> Text(stringResource(R.string.an_scanning, p.files, Format.size(p.bytes)), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(16.dp, 8.dp)) }
+                    WaitingGame(Modifier.fillMaxWidth().weight(1f))
+                }
+                return@Column
             }
             if (running) {
                 LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 8.dp))
@@ -406,6 +414,10 @@ private fun FolderTree(r: AnalysisResult, vm: AnalyzerViewModel, onOpenFolder: (
 @Composable
 private fun Duplicates(r: AnalysisResult, sel: Set<FsPath>, vm: AnalyzerViewModel) {
     Column {
+        if (r.extrasPending) Row(Modifier.fillMaxWidth().padding(16.dp, 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+            Text(stringResource(R.string.an_dup_pending), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 12.dp))
+        }
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.an_dup_summary, r.duplicates.size, Format.size(r.duplicates.sumOf { it.wasted })), style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f).padding(start = 8.dp))
             // Keep the first copy in every group, select the rest.

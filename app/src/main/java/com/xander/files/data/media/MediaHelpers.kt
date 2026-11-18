@@ -36,8 +36,15 @@ class MediaLibraryHelper @Inject constructor(
     /** Subtitle files next to a video: same base name with .srt/.vtt/.ass/.ssa (optionally .lang.srt). */
     suspend fun subtitlesFor(video: FsPath): List<FileEntry> {
         val parent = video.parent ?: return emptyList()
-        val base = video.name.substringBeforeLast('.')
-        return runCatching { registry.provider(parent).list(parent) }.getOrDefault(emptyList())
-            .filter { !it.isDirectory && it.extension in setOf("srt", "vtt", "ass", "ssa", "ttml") && it.name.startsWith(base) }
+        return subtitlesIn(runCatching { registry.provider(parent).list(parent) }.getOrDefault(emptyList()), video)
     }
+
+    /** Subtitle files for [video] among an already listed folder (no extra listing). */
+    fun subtitlesIn(listing: List<FileEntry>, video: FsPath): List<FileEntry> {
+        val base = video.name.substringBeforeLast('.')
+        return listing.filter { !it.isDirectory && it.extension in setOf("srt", "vtt", "ass", "ssa", "ttml") && it.name.startsWith(base) }
+    }
+
+    /** The folder of [path], listed once. */
+    suspend fun folderOf(path: FsPath): List<FileEntry> = path.parent?.let { p -> runCatching { registry.provider(p).list(p) }.getOrDefault(emptyList()) } ?: emptyList()
 }
