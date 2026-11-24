@@ -217,7 +217,7 @@ private fun DeviceRow(d: BtDevice, status: String?, onClick: () -> Unit, onUnpai
         headlineContent = { Text(d.name) },
         supportingContent = { Text(status ?: d.address) },
         trailingContent = onUnpair?.let { un -> {
-            IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, null) }
+            IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, androidx.compose.ui.res.stringResource(com.xander.files.R.string.more)) }
             DropdownMenu(menu, { menu = false }) { DropdownMenuItem(text = { Text(stringResource(R.string.bt_unpair)) }, onClick = { menu = false; un() }) }
         } })
 }

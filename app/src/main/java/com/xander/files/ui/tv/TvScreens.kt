@@ -143,7 +143,7 @@ fun TvListScreen(onBack: () -> Unit, onOpen: (String) -> Unit, vm: TvListViewMod
                     ListItem(modifier = Modifier.clickable { onOpen(d.id) }, leadingContent = { Icon(Icons.Filled.Tv, null) }, headlineContent = { Text(d.name) },
                         supportingContent = { Text("${d.host}:${d.port}") },
                         trailingContent = {
-                            IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, null) }
+                            IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, androidx.compose.ui.res.stringResource(com.xander.files.R.string.more)) }
                             DropdownMenu(menu, { menu = false }) { DropdownMenuItem(text = { Text(stringResource(R.string.tv_forget)) }, onClick = { menu = false; vm.forget(d.id) }) }
                         })
                 }
@@ -304,7 +304,7 @@ private fun AppsTab(vm: TvDeviceViewModel) {
                     headlineContent = { Text(a.label) },
                     supportingContent = { Text("${a.versionName} · ${Format.size(a.sizeBytes)}") },
                     trailingContent = {
-                        IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, null) }
+                        IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, androidx.compose.ui.res.stringResource(com.xander.files.R.string.more)) }
                         DropdownMenu(menu, { menu = false }) {
                             if (a.launchable) DropdownMenuItem(text = { Text(stringResource(R.string.tv_launch)) }, onClick = { menu = false; vm.launch(a.packageName) })
                             DropdownMenuItem(text = { Text(stringResource(R.string.tv_backup_apk)) }, onClick = { menu = false; vm.backup(a) })

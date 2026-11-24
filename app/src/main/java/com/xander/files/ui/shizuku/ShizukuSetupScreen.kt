@@ -99,7 +99,7 @@ fun ShizukuSetupScreen(onBack: () -> Unit, onOpenData: () -> Unit, vm: ShizukuSe
                 if (Build.VERSION.SDK_INT >= 30) {
                     if (!devOn) {
                         Text(stringResource(R.string.shizuku_dev_options))
-                        BigButton(stringResource(R.string.open_about_phone), outlined = true) { ctx.startActivity(Intent(Settings.ACTION_DEVICE_INFO_SETTINGS)) }
+                        BigButton(stringResource(R.string.open_about_phone), outlined = true) { runCatching { ctx.startActivity(Intent(Settings.ACTION_DEVICE_INFO_SETTINGS)) }.onFailure { runCatching { ctx.startActivity(Intent(Settings.ACTION_SETTINGS)) } } }
                     }
                     Text(stringResource(R.string.shizuku_start_body))
                     BigButton(stringResource(R.string.open_shizuku)) { ctx.packageManager.getLaunchIntentForPackage(SHIZUKU_PKG)?.let(ctx::startActivity) }

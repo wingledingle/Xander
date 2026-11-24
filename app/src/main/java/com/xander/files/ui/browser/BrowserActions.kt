@@ -63,7 +63,7 @@ fun entryActions(
 ): List<SheetAction> {
     val single = entries.singleOrNull()
     val anyHidden = entries.any { it.isHidden }
-    val inArchive = entries.first().path.scheme == com.xander.files.domain.fs.FsPath.SCHEME_ARCHIVE
+    val inArchive = entries.firstOrNull()?.path?.scheme == com.xander.files.domain.fs.FsPath.SCHEME_ARCHIVE
     val archivesSelected = entries.all { !it.isDirectory && com.xander.files.data.archive.ArchiveFormats.detect(it.name, null) != com.xander.files.data.archive.ArchiveFormat.UNKNOWN }
     return buildList {
         if (single != null && single.isDirectory && onOpenInNewTab != null) add(SheetAction(Icons.Filled.Tab, stringResource(R.string.open_in_new_tab)) { onOpenInNewTab(single.path) })

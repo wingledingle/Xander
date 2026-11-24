@@ -124,7 +124,6 @@ class NsfwScanWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val index: FileIndexDao,
     private val dao: NsfwDao,
-    private val scorer: NsfwScorer,
     private val settings: SettingsRepository,
     private val indexer: com.xander.files.data.index.FileIndexer,
     private val repo: NsfwRepository,
@@ -161,6 +160,12 @@ class NsfwScanWorker @AssistedInject constructor(
             log("the last scan stopped on $bad (the app was closed or crashed there); skipping that file from now on")
             index.get(bad)?.let { dao.upsert(NsfwScoreEntity(bad, it.size, it.modified, 0f, 0f, 1f, 0f, 0f)) }
         }
+        val client = NsfwScoringClient(applicationContext)
+        try { return scanAll(media, all, s, current, client, log) } finally { client.close() }
+    }
+
+    private suspend fun scanAll(media: List<com.xander.files.data.db.FileIndexEntity>, all: Boolean, s: com.xander.files.data.settings.AppSettings,
+                                current: File, client: NsfwScoringClient, log: (String) -> Unit): Result {
         runCatching { setForeground(notification(0, media.size)) } // not allowed while the app is in the background on Android 12+; keep going
         var done = 0
         var scored = 0
@@ -182,7 +187,12 @@ class NsfwScanWorker @AssistedInject constructor(
             if (!f.canRead()) continue
             if (!all) dao.get(m.path)?.let { if (it.size == m.size && it.modified == m.modified) continue }
             runCatching { current.writeText(m.path) }
-            val res = runCatching { if (m.category == "IMAGE") scorer.image(f) else scorer.video(f) }
+            val res = runCatching { client.score(f, video = m.category != "IMAGE") }
+            if (res.exceptionOrNull() is NsfwScoringClient.Crashed) {
+                // Recorded as scanned and not flagged, so it is never tried again.
+                log("the decoder crashed on ${m.path}; skipped")
+                dao.upsert(NsfwScoreEntity(m.path, m.size, m.modified, 0f, 0f, 1f, 0f, 0f)); current.delete(); continue
+            }
             res.exceptionOrNull()?.let { e -> if (++failed <= 5) log("error on ${m.path}: ${android.util.Log.getStackTraceString(e).take(1500)}") }
             val r = res.getOrNull() ?: continue
             dao.upsert(NsfwScoreEntity(m.path, m.size, m.modified, r.drawings, r.hentai, r.neutral, r.porn, r.sexy))

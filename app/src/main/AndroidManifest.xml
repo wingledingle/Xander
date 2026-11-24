@@ -67,6 +67,11 @@
             </intent-filter>
         </activity>
 
+        <service
+            android:name=".data.nsfw.NsfwScoringService"
+            android:process=":nsfw"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.files"

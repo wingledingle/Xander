@@ -254,7 +254,7 @@ fun BrowserPane(
                             }
                         }
                         Box {
-                            IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, null) }
+                            IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, androidx.compose.ui.res.stringResource(com.xander.files.R.string.more)) }
                             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                                 DropdownMenuItem(
                                     text = { Text(stringResource(if (settings.showHidden) R.string.hide_hidden else R.string.show_hidden)) },

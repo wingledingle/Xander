@@ -68,7 +68,7 @@ fun SearchScreen(onBack: () -> Unit, onOpenFolder: (FsPath) -> Unit, vm: SearchV
                     value = s.text, onValueChange = vm::setText, singleLine = true,
                     placeholder = { Text(stringResource(if (s.everywhere) R.string.search_everywhere else R.string.search_here)) },
                     leadingIcon = { Icon(Icons.Filled.Search, null) },
-                    trailingIcon = { if (s.text.isNotEmpty()) IconButton(onClick = { vm.setText("") }) { Icon(Icons.Filled.Clear, null) } },
+                    trailingIcon = { if (s.text.isNotEmpty()) IconButton(onClick = { vm.setText("") }) { Icon(Icons.Filled.Clear, androidx.compose.ui.res.stringResource(com.xander.files.R.string.clear)) } },
                     colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
                         focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
                     modifier = Modifier.fillMaxWidth().focusRequester(focus)

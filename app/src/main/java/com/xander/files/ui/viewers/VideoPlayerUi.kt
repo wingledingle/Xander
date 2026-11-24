@@ -136,7 +136,7 @@ fun VideoPlayerScreen(onBack: () -> Unit, castButton: @Composable () -> Unit = {
     var menu by remember { mutableStateOf<String?>(null) }
     var speed by remember { mutableFloatStateOf(1f) }
     var orientationLock by remember { mutableIntStateOf(0) } // 0 auto, 1 landscape, 2 portrait
-    var buffering by remember { mutableStateOf(true) }
+    var buffering by remember { mutableStateOf(player.playbackState == Player.STATE_BUFFERING || player.playbackState == Player.STATE_IDLE) }
     var level by remember { mutableStateOf<Pair<ImageVector, Float>?>(null) } // brightness/volume bar while dragging
     var seekSide by remember { mutableIntStateOf(0) }   // -1/+1: which side was double-tapped, for the ripple
     var boosted by remember { mutableStateOf(false) }  // long-press = 2x while held

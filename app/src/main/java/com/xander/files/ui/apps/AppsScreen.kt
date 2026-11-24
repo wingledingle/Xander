@@ -163,7 +163,7 @@ fun AppsScreen(onBack: () -> Unit, vm: AppsViewModel = hiltViewModel()) {
     Scaffold(topBar = {
         Column {
             if (sel.isNotEmpty()) TopAppBar(
-                navigationIcon = { IconButton(onClick = vm::clear) { Icon(Icons.Filled.Close, null) } },
+                navigationIcon = { IconButton(onClick = vm::clear) { Icon(Icons.Filled.Close, androidx.compose.ui.res.stringResource(com.xander.files.R.string.cancel)) } },
                 title = { Text("${sel.size}") },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                 actions = {

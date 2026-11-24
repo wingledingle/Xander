@@ -139,7 +139,7 @@ private fun TabStrip(
         // Single window on a phone: keep the chrome minimal, just a "new tab" affordance.
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f))
-            IconButton(onClick = onNew, modifier = Modifier.size(36.dp)) { Icon(Icons.Filled.Add, stringResource(R.string.new_tab)) }
+            IconButton(onClick = onNew, modifier = Modifier.size(48.dp)) { Icon(Icons.Filled.Add, stringResource(R.string.new_tab)) }
         }
         return
     }
@@ -157,8 +157,8 @@ private fun TabStrip(
                 }
             }
         }
-        IconButton(onClick = onNew, modifier = Modifier.size(36.dp)) { Icon(Icons.Filled.Add, stringResource(R.string.new_tab)) }
-        if (wide) IconButton(onClick = onToggleDual, modifier = Modifier.size(36.dp).background(if (dual) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))) {
+        IconButton(onClick = onNew, modifier = Modifier.size(48.dp)) { Icon(Icons.Filled.Add, stringResource(R.string.new_tab)) }
+        if (wide) IconButton(onClick = onToggleDual, modifier = Modifier.size(48.dp).background(if (dual) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))) {
             Icon(Icons.Filled.VerticalSplit, stringResource(R.string.dual_pane))
         }
     }

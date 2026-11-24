@@ -196,7 +196,7 @@ fun LibraryScreen(onBack: () -> Unit, onOpenFolder: (FsPath) -> Unit, vm: Librar
     androidx.activity.compose.BackHandler(enabled = sel.isNotEmpty()) { vm.clear() }
     Scaffold(topBar = {
         if (sel.isNotEmpty()) TopAppBar(
-            navigationIcon = { IconButton(onClick = vm::clear) { Icon(Icons.Filled.Close, null) } },
+            navigationIcon = { IconButton(onClick = vm::clear) { Icon(Icons.Filled.Close, androidx.compose.ui.res.stringResource(com.xander.files.R.string.cancel)) } },
             title = { Text("${sel.size}") },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
             actions = {

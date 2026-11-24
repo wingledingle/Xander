@@ -84,5 +84,5 @@ class FileOpener @Inject constructor(
 
     fun safeStart(intent: Intent): Boolean = try {
         context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); true
-    } catch (e: ActivityNotFoundException) { false }
+    } catch (e: Exception) { false } // not only "no app": a SecurityException from a non-exported activity too
 }

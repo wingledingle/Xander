@@ -69,7 +69,7 @@ fun OnboardingScreen(onGranted: () -> Unit) {
             } else legacy.launch(StorageAccess.legacyPermissions)
         }) { Text(stringResource(R.string.grant_access)) }
         Spacer(Modifier.height(8.dp))
-        OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { context.startActivity(StorageAccess.appDetailsIntent(context)) }) {
+        OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { runCatching { context.startActivity(StorageAccess.appDetailsIntent(context)) } }) {
             Text(stringResource(R.string.open_app_settings))
         }
     }

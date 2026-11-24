@@ -578,6 +578,7 @@
     <string name="an_part_files">Files found (%d)</string>
     <string name="an_part_apps">Apps and app data</string>
     <string name="an_part_apps_unknown">Apps and app data: not measured. Allow Usage access (Shizuku does it for you)</string>
+    <string name="an_part_rest_card">Other (unreadable folders, file system overhead)</string>
     <string name="an_part_system">Android system</string>
     <string name="an_part_rest">Other (temporary system files, other users)</string>
     <string name="an_part_rest_unmeasured">Apps, app data and system files (allow Usage access to split this up)</string>

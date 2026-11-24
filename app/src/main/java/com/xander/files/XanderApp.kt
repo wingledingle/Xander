@@ -39,6 +39,8 @@ class XanderApp : Application(), SingletonImageLoader.Factory, Configuration.Pro
 
     override fun onCreate() {
         super.onCreate()
+        // The adult-detection scorer runs in its own process (":nsfw"); none of the app's start-up work belongs there.
+        if (processName().contains(':')) return
         com.xander.files.modules.Modules.context = this
         Shell.enableVerboseLogging = BuildConfig.DEBUG
         appScope.launch { runCatching { transfers.scrubPasswords() } }
@@ -104,4 +106,7 @@ class XanderApp : Application(), SingletonImageLoader.Factory, Configuration.Pro
             .memoryCache { MemoryCache.Builder().maxSizePercent(context, 0.2).build() }
             .crossfade(true)
             .build()
+
+    private fun processName(): String = if (android.os.Build.VERSION.SDK_INT >= 28) getProcessName()
+        else runCatching { java.io.File("/proc/self/cmdline").readText().trimEnd('\u0000') }.getOrDefault(packageName)
 }

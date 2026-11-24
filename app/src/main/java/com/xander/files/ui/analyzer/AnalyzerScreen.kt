@@ -273,7 +273,7 @@ private fun Overview(r: AnalysisResult, vm: AnalyzerViewModel) {
                     TextButton(onClick = { runCatching { ctx.startActivity(vm.usageAccessIntent()) } }) { Text(stringResource(R.string.grant)) }
                 }
                 if (sys > 0) SpaceRow(stringResource(R.string.an_part_system), sys)
-                SpaceRow(stringResource(if (apps != null) R.string.an_part_rest else R.string.an_part_rest_unmeasured), (used - sys - files - (apps ?: 0)).coerceAtLeast(0))
+                SpaceRow(stringResource(if (!primary) R.string.an_part_rest_card else if (apps != null) R.string.an_part_rest else R.string.an_part_rest_unmeasured), (used - sys - files - (apps ?: 0)).coerceAtLeast(0))
                 if (r.unreadable.isNotEmpty()) {
                     Text(stringResource(R.string.an_blocked, r.unreadable.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp))
                     Row {

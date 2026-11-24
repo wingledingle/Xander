@@ -195,7 +195,7 @@ fun TextEditorScreen(onBack: () -> Unit, vm: TextEditorViewModel = hiltViewModel
                     if (saving) CircularProgressIndicator(Modifier.padding(8.dp)) else Icon(Icons.Filled.Save, stringResource(R.string.save))
                 }
                 Box {
-                    IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, null) }
+                    IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, androidx.compose.ui.res.stringResource(com.xander.files.R.string.more)) }
                     DropdownMenu(menu, { menu = false }) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.save_as)) }, onClick = { menu = false; saveAsDir = true })
                         DropdownMenuItem(text = { Text(stringResource(R.string.word_wrap)) }, leadingIcon = { Icon(Icons.AutoMirrored.Filled.WrapText, null) }, trailingIcon = { Checkbox(wrap, null) }, onClick = { wrap = !wrap })
@@ -216,8 +216,8 @@ fun TextEditorScreen(onBack: () -> Unit, vm: TextEditorViewModel = hiltViewModel
                 "large" -> Surface(color = colors.secondaryContainer) {
                     Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.large_file_hint), Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                        IconButton(enabled = d.page > 0, onClick = { vm.load(d.page - 1, d.encoding) }) { Icon(Icons.Filled.KeyboardArrowUp, null) }
-                        IconButton(enabled = d.page < d.pages - 1, onClick = { vm.load(d.page + 1, d.encoding) }) { Icon(Icons.Filled.KeyboardArrowDown, null) }
+                        IconButton(enabled = d.page > 0, onClick = { vm.load(d.page - 1, d.encoding) }) { Icon(Icons.Filled.KeyboardArrowUp, androidx.compose.ui.res.stringResource(com.xander.files.R.string.previous)) }
+                        IconButton(enabled = d.page < d.pages - 1, onClick = { vm.load(d.page + 1, d.encoding) }) { Icon(Icons.Filled.KeyboardArrowDown, androidx.compose.ui.res.stringResource(com.xander.files.R.string.next)) }
                         if (d.size <= TextEditorViewModel.HARD_LIMIT) TextButton(onClick = { vm.load(0, d.encoding, forceEdit = true) }) { Text(stringResource(R.string.edit_anyway)) }
                     }
                 }
@@ -308,9 +308,9 @@ private fun FindReplaceBar(editor: CodeEditText, editable: Boolean, onClose: () 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(find, { find = it }, singleLine = true, label = { Text(stringResource(R.string.find)) }, modifier = Modifier.weight(1f))
                 Text(info, Modifier.padding(horizontal = 4.dp), style = MaterialTheme.typography.labelSmall)
-                IconButton(onClick = { findNext(true) }) { Icon(Icons.Filled.KeyboardArrowUp, null) }
-                IconButton(onClick = { findNext(false) }) { Icon(Icons.Filled.KeyboardArrowDown, null) }
-                IconButton(onClick = onClose) { Icon(Icons.Filled.Close, null) }
+                IconButton(onClick = { findNext(true) }) { Icon(Icons.Filled.KeyboardArrowUp, androidx.compose.ui.res.stringResource(com.xander.files.R.string.previous)) }
+                IconButton(onClick = { findNext(false) }) { Icon(Icons.Filled.KeyboardArrowDown, androidx.compose.ui.res.stringResource(com.xander.files.R.string.next)) }
+                IconButton(onClick = onClose) { Icon(Icons.Filled.Close, androidx.compose.ui.res.stringResource(com.xander.files.R.string.cancel)) }
             }
             if (editable) Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(replace, { replace = it }, singleLine = true, label = { Text(stringResource(R.string.replace_with)) }, modifier = Modifier.weight(1f))
