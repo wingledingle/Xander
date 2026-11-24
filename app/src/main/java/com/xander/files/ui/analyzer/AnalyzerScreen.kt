@@ -126,6 +126,12 @@ class AnalyzerViewModel @Inject constructor(
     private var job: Job? = null
 
     init {
+        // Shizuku allowed or started while (or after) a scan found blocked folders: scan again so they are counted.
+        viewModelScope.launch {
+            shizuku.state.collect { st ->
+                if (st == com.xander.files.data.fs.shizuku.ShizukuState.READY && !running.value && result.value?.unreadable?.isNotEmpty() == true) scan()
+            }
+        }
         viewModelScope.launch(Dispatchers.IO) {
             volumes.value = storage.volumes()
             if (root.value == null) { root.value = volumes.value.firstOrNull()?.root; scan() }
@@ -276,6 +282,11 @@ private fun Overview(r: AnalysisResult, vm: AnalyzerViewModel) {
                 SpaceRow(stringResource(if (!primary) R.string.an_part_rest_card else if (apps != null) R.string.an_part_rest else R.string.an_part_rest_unmeasured), (used - sys - files - (apps ?: 0)).coerceAtLeast(0))
                 if (r.unreadable.isNotEmpty()) {
                     Text(stringResource(R.string.an_blocked, r.unreadable.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp))
+                    // The actual folders and why, not an example.
+                    r.unreadable.take(5).forEach { (p, why) ->
+                        Text("• ${p.path.removePrefix(r.root.path).ifEmpty { "/" }.trimStart('/').ifEmpty { p.path }}: $why", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
                     Row {
                         TextButton(onClick = vm::unlockShizuku) { Text(stringResource(R.string.use_shizuku)) }
                         TextButton(onClick = vm::unlockRoot) { Text(stringResource(R.string.use_root)) }

@@ -582,7 +582,7 @@
     <string name="an_part_system">Android system</string>
     <string name="an_part_rest">Other (temporary system files, other users)</string>
     <string name="an_part_rest_unmeasured">Apps, app data and system files (allow Usage access to split this up)</string>
-    <string name="an_blocked">%d folders were blocked and not counted (e.g. Android/data). Unlock them, then rescan:</string>
+    <string name="an_blocked">%d folders could not be read, so their files are missing from the totals:</string>
     <string name="module_oleander" translatable="false">Oleander</string>
     <string name="module_oleander_summary">Game Boy Advance emulator</string>
     <string name="module_quinten" translatable="false">Quinten Reader</string>

@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import rikka.shizuku.Shizuku
@@ -93,6 +94,22 @@ class ShizukuFileSystemProvider @Inject constructor(
 
     fun isAvailable(): Boolean { refresh(); return _state.value == ShizukuState.READY }
 
+    @Volatile private var waitedForBinder = false
+
+    /**
+     * Like [isAvailable], but right after the app starts Shizuku's binder arrives a moment late: wait for it (once, up
+     * to 3 s) instead of reporting "not running", which made a scan started at once call Android/data unreadable.
+     */
+    suspend fun awaitAvailable(): Boolean {
+        if (isAvailable()) return true
+        if (waitedForBinder || _state.value == ShizukuState.NOT_INSTALLED || _state.value == ShizukuState.UNSUPPORTED) return false
+        waitedForBinder = true
+        repeat(30) { kotlinx.coroutines.delay(100); if (isAvailable()) return true }
+        return false
+    }
+
+    private val bindLock = kotlinx.coroutines.sync.Mutex()
+
     suspend fun requestPermission(): Boolean {
         refresh()
         if (_state.value == ShizukuState.READY) return true
@@ -113,13 +130,14 @@ class ShizukuFileSystemProvider @Inject constructor(
     /** Runs [command] with shell (ADB) privileges, e.g. `sm unmount`. */
     suspend fun exec(command: String): String = withContext(Dispatchers.IO) { svc().exec(command) }
 
-    private suspend fun svc(): IFileService {
-        service?.let { return it }
-        if (!isAvailable()) throw FsException.PermissionDenied(null, IllegalStateException("Shizuku is not running or not authorized"))
+    // One bind at a time: two callers at once used to replace each other's wait, and the first then failed after 10 s.
+    private suspend fun svc(): IFileService = bindLock.withLock {
+        service?.let { return@withLock it }
+        if (!awaitAvailable()) throw FsException.PermissionDenied(null, IllegalStateException("Shizuku is not running or has not allowed Xander"))
         val d = CompletableDeferred<IFileService>()
         pending = d
         withContext(Dispatchers.Main) { Shizuku.bindUserService(args, connection) }
-        return withTimeout(10_000) { d.await() }
+        withTimeout(15_000) { d.await() }
     }
 
     private fun parse(line: String, parent: FsPath): FileEntry? {

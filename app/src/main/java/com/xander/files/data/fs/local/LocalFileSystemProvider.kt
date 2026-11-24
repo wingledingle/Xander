@@ -76,7 +76,7 @@ open class LocalFileSystemProvider @Inject constructor(
         val p = path.path
         if (isRestricted(p)) {
             safRoots.findForLocalPath(p)?.let { (r, rel) -> return FsPath(FsPath.SCHEME_SAF, r.id, rel) }
-            if (shizuku.get().isAvailable()) return path.copy(scheme = FsPath.SCHEME_SHIZUKU)
+            if (shizuku.get().awaitAvailable()) return path.copy(scheme = FsPath.SCHEME_SHIZUKU)
             if (settings.settings.first().rootMode && root.get().isAvailable()) return path.copy(scheme = FsPath.SCHEME_ROOT)
             throw RestrictedFolderException(path)
         }
