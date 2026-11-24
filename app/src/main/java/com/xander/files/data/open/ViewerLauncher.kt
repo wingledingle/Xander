@@ -40,7 +40,9 @@ class ViewerLauncher @Inject constructor(
     private val channel = Channel<OpenRequest>(Channel.BUFFERED)
     val requests = channel.receiveAsFlow()
 
-    suspend fun open(entry: FileEntry, forceKind: ViewerKind? = null) {
+    /** [from]: the list [entry] was tapped in, so viewers swipe through it in the same order. */
+    suspend fun open(entry: FileEntry, forceKind: ViewerKind? = null, from: List<FileEntry>? = null) {
+        media.queue = from
         runCatching { bookmarks.recordOpened(entry) }
         // A module that claimed this extension (e.g. .gsproj → Studio) opens it on tap.
         if (forceKind == null) com.xander.files.modules.Modules.defaultFor(entry)?.let { return channel.send(OpenRequest.Route(com.xander.files.modules.Modules.route(it, entry.path))) }

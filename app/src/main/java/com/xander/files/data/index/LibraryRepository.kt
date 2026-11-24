@@ -98,7 +98,13 @@ class LibraryRepository @Inject constructor(
 
     fun appCount(): Int = runCatching { context.packageManager.getInstalledApplications(PackageManager.GET_META_DATA).size }.getOrDefault(0)
 
-    suspend fun files(kind: LibraryKind, recentDays: Int = 30): List<FileEntry> = withContext(Dispatchers.IO) {
+    /** Last list served per category, so reopening Images or Music shows it at once while it is refreshed. */
+    private val lastFiles = java.util.concurrent.ConcurrentHashMap<LibraryKind, List<FileEntry>>()
+    fun cachedFiles(kind: LibraryKind): List<FileEntry>? = lastFiles[kind]
+
+    suspend fun files(kind: LibraryKind, recentDays: Int = 30): List<FileEntry> = filesUncached(kind, recentDays).also { lastFiles[kind] = it }
+
+    private suspend fun filesUncached(kind: LibraryKind, recentDays: Int): List<FileEntry> = withContext(Dispatchers.IO) {
         val rows: List<FileIndexEntity> = when (kind) {
             LibraryKind.DOWNLOADS -> dao.under(downloadDir)
             LibraryKind.RECENT -> dao.recent(System.currentTimeMillis() - recentDays * 86_400_000L)

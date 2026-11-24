@@ -100,8 +100,18 @@ class AnalyzerViewModel @Inject constructor(
     val error = MutableStateFlow<String?>(null)
     fun usageAccessIntent() = apps.usageAccessIntent()
     fun hasUsageAccess() = apps.hasUsageAccess()
+    /** Android itself (outside the data partition), shown for internal storage. */
+    val systemBytes = MutableStateFlow(0L)
+    val primaryRoot get() = storage.primaryRoot
     fun loadAppBytes() = viewModelScope.launch(Dispatchers.IO) {
-        appBytes.value = if (apps.hasUsageAccess()) runCatching { apps.list().sumOf { it.totalSize ?: it.apkSize } }.getOrNull() else null
+        // Shizuku or root can switch on usage access for us (what "adb shell appops" does), so nobody has to find it in Settings.
+        if (!apps.hasUsageAccess()) {
+            val cmd = "appops set ${com.xander.files.BuildConfig.APPLICATION_ID} GET_USAGE_STATS allow"
+            if (runCatching { shizuku.isAvailable() }.getOrDefault(false)) runCatching { shizuku.exec(cmd) }
+            else if (rootMode.value && runCatching { rootFs.isAvailable() }.getOrDefault(false)) runCatching { com.topjohnwu.superuser.Shell.cmd(cmd).exec() }
+        }
+        appBytes.value = apps.allAppsBytes() ?: if (apps.hasUsageAccess()) runCatching { apps.list().sumOf { it.totalSize ?: it.apkSize } }.getOrNull() else null
+        result.value?.takeIf { it.root.path == storage.primaryRoot }?.let { systemBytes.value = apps.systemBytes(it.volumeTotal) }
     }
     fun unlockShizuku() = viewModelScope.launch { shizuku.requestPermission() }
     fun unlockRoot() = viewModelScope.launch { if (rootFs.requestRoot()) { settings.update { it.copy(rootMode = true) }; scan() } }
@@ -135,7 +145,7 @@ class AnalyzerViewModel @Inject constructor(
         }
     }
 
-    fun setRoot(p: FsPath) { root.value = p; scan() }
+    fun setRoot(p: FsPath) { if (p != root.value) result.value = null; root.value = p; scan() }
     fun toggle(p: FsPath) { selection.value = selection.value.let { if (p in it) it - p else it + p } }
     fun selectAll(paths: List<FsPath>) { selection.value = selection.value + paths }
     fun clear() { selection.value = emptySet() }
@@ -246,16 +256,24 @@ private fun Overview(r: AnalysisResult, vm: AnalyzerViewModel) {
     LazyColumn(Modifier.fillMaxSize().padding(16.dp)) {
         // Where the phone's "used" space goes. Files alone never add up to it: apps, blocked folders and the system are invisible to a file scan.
         if (r.volumeTotal > 0) item {
-            val used = r.volumeTotal - r.volumeFree
+            val primary = r.root.path == vm.primaryRoot
+            val system by vm.systemBytes.collectAsStateWithLifecycle()
+            val sys = if (primary) system else 0L
+            val used = r.volumeTotal - r.volumeFree + sys
+            // App sizes from Android already include Android/data and Android/obb, so those folders are not counted twice.
+            val apps = if (primary) appBytes else 0L
+            val appDirs = if (primary && apps != null) listOf("Android/data", "Android/obb").sumOf { r.folderTree[r.root.child("Android").child(it.substringAfter('/'))]?.size ?: 0L } else 0L
+            val files = (r.totalBytes - appDirs).coerceAtLeast(0)
             Column(Modifier.padding(bottom = 12.dp)) {
                 Text(stringResource(R.string.an_used_breakdown, Format.size(used)), style = MaterialTheme.typography.titleMedium)
-                SpaceRow(stringResource(R.string.an_part_files, r.files), r.totalBytes)
-                if (appBytes != null) SpaceRow(stringResource(R.string.an_part_apps), appBytes!!)
+                SpaceRow(stringResource(R.string.an_part_files, r.files), files)
+                if (apps != null) { if (primary) SpaceRow(stringResource(R.string.an_part_apps), apps) }
                 else Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.an_part_apps_unknown), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                     TextButton(onClick = { runCatching { ctx.startActivity(vm.usageAccessIntent()) } }) { Text(stringResource(R.string.grant)) }
                 }
-                SpaceRow(stringResource(R.string.an_part_rest), (used - r.totalBytes - (appBytes ?: 0)).coerceAtLeast(0))
+                if (sys > 0) SpaceRow(stringResource(R.string.an_part_system), sys)
+                SpaceRow(stringResource(if (apps != null) R.string.an_part_rest else R.string.an_part_rest_unmeasured), (used - sys - files - (apps ?: 0)).coerceAtLeast(0))
                 if (r.unreadable.isNotEmpty()) {
                     Text(stringResource(R.string.an_blocked, r.unreadable.size), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp))
                     Row {

@@ -26,8 +26,8 @@ data class AppSettings(
     val compactText: Boolean = false,
     val viewMode: ViewMode = ViewMode.LIST,
     val gridSize: Int = 3,
-    val sortBy: SortBy = SortBy.NAME,
-    val sortAscending: Boolean = true,
+    val sortBy: SortBy = SortBy.DATE,
+    val sortAscending: Boolean = false,
     val foldersFirst: Boolean = true,
     val perFolderView: Boolean = false,
     val showHidden: Boolean = false,
@@ -74,8 +74,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         val compact = booleanPreferencesKey("compact")
         val view = stringPreferencesKey("view")
         val grid = intPreferencesKey("grid")
-        val sort = stringPreferencesKey("sort")
-        val asc = booleanPreferencesKey("asc")
+        val sort = stringPreferencesKey("sort2") // "sort2"/"asc2": the default became newest first (build 22); old keys are ignored once
+        val asc = booleanPreferencesKey("asc2")
         val foldersFirst = booleanPreferencesKey("folders_first")
         val perFolder = booleanPreferencesKey("per_folder")
         val hidden = booleanPreferencesKey("hidden")
@@ -119,8 +119,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         compactText = p[K.compact] ?: false,
         viewMode = p[K.view]?.let { runCatching { ViewMode.valueOf(it) }.getOrNull() } ?: ViewMode.LIST,
         gridSize = p[K.grid] ?: 3,
-        sortBy = p[K.sort]?.let { runCatching { SortBy.valueOf(it) }.getOrNull() } ?: SortBy.NAME,
-        sortAscending = p[K.asc] ?: true,
+        sortBy = p[K.sort]?.let { runCatching { SortBy.valueOf(it) }.getOrNull() } ?: SortBy.DATE,
+        sortAscending = p[K.asc] ?: false,
         foldersFirst = p[K.foldersFirst] ?: true,
         perFolderView = p[K.perFolder] ?: false,
         showHidden = p[K.hidden] ?: false,

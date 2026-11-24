@@ -102,7 +102,8 @@ class StorageAnalyzer @Inject constructor(
         val stack = ArrayDeque<Frame>()
         val all = ArrayList<FileEntry>()
         val unreadable = ArrayList<Pair<FsPath, String>>()
-        fun listOf(p: FsPath): List<FileEntry> = try { kotlinx.coroutines.runBlocking { provider.list(p) } }
+        val local = provider as? com.xander.files.data.fs.local.LocalFileSystemProvider
+        fun listOf(p: FsPath): List<FileEntry> = try { kotlinx.coroutines.runBlocking { local?.listForWalk(p) ?: provider.list(p) } }
             catch (e: Exception) { unreadable += p to (com.xander.files.domain.fs.FsException.wrap(e).message ?: "Cannot read"); emptyList() }
         stack.add(Frame(root, listOf(root)))
         val visitedChildren = HashSet<FsPath>()

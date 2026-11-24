@@ -39,6 +39,18 @@ class LibraryCountsTest {
         assertEquals(2, dao.media().size)
     }
 
+    @Test fun subfolderSizesAddUpEachDirectChildFolder() = runBlocking {
+        dao.insertAll(listOf(
+            file("/sdcard/Music/a.mp3"),                                  // directly in Music: no subfolder
+            file("/sdcard/Music/Rock/x.mp3"), file("/sdcard/Music/Rock/Live/y.mp3"),
+            file("/sdcard/Music/Jazz/z.mp3"), file("/sdcard/Music2/w.mp3"), // Music2 is not inside Music
+            file("/sdcard/Music/Éclair/v.mp3"),                            // non-ASCII name: counted in characters
+        ))
+        val p = "/sdcard/Music/"
+        val sizes = dao.subfolderSizes(p, "/sdcard/Music0", p.length).associate { it.dir to it.bytes }
+        assertEquals(mapOf("/sdcard/Music/Rock" to 200L, "/sdcard/Music/Jazz" to 100L, "/sdcard/Music/Éclair" to 100L), sizes)
+    }
+
     @Test fun saveFilesAreNotGames() = runBlocking {
         dao.insertAll(listOf(file("/sdcard/Roms/zelda.gba"), file("/sdcard/Roms/zelda.sav"), file("/sdcard/Roms/zelda.srm"), file("/sdcard/Roms/zelda.state")))
         assertEquals(1, count(FileCategory.GAME))

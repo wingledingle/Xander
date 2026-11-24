@@ -105,6 +105,7 @@ class BrowserViewModel @Inject constructor(
     private val archives: com.xander.files.data.archive.ArchiveFileSystemProvider,
     private val sftp: com.xander.files.data.net.sftp.SftpFileSystemProvider,
     private val folderPrefs: com.xander.files.data.db.FolderPrefDao,
+    private val fileIndex: com.xander.files.data.db.FileIndexDao,
     private val launcher: com.xander.files.data.open.ViewerLauncher,
     private val mixer: com.xander.files.data.music.AudioMixer,
     private val bluetooth: com.xander.files.data.bluetooth.BluetoothRepository,
@@ -191,6 +192,7 @@ class BrowserViewModel @Inject constructor(
                 val list = provider.list(path)
                 raw.update { it.copy(entries = list, loading = false, error = null, title = title, writable = writable) }
                 if (settings.value.showFolderCounts) countChildren(path, list)
+                if (path.isLocal && list.any { it.isDirectory }) folderSizes(path)
                 if (!silent) history.upsert(HistoryEntity(path.toString(), title, System.currentTimeMillis()))
             } catch (e: RestrictedFolderException) {
                 raw.update { it.copy(entries = emptyList(), loading = false, error = BrowserError.Restricted(path), title = title) }
@@ -216,6 +218,15 @@ class BrowserViewModel @Inject constructor(
     }
 
     /** Fills in "N items" for local folders in the background without blocking the listing. */
+    /** Folder sizes from the file index (instant; walking every folder would take seconds). Unindexed folders show none. */
+    private fun folderSizes(path: FsPath) = viewModelScope.launch(Dispatchers.IO) {
+        val prefix = path.path.trimEnd('/') + "/"
+        val sizes = runCatching { fileIndex.subfolderSizes(prefix, prefix.dropLast(1) + "0", prefix.codePointCount(0, prefix.length)) }
+            .getOrNull()?.associate { it.dir to it.bytes } ?: return@launch
+        if (sizes.isEmpty()) return@launch
+        raw.update { st -> if (st.path != path) st else st.copy(entries = st.entries.map { e -> if (e.isDirectory) sizes[e.path.path]?.let { e.copy(size = it) } ?: e else e }) }
+    }
+
     private fun countChildren(path: FsPath, list: List<FileEntry>) = viewModelScope.launch(Dispatchers.IO) {
         val local = registry.provider(path) as? com.xander.files.data.fs.local.LocalFileSystemProvider ?: return@launch
         val dirs = list.filter { it.isDirectory && it.childCount == null }
@@ -283,7 +294,7 @@ class BrowserViewModel @Inject constructor(
             if (entry.path.scheme == FsPath.SCHEME_ARCHIVE && archives.needsPassword(entry.path)) {
                 _events.send(BrowserEvent.AskArchivePassword(archiveOf(entry.path), false)); return@launch
             }
-            launcher.open(entry)
+            launcher.open(entry, from = state.value.entries)
         }
     }
 

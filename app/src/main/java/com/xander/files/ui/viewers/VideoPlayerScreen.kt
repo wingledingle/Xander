@@ -113,8 +113,8 @@ class VideoPlayerViewModel @Inject constructor(
             // One listing of the folder gives both the playlist and every video's subtitles. (It used to list the
             // folder again for each video, so a big folder or a network share took ages before anything played.)
             val listing = media.folderOf(start)
-            val list = listing.filter { !it.isDirectory && it.category == FileCategory.VIDEO && !it.isHidden }
-                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name }).ifEmpty { listOf(FileEntry(start, false)) }
+            val list = (media.queued(start, setOf(FileCategory.VIDEO)) ?: listing.filter { !it.isDirectory && it.category == FileCategory.VIDEO && !it.isHidden }
+                .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })).ifEmpty { listOf(FileEntry(start, false)) }
             playlist.value = list
             val items = list.map { e -> item(e, listing) }
             val index = list.indexOfFirst { it.path == start }.coerceAtLeast(0)

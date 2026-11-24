@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -115,6 +116,8 @@ class LibraryViewModel @Inject constructor(
     fun setAdultThreshold(pct: Int) = viewModelScope.launch { settingsRepo.update { it.copy(nsfwThreshold = pct) }; load() }
 
     fun load() = viewModelScope.launch {
+        // Show the last list straight away (no spinner, no waiting) and refresh it underneath.
+        repo.cachedFiles(kind)?.takeIf { raw.isEmpty() }?.let { raw = it; apply().join() }
         loading.value = true
         // No per-file exists() check: on Android 11+ every stat goes through the storage FUSE layer, and doing it for
         // thousands of photos on the main thread froze the Images screen for seconds. The indexer prunes deleted files.
@@ -144,7 +147,7 @@ class LibraryViewModel @Inject constructor(
 
     fun open(e: FileEntry) = viewModelScope.launch {
         if (selection.value.isNotEmpty()) { toggle(e); return@launch }
-        launcher.open(e)
+        launcher.open(e, from = items.value)
     }
 
     fun copy(cut: Boolean) = viewModelScope.launch {
@@ -231,7 +234,11 @@ fun LibraryScreen(onBack: () -> Unit, onOpenFolder: (FsPath) -> Unit, vm: Librar
             androidx.compose.material3.Slider(t, { t = it }, valueRange = com.xander.files.data.nsfw.NSFW_THRESHOLD_MIN.toFloat()..95f, onValueChangeFinished = { vm.setAdultThreshold(t.toInt()) })
         }
     }
-    PullToRefreshBox(isRefreshing = loading && items.isNotEmpty(), onRefresh = vm::refresh, modifier = Modifier.fillMaxSize()) {
+    // A thin bar while a shown list is being refreshed, instead of blocking the screen.
+    if (loading && items.isNotEmpty()) androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
+    var pulling by remember { mutableStateOf(false) }
+    if (!loading) pulling = false
+    PullToRefreshBox(isRefreshing = pulling, onRefresh = { pulling = true; vm.refresh() }, modifier = Modifier.fillMaxSize()) {
             when {
                 loading && items.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                 items.isEmpty() -> EmptyState(Icons.Filled.SearchOff, stringResource(R.string.library_empty))

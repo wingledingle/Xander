@@ -100,7 +100,7 @@ class SearchViewModel @Inject constructor(
     }
 
     fun open(e: FileEntry) = viewModelScope.launch {
-        launcher.open(e)
+        launcher.open(e, from = state.value.results)
     }
 
     companion object { const val MAX_RESULTS = 5000 }

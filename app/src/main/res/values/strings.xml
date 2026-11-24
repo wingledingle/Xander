@@ -577,8 +577,10 @@
     <string name="an_used_breakdown">Used space: %s</string>
     <string name="an_part_files">Files found (%d)</string>
     <string name="an_part_apps">Apps and app data</string>
-    <string name="an_part_apps_unknown">Apps and app data: allow Usage access to measure</string>
-    <string name="an_part_rest">System, blocked folders and other</string>
+    <string name="an_part_apps_unknown">Apps and app data: not measured. Allow Usage access (Shizuku does it for you)</string>
+    <string name="an_part_system">Android system</string>
+    <string name="an_part_rest">Other (temporary system files, other users)</string>
+    <string name="an_part_rest_unmeasured">Apps, app data and system files (allow Usage access to split this up)</string>
     <string name="an_blocked">%d folders were blocked and not counted (e.g. Android/data). Unlock them, then rescan:</string>
     <string name="module_oleander" translatable="false">Oleander</string>
     <string name="module_oleander_summary">Game Boy Advance emulator</string>
@@ -620,8 +622,9 @@
     <string name="crash_reports">Crash reports</string>
     <string name="crash_reports_summary">Why the app last closed unexpectedly, if it did</string>
     <string name="crash_reports_empty">No crashes recorded.</string>
+    <string name="up_next">Up next: %1$s</string>
     <string name="game_best">Best %1$d</string>
     <string name="game_over">Missed! Tap to play again</string>
-    <string name="game_start">Tap to jump over the files while storage is scanned</string>
+    <string name="game_start">Help the butler while storage is scanned: tap to hop, hold to jump higher. Duck under high gulls by staying down.</string>
     <string name="an_dup_pending">Still checking for duplicates and archive copies…</string>
 </resources>

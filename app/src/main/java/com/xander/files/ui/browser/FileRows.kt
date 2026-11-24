@@ -70,7 +70,7 @@ fun FileEntry.displayName(showExt: Boolean): String =
     if (showExt || isDirectory || !name.contains('.') || name.startsWith('.')) name else name.substringBeforeLast('.')
 
 fun FileEntry.subtitle(): String = buildString {
-    if (isDirectory) { childCount?.let { append("$it items · ") } }
+    if (isDirectory) { childCount?.let { append("$it items · ") }; if (size > 0) append(Format.size(size)).append(" · ") }
     else append(Format.size(size)).append(" · ")
     append(Format.date(lastModified))
 }

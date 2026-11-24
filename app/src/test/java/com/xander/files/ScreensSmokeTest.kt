@@ -54,14 +54,16 @@ class ScreensSmokeTest {
     @Test fun videoPlayerShowsControlsAndLockWorks() {
         val clip = File(Environment.getExternalStorageDirectory(), "Movies/holiday clip.mp4").apply { parentFile!!.mkdirs(); writeBytes(ByteArray(2048)) }
         launch("video?path=" + android.net.Uri.encode(FsPath.local(clip.path).toString()))
-        waitFor(desc = "player controls") { desc("Lock controls") }
-        for (d in listOf("Back", "Audio track", "Subtitles", "Playback speed", "Aspect ratio", "Rotate", "Previous", "Next")) assertTrue("missing $d", desc(d))
+        waitFor(desc = "player controls") { text("Lock controls") }
+        for (d in listOf("Back", "Previous", "Next", "Play")) assertTrue("missing $d", desc(d))
+        // Tools are labelled buttons, not bare icons.
+        for (t in listOf("Audio track", "Subtitles", "Playback speed", "Fit", "Auto", "Lock controls")) assertTrue("missing $t", text(t))
         assertTrue(text("holiday clip.mp4"))
-        rule.onNodeWithContentDescription("Lock controls", useUnmergedTree = true).performClick()
+        rule.onNodeWithText("Lock controls", useUnmergedTree = true).performScrollTo().performClick()
         waitFor(desc = "unlock button") { desc("Unlock") }
-        assertTrue("controls must hide while locked", !desc("Aspect ratio"))
+        assertTrue("controls must hide while locked", !text("Playback speed"))
         rule.onNodeWithContentDescription("Unlock", useUnmergedTree = true).performClick()
-        waitFor(desc = "controls back") { desc("Aspect ratio") }
+        waitFor(desc = "controls back") { text("Playback speed") }
     }
 
     @Test fun analyzerListsAllFilesAndUnreadableFolders() {

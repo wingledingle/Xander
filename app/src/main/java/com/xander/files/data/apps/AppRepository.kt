@@ -88,6 +88,17 @@ class AppRepository @Inject constructor(
         return mode == android.app.AppOpsManager.MODE_ALLOWED
     }
 
+    /** All installed apps' code, data and cache for this user in one query (needs usage access), or null. */
+    fun allAppsBytes(): Long? = if (Build.VERSION.SDK_INT < 26 || !hasUsageAccess()) null else runCatching {
+        val s = context.getSystemService(StorageStatsManager::class.java).queryStatsForUser(StorageManager.UUID_DEFAULT, Process.myUserHandle())
+        s.appBytes + s.dataBytes
+    }.getOrNull()
+
+    /** Space Android itself takes outside the user data partition (the "System" figure in Settings > Storage). */
+    fun systemBytes(dataPartitionTotal: Long): Long = if (Build.VERSION.SDK_INT < 26 || dataPartitionTotal <= 0) 0 else runCatching {
+        (context.getSystemService(StorageStatsManager::class.java).getTotalBytes(StorageManager.UUID_DEFAULT) - dataPartitionTotal).coerceAtLeast(0)
+    }.getOrDefault(0)
+
     fun usageAccessIntent() = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
 
     fun launchIntent(pkg: String): Intent? = pm.getLaunchIntentForPackage(pkg) ?: pm.getLeanbackLaunchIntentForPackage(pkg)

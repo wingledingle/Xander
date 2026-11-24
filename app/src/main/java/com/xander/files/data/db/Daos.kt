@@ -106,6 +106,13 @@ data class CountSize(val count: Int, val size: Long)
 
 @Dao
 interface FileIndexDao {
+    /**
+     * Total size of the indexed files under each direct subfolder of a folder: [prefix] is "folder/", [n] its length in
+     * characters and [end] the prefix with the last "/" replaced by "0" (the next character), so the path index is used.
+     */
+    @Query("""SELECT substr(path, 1, :n + instr(substr(path, :n + 1), '/') - 1) AS dir, SUM(size) AS bytes FROM file_index
+        WHERE isDirectory = 0 AND path > :prefix AND path < :end AND instr(substr(path, :n + 1), '/') > 0 GROUP BY dir""")
+    suspend fun subfolderSizes(prefix: String, end: String, n: Int): List<DirSize>
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertAll(list: List<FileIndexEntity>)
     @Query("DELETE FROM file_index WHERE volume = :volume") suspend fun clearVolume(volume: String)
     @Query("DELETE FROM file_index WHERE volume = :volume AND seen < :stamp") suspend fun pruneStale(volume: String, stamp: Long)
@@ -200,3 +207,5 @@ interface NsfwDao {
     @Query("DELETE FROM nsfw_results WHERE path = :path") suspend fun delete(path: String)
     @Query("DELETE FROM nsfw_results") suspend fun clear()
 }
+
+data class DirSize(val dir: String, val bytes: Long)

@@ -15,7 +15,18 @@ class MediaLibraryHelper @Inject constructor(
     private val registry: FileSystemRegistry,
     private val positions: MediaPositionDao,
 ) {
+    /**
+     * The list the user opened a file from (Library, search results, a sorted folder). Viewers page through it in
+     * that order; null or not containing the file means "the file's folder, by name".
+     */
+    @Volatile var queue: List<FileEntry>? = null
+
+    /** [queue] filtered to [categories] if it holds [path], else null. */
+    fun queued(path: FsPath, categories: Set<FileCategory>): List<FileEntry>? =
+        queue?.takeIf { q -> q.any { it.path == path } }?.filter { !it.isDirectory && it.category in categories }
+
     suspend fun siblings(path: FsPath, categories: Set<FileCategory>): List<FileEntry> {
+        queued(path, categories)?.let { return it }
         val parent = path.parent ?: return emptyList()
         return runCatching { registry.provider(parent).list(parent) }.getOrDefault(emptyList())
             .filter { !it.isDirectory && it.category in categories && !it.isHidden }

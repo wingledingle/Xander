@@ -67,7 +67,8 @@ open class LocalFileSystemProvider @Inject constructor(
         if (Build.VERSION.SDK_INT < 30) return false
         val primary = volumes.primaryRoot
         val restricted = listOf("$primary/Android/data", "$primary/Android/obb")
-        return restricted.any { path == it || path.startsWith("$it/") }
+        // SD cards and USB drives have their own Android/data and Android/obb, blocked the same way.
+        return restricted.any { path == it || path.startsWith("$it/") } || RESTRICTED_ON_VOLUME.containsMatchIn(path)
     }
 
     /** Returns an equivalent location on a backend that can access [path], or null to use java.io. */
@@ -294,7 +295,37 @@ open class LocalFileSystemProvider @Inject constructor(
         try { block() } catch (e: Exception) { throw FsException.wrap(e, path) }
     }
 
+    /**
+     * list() for walking whole trees (storage analysis): name, type, size and date only. list() also looks up owner,
+     * group and permissions (about 8 system calls a file); this makes one, which matters on SD cards and big phones.
+     */
+    suspend fun listForWalk(dir: FsPath): List<FileEntry> {
+        delegateFor(dir, false)?.let { d -> return delegateProvider(d).list(d).map { it.rebase(dir, d) } }
+        return io(dir) {
+            val f = file(dir)
+            val kids = f.listFiles() ?: throw when {
+                !f.exists() -> FsException.NotFound(dir)
+                !f.isDirectory -> FsException.NotADirectory(dir)
+                else -> FsException.PermissionDenied(dir)
+            }
+            kids.map { c -> leanEntry(dir.child(c.name), c) }
+        }
+    }
+
+    private fun leanEntry(path: FsPath, f: File): FileEntry {
+        if (Build.VERSION.SDK_INT >= 26) runCatching {
+            val a = java.nio.file.Files.readAttributes(f.toPath(), java.nio.file.attribute.BasicFileAttributes::class.java, java.nio.file.LinkOption.NOFOLLOW_LINKS)
+            // A symlink is not followed: a linked folder is skipped by the walk, a linked file counts nothing (its target is counted where it lives).
+            if (a.isSymbolicLink) return FileEntry(path, f.isDirectory, 0, a.lastModifiedTime().toMillis(), isSymlink = true)
+            return FileEntry(path, a.isDirectory, if (a.isDirectory) 0 else a.size(), a.lastModifiedTime().toMillis())
+        }
+        val dir = f.isDirectory
+        return FileEntry(path, dir, if (dir) 0 else f.length(), f.lastModified())
+    }
+
     companion object {
+        /** Android/data or Android/obb on any /storage volume (SD card, USB), e.g. /storage/1A2B-3C4D/Android/data. */
+        private val RESTRICTED_ON_VOLUME = Regex("^/storage/[^/]+/Android/(data|obb)(/|$)")
         val externalRoot: String get() = Environment.getExternalStorageDirectory().absolutePath
     }
 }
